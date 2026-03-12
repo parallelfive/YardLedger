@@ -5,3 +5,4 @@ export * as salesService from './sales';
 export * as usersService from './users';
 export * as accessCodesService from './accessCodes';
 export * as reportsService from './reports';
+export * as companySettingsService from './companySettings';

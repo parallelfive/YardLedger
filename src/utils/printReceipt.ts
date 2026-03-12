@@ -1,4 +1,8 @@
 import * as Print from 'expo-print';
+import {
+  fetchCompanySettings,
+  type CompanySettings,
+} from '../services/companySettings';
 
 interface PrintLineItem {
   metal_name: string;
@@ -19,7 +23,10 @@ interface PrintReceiptData {
   line_items: PrintLineItem[];
 }
 
-function buildReceiptHtml(receipt: PrintReceiptData): string {
+function buildReceiptHtml(
+  receipt: PrintReceiptData,
+  company: CompanySettings | null
+): string {
   const lineItemsHtml = receipt.line_items
     .map(
       (item) => `
@@ -44,6 +51,18 @@ function buildReceiptHtml(receipt: PrintReceiptData): string {
     minute: '2-digit',
   });
 
+  // Company header
+  const companyName = company?.company_name || 'YardLedger';
+  const logoHtml = company?.logo_url
+    ? `<img src="${company.logo_url}" style="max-width:120px;max-height:80px;object-fit:contain;margin-bottom:8px;" />`
+    : '';
+  const addressHtml = company?.address
+    ? `<div style="font-size:12px;color:#666;margin-bottom:2px;">${company.address.replace(/\n/g, '<br>')}</div>`
+    : '';
+  const companyPhoneHtml = company?.phone
+    ? `<div style="font-size:12px;color:#666;">${company.phone}</div>`
+    : '';
+
   const signatureHtml = receipt.signature_uri
     ? `<div style="margin-top:24px;border-top:1px solid #ccc;padding-top:12px;">
         <p style="margin:0 0 8px;font-size:12px;color:#666;">Customer Signature</p>
@@ -57,7 +76,8 @@ function buildReceiptHtml(receipt: PrintReceiptData): string {
     <head>
       <meta charset="utf-8" />
       <style>
-        body { font-family: -apple-system, sans-serif; padding: 24px; color: #222; }
+        body { font-family: -apple-system, sans-serif; padding: 24px; color: #222; max-width: 80mm; margin: 0 auto; }
+        .company-header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #222; padding-bottom: 12px; }
         h1 { font-size: 22px; margin: 0 0 4px; }
         .receipt-number { color: #666; font-size: 14px; margin-bottom: 16px; }
         .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px; }
@@ -71,7 +91,13 @@ function buildReceiptHtml(receipt: PrintReceiptData): string {
       </style>
     </head>
     <body>
-      <h1>YardLedger</h1>
+      <div class="company-header">
+        ${logoHtml}
+        <h1>${companyName}</h1>
+        ${addressHtml}
+        ${companyPhoneHtml}
+      </div>
+
       <div class="receipt-number">${receipt.receipt_number}</div>
 
       <div class="info-row">
@@ -110,7 +136,13 @@ function buildReceiptHtml(receipt: PrintReceiptData): string {
 }
 
 export async function printReceipt(receipt: PrintReceiptData): Promise<void> {
-  const html = buildReceiptHtml(receipt);
+  let company: CompanySettings | null = null;
+  try {
+    company = await fetchCompanySettings();
+  } catch {
+    // Will use defaults
+  }
+  const html = buildReceiptHtml(receipt, company);
   await Print.printAsync({ html });
 }
 

@@ -177,6 +177,15 @@ export default function UserApprovalScreen({ navigation }: Props) {
             <Text style={styles.chevron}>{'>'}</Text>
           </TouchableOpacity>
 
+          {/* Company Profile Link */}
+          <TouchableOpacity
+            style={styles.pricingButton}
+            onPress={() => navigation.navigate('CompanyProfile')}
+          >
+            <Text style={styles.pricingButtonText}>{t.companyProfile}</Text>
+            <Text style={styles.chevron}>{'>'}</Text>
+          </TouchableOpacity>
+
           {/* Pending Users Header */}
           {pendingUsers.length > 0 && (
             <View style={styles.sectionHeader}>

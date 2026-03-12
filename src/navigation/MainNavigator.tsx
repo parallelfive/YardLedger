@@ -14,6 +14,7 @@ import ProfitabilityScreen from '../screens/reports/ProfitabilityScreen';
 import ShrinkageScreen from '../screens/reports/ShrinkageScreen';
 import UserApprovalScreen from '../screens/admin/UserApprovalScreen';
 import PricingScreen from '../screens/admin/PricingScreen';
+import CompanyProfileScreen from '../screens/admin/CompanyProfileScreen';
 import { useAppSelector, useAppDispatch, type RootState } from '../store';
 import { signOut } from '../store/authStore';
 import { useT } from '../hooks/useT';
@@ -49,6 +50,7 @@ export type ReportsStackParamList = {
 export type AdminStackParamList = {
   Users: undefined;
   Pricing: undefined;
+  CompanyProfile: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
@@ -176,6 +178,11 @@ function AdminNavigator() {
         name="Pricing"
         component={PricingScreen}
         options={{ title: t.pricing }}
+      />
+      <AdminStack.Screen
+        name="CompanyProfile"
+        component={CompanyProfileScreen}
+        options={{ title: t.companyProfile }}
       />
     </AdminStack.Navigator>
   );

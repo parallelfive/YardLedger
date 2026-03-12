@@ -176,6 +176,21 @@ export default {
     'Compara inventario esperado (comprado − vendido) contra stock real. Negativo = pérdida.',
   noShrinkageData: 'Sin datos de mermas disponibles',
 
+  // Company Profile
+  companyProfile: 'Perfil de Empresa',
+  companyInfo: 'Información de la Empresa',
+  companyLogo: 'Logo de la Empresa',
+  companyNameLabel: 'Nombre de la Empresa',
+  companyNamePlaceholder: 'Ingrese el nombre de la empresa',
+  addressLabel: 'Dirección',
+  addressPlaceholder: 'Ingrese la dirección',
+  phoneLabel: 'Teléfono',
+  phonePlaceholder: 'Ingrese el número de teléfono',
+  tapToAddLogo: 'Toca para agregar logo',
+  tapLogoToChange: 'Toca el logo para cambiar',
+  companySettingsSaved: '¡Configuración de empresa guardada!',
+  logoUploaded: '¡Logo subido!',
+
   // Navigation
   tabBuy: 'Compras',
   tabInventory: 'Inventario',

@@ -175,6 +175,21 @@ export default {
     'Compares expected inventory (bought − sold) against actual stock. Negative = loss.',
   noShrinkageData: 'No shrinkage data available',
 
+  // Company Profile
+  companyProfile: 'Company Profile',
+  companyInfo: 'Company Information',
+  companyLogo: 'Company Logo',
+  companyNameLabel: 'Company Name',
+  companyNamePlaceholder: 'Enter company name',
+  addressLabel: 'Address',
+  addressPlaceholder: 'Enter address',
+  phoneLabel: 'Phone',
+  phonePlaceholder: 'Enter phone number',
+  tapToAddLogo: 'Tap to add logo',
+  tapLogoToChange: 'Tap logo to change',
+  companySettingsSaved: 'Company settings saved!',
+  logoUploaded: 'Logo uploaded!',
+
   // Navigation
   tabBuy: 'Buy',
   tabInventory: 'Inventory',
