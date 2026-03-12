@@ -9,3 +9,4 @@ export { default as AdminPinModal } from './AdminPinModal';
 export { default as AccessCodeModal } from './AccessCodeModal';
 export { default as AddLineItemModal } from './AddLineItemModal';
 export { default as PriceSheetModal } from './PriceSheetModal';
+export { default as DateRangeSelector } from './DateRangeSelector';

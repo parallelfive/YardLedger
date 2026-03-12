@@ -1,16 +1,28 @@
-import { useCallback } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { SalesStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect } from '@react-navigation/native';
 import { useT } from '../../hooks/useT';
 import { useSales } from '../../hooks/useSales';
-import { RefreshableList } from '../../components';
-import { colors, spacing, fontSize } from '../../constants';
+import { RefreshableList, DateRangeSelector } from '../../components';
+import {
+  type DatePreset,
+  getDateRange,
+} from '../../components/DateRangeSelector';
+import { colors, spacing, fontSize, borderRadius } from '../../constants';
 import { calculateTotalProfit } from '../../utils/calculations';
+import { aggregateSalesByCategory } from '../../services/sales';
 
-export default function SalesScreen() {
+type Props = NativeStackScreenProps<SalesStackParamList, 'SalesList'>;
+
+export default function SalesScreen({ navigation }: Props) {
   const { t } = useT();
-  const { sales, loading, refresh } = useSales();
+  const [preset, setPreset] = useState<DatePreset>('today');
+  const { start, end } = getDateRange(preset);
+  const { sales, loading, refresh } = useSales(start, end);
   const totalProfit = calculateTotalProfit(sales);
+  const categorySummaries = aggregateSalesByCategory(sales);
 
   useFocusEffect(
     useCallback(() => {
@@ -20,18 +32,55 @@ export default function SalesScreen() {
 
   return (
     <View style={styles.container}>
+      <DateRangeSelector selected={preset} onSelect={setPreset} />
       {sales.length > 0 && (
-        <View style={styles.summaryBar}>
-          <Text style={styles.summaryLabel}>Total Profit</Text>
-          <Text
-            style={[
-              styles.summaryValue,
-              totalProfit < 0 && styles.summaryNegative,
-            ]}
-          >
-            ${totalProfit.toFixed(2)}
-          </Text>
-        </View>
+        <>
+          <View style={styles.summaryBar}>
+            <Text style={styles.summaryLabel}>{t.totalProfit}</Text>
+            <Text
+              style={[
+                styles.summaryValue,
+                totalProfit < 0 && styles.summaryNegative,
+              ]}
+            >
+              ${totalProfit.toFixed(2)}
+            </Text>
+          </View>
+
+          {categorySummaries.length > 0 && (
+            <View style={styles.categorySection}>
+              <Text style={styles.categorySectionTitle}>
+                {t.profitByCategory}
+              </Text>
+              {categorySummaries.map((cat) => (
+                <View key={cat.categoryName} style={styles.categoryCard}>
+                  <View style={styles.categoryHeader}>
+                    <Text style={styles.categoryName}>{cat.categoryName}</Text>
+                    <Text
+                      style={[
+                        styles.categoryProfit,
+                        cat.totalProfit < 0 && styles.categoryProfitNegative,
+                      ]}
+                    >
+                      ${cat.totalProfit.toFixed(2)}
+                    </Text>
+                  </View>
+                  <View style={styles.categoryDetails}>
+                    <Text style={styles.categoryDetail}>
+                      {t.sold}: {cat.totalWeightSold.toFixed(0)} lbs
+                    </Text>
+                    <Text style={styles.categoryDetail}>
+                      {t.revenue}: ${cat.totalRevenue.toFixed(2)}
+                    </Text>
+                    <Text style={styles.categoryDetail}>
+                      {t.cost}: ${cat.totalCost.toFixed(2)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </>
       )}
       <RefreshableList
         data={sales}
@@ -54,14 +103,18 @@ export default function SalesScreen() {
               </View>
               <Text style={styles.detail}>
                 {Number(item.weight).toFixed(2)} lbs @ $
-                {Number(item.sale_price_per_lb).toFixed(4)}/lb
+                {Number(item.sale_price_per_lb).toFixed(4)}
+                {t.perLb}
               </Text>
               <Text style={styles.detail}>
-                Revenue: ${Number(item.total_revenue).toFixed(2)} | Cost basis:
-                ${Number(item.cost_basis_per_lb).toFixed(4)}/lb
+                {t.revenue}: ${Number(item.total_revenue).toFixed(2)} |{' '}
+                {t.avgCost}: ${Number(item.cost_basis_per_lb).toFixed(4)}
+                {t.perLb}
               </Text>
               {item.buyer_name ? (
-                <Text style={styles.detail}>Buyer: {item.buyer_name}</Text>
+                <Text style={styles.detail}>
+                  {t.buyerName}: {item.buyer_name}
+                </Text>
               ) : null}
               <Text style={styles.date}>
                 {new Date(item.created_at).toLocaleDateString()}
@@ -70,6 +123,12 @@ export default function SalesScreen() {
           );
         }}
       />
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate('NewSale')}
+      >
+        <Text style={styles.fabText}>{t.newSale}</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -102,6 +161,49 @@ const styles = StyleSheet.create({
   },
   summaryNegative: {
     color: colors.danger,
+  },
+  categorySection: {
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+  },
+  categorySectionTitle: {
+    color: colors.accent,
+    fontSize: fontSize.lg,
+    fontWeight: 'bold',
+    marginBottom: spacing.sm,
+  },
+  categoryCard: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  categoryName: {
+    color: colors.textPrimary,
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+  },
+  categoryProfit: {
+    color: colors.success,
+    fontSize: fontSize.lg,
+    fontWeight: 'bold',
+  },
+  categoryProfitNegative: {
+    color: colors.danger,
+  },
+  categoryDetails: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  categoryDetail: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
   },
   card: {
     backgroundColor: colors.card,
@@ -138,5 +240,24 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
     fontSize: fontSize.sm,
     marginTop: spacing.xs,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: spacing.xl,
+    right: spacing.xl,
+    backgroundColor: colors.accent,
+    borderRadius: 28,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+  },
+  fabText: {
+    color: colors.background,
+    fontSize: fontSize.lg,
+    fontWeight: 'bold',
   },
 });

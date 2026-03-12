@@ -4,6 +4,7 @@ export async function fetchInventory() {
   const { data, error } = await supabase
     .from('inventory')
     .select('*, metals(name, price_per_lb)')
+    .gt('weight', 0)
     .order('metal_name');
   if (error) throw error;
   return data;

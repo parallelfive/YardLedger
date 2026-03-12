@@ -6,6 +6,12 @@ import NewTransactionScreen from '../screens/transactions/NewTransactionScreen';
 import ReceiptDetailScreen from '../screens/transactions/ReceiptDetailScreen';
 import InventoryScreen from '../screens/inventory/InventoryScreen';
 import SalesScreen from '../screens/sales/SalesScreen';
+import NewSaleScreen from '../screens/sales/NewSaleScreen';
+import ReportsListScreen from '../screens/reports/ReportsListScreen';
+import DailySummaryScreen from '../screens/reports/DailySummaryScreen';
+import InventoryValuationScreen from '../screens/reports/InventoryValuationScreen';
+import ProfitabilityScreen from '../screens/reports/ProfitabilityScreen';
+import ShrinkageScreen from '../screens/reports/ShrinkageScreen';
 import UserApprovalScreen from '../screens/admin/UserApprovalScreen';
 import PricingScreen from '../screens/admin/PricingScreen';
 import { useAppSelector, useAppDispatch, type RootState } from '../store';
@@ -16,7 +22,8 @@ import { colors, fontSize, spacing } from '../constants';
 export type MainTabParamList = {
   TransactionsTab: undefined;
   Inventory: undefined;
-  Sales: undefined;
+  SalesTab: undefined;
+  ReportsTab: undefined;
   AdminTab: undefined;
 };
 
@@ -24,6 +31,19 @@ export type TransactionsStackParamList = {
   TransactionsList: undefined;
   NewTransaction: undefined;
   ReceiptDetail: { receiptId: string; printOnLoad?: boolean };
+};
+
+export type SalesStackParamList = {
+  SalesList: undefined;
+  NewSale: undefined;
+};
+
+export type ReportsStackParamList = {
+  ReportsList: undefined;
+  DailySummary: undefined;
+  InventoryValuation: undefined;
+  Profitability: undefined;
+  Shrinkage: undefined;
 };
 
 export type AdminStackParamList = {
@@ -34,6 +54,8 @@ export type AdminStackParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const TransactionsStack =
   createNativeStackNavigator<TransactionsStackParamList>();
+const SalesStack = createNativeStackNavigator<SalesStackParamList>();
+const ReportsStack = createNativeStackNavigator<ReportsStackParamList>();
 const AdminStack = createNativeStackNavigator<AdminStackParamList>();
 
 function TransactionsNavigator() {
@@ -72,6 +94,67 @@ function TransactionsNavigator() {
         options={{ title: t.receiptDetail }}
       />
     </TransactionsStack.Navigator>
+  );
+}
+
+function SalesNavigator() {
+  const { t } = useT();
+  return (
+    <SalesStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.card },
+        headerTintColor: colors.textPrimary,
+      }}
+    >
+      <SalesStack.Screen
+        name="SalesList"
+        component={SalesScreen}
+        options={{ title: t.tabSales }}
+      />
+      <SalesStack.Screen
+        name="NewSale"
+        component={NewSaleScreen}
+        options={{ title: t.newSale }}
+      />
+    </SalesStack.Navigator>
+  );
+}
+
+function ReportsNavigator() {
+  const { t } = useT();
+  return (
+    <ReportsStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.card },
+        headerTintColor: colors.textPrimary,
+      }}
+    >
+      <ReportsStack.Screen
+        name="ReportsList"
+        component={ReportsListScreen}
+        options={{ title: t.tabReports }}
+      />
+      <ReportsStack.Screen
+        name="DailySummary"
+        component={DailySummaryScreen}
+        options={{ title: t.dailySummary }}
+      />
+      <ReportsStack.Screen
+        name="InventoryValuation"
+        component={InventoryValuationScreen}
+        options={{ title: t.inventoryValuation }}
+      />
+      <ReportsStack.Screen
+        name="Profitability"
+        component={ProfitabilityScreen}
+        options={{ title: t.profitability }}
+      />
+      <ReportsStack.Screen
+        name="Shrinkage"
+        component={ShrinkageScreen}
+        options={{ title: t.shrinkage }}
+      />
+    </ReportsStack.Navigator>
   );
 }
 
@@ -136,10 +219,17 @@ export default function MainNavigator() {
         options={{ title: t.tabInventory }}
       />
       <Tab.Screen
-        name="Sales"
-        component={SalesScreen}
-        options={{ title: t.tabSales }}
+        name="SalesTab"
+        component={SalesNavigator}
+        options={{ title: t.tabSales, headerShown: false }}
       />
+      {isAdmin && (
+        <Tab.Screen
+          name="ReportsTab"
+          component={ReportsNavigator}
+          options={{ title: t.tabReports, headerShown: false }}
+        />
+      )}
       {isAdmin && (
         <Tab.Screen
           name="AdminTab"

@@ -6,7 +6,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useT } from '../../hooks/useT';
 import { useReceipts } from '../../hooks/useReceipts';
 import { useAppSelector, type RootState } from '../../store';
-import { RefreshableList, PriceSheetModal } from '../../components';
+import {
+  RefreshableList,
+  PriceSheetModal,
+  DateRangeSelector,
+} from '../../components';
+import {
+  type DatePreset,
+  getDateRange,
+} from '../../components/DateRangeSelector';
 import { colors, spacing, fontSize } from '../../constants';
 
 type Props = NativeStackScreenProps<
@@ -18,8 +26,12 @@ export default function TransactionsScreen({ navigation }: Props) {
   const { t } = useT();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const isAdmin = profile?.role === 'admin';
+  const [preset, setPreset] = useState<DatePreset>('today');
+  const { start, end } = getDateRange(preset);
   const { receipts, loading, refresh } = useReceipts(
-    isAdmin ? undefined : profile?.id
+    isAdmin ? undefined : profile?.id,
+    start,
+    end
   );
   const [showPrices, setShowPrices] = useState(false);
 
@@ -31,6 +43,7 @@ export default function TransactionsScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
+      <DateRangeSelector selected={preset} onSelect={setPreset} />
       <RefreshableList
         data={receipts}
         keyExtractor={(item) => item.id}

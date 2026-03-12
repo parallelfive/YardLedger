@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchSales } from '../services/sales';
 
-export function useSales() {
+export function useSales(startDate?: string, endDate?: string) {
   const [sales, setSales] = useState<Awaited<ReturnType<typeof fetchSales>>>(
     []
   );
@@ -12,14 +12,14 @@ export function useSales() {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchSales();
+      const data = await fetchSales(startDate, endDate);
       setSales(data);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [startDate, endDate]);
 
   useEffect(() => {
     load();

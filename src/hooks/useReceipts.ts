@@ -1,7 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchReceipts } from '../services/receipts';
 
-export function useReceipts(workerId?: string) {
+export function useReceipts(
+  workerId?: string,
+  startDate?: string,
+  endDate?: string
+) {
   const [receipts, setReceipts] = useState<
     Awaited<ReturnType<typeof fetchReceipts>>
   >([]);
@@ -12,14 +16,14 @@ export function useReceipts(workerId?: string) {
     setLoading(true);
     setError(null);
     try {
-      const data = await fetchReceipts(workerId);
+      const data = await fetchReceipts(workerId, startDate, endDate);
       setReceipts(data);
     } catch (err) {
       setError((err as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [workerId]);
+  }, [workerId, startDate, endDate]);
 
   useEffect(() => {
     load();
