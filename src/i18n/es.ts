@@ -139,13 +139,28 @@ export default {
   codeGenerated: 'Recuerda este código — no se mostrará de nuevo.',
   generateNew: 'Generar Nuevo Código',
 
-  // Pricing
+  // Pricing & Metals Management
   pricing: 'Precios',
   editPricing: 'Editar Precios',
   enterAccessCode: 'Ingrese Código de Acceso',
   invalidCode: 'Código inválido o ya utilizado',
   priceUpdated: '¡Precio actualizado!',
   perLb: '/lb',
+  addMetal: 'Agregar Metal',
+  newMetal: 'Nuevo Metal',
+  metalName: 'Nombre del Metal',
+  metalNamePlaceholder: 'ej. Cobre #1',
+  initialPrice: 'Precio Inicial ($/lb)',
+  selectCategoryForMetal: 'Categoría',
+  metalAdded: '¡Metal agregado!',
+  editMetal: 'Editar Metal',
+  renameMetal: 'Renombrar',
+  removeMetal: 'Eliminar Metal',
+  removeMetalConfirm:
+    'Esto ocultará el metal de todas las listas. Los recibos existentes no se afectan.',
+  metalRemoved: '¡Metal eliminado!',
+  metalUpdated: '¡Metal actualizado!',
+  enterMetalName: 'Ingrese un nombre de metal',
 
   // Reports
   tabReports: 'Reportes',

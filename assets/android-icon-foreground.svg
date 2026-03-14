@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="432" height="432">
+  <defs>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5de8df;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3bb8b0;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Scale pillar -->
+  <rect x="52" y="36" width="4" height="32" rx="1" fill="url(#tealGrad)" />
+
+  <!-- Base -->
+  <rect x="42" y="66" width="24" height="3" rx="1.5" fill="url(#tealGrad)" />
+
+  <!-- Pivot -->
+  <circle cx="54" cy="36" r="3" fill="url(#tealGrad)" />
+  <circle cx="54" cy="36" r="1.5" fill="#0f1a2e" />
+
+  <!-- Beam -->
+  <rect x="30" y="34" width="48" height="2" rx="1" fill="url(#tealGrad)" transform="rotate(-4, 54, 35)" />
+
+  <!-- Left pan -->
+  <ellipse cx="37" cy="44" rx="10" ry="2" fill="#5de8df" />
+  <path d="M27 44 Q28 49 37 49 Q46 49 47 44 Z" fill="#4ecdc4" />
+
+  <!-- Right pan -->
+  <ellipse cx="71" cy="44" rx="10" ry="2" fill="#5de8df" />
+  <path d="M61 44 Q62 49 71 49 Q80 49 81 44 Z" fill="#4ecdc4" />
+
+  <!-- Chains -->
+  <line x1="34" y1="33" x2="32" y2="44" stroke="#5de8df" stroke-width="1" />
+  <line x1="40" y1="33.5" x2="42" y2="44" stroke="#5de8df" stroke-width="1" />
+  <line x1="68" y1="35.5" x2="66" y2="44" stroke="#5de8df" stroke-width="1" />
+  <line x1="74" y1="36" x2="76" y2="44" stroke="#5de8df" stroke-width="1" />
+
+  <!-- YL text -->
+  <text x="54" y="28" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="16" fill="url(#tealGrad)">YL</text>
+
+  <!-- YARD LEDGER -->
+  <text x="54" y="80" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="6" letter-spacing="1.5" fill="#4ecdc4" opacity="0.9">YARD</text>
+  <text x="54" y="87" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="300" font-size="5.5" letter-spacing="2" fill="#4ecdc4" opacity="0.6">LEDGER</text>
+</svg>

@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f1a2e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0a1220;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#5de8df;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3bb8b0;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="panGradL" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ecdc4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3aa89f;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="panGradR" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#4ecdc4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3aa89f;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect x="32" y="32" width="960" height="960" rx="220" ry="220" fill="url(#bgGrad)" />
+
+  <!-- Subtle inner border -->
+  <rect x="52" y="52" width="920" height="920" rx="200" ry="200" fill="none" stroke="#4ecdc4" stroke-width="3" opacity="0.15" />
+
+  <!-- Ledger lines (subtle horizontal lines in background) -->
+  <g opacity="0.06" stroke="#4ecdc4" stroke-width="2">
+    <line x1="200" y1="300" x2="824" y2="300" />
+    <line x1="200" y1="360" x2="824" y2="360" />
+    <line x1="200" y1="420" x2="824" y2="420" />
+    <line x1="200" y1="480" x2="824" y2="480" />
+    <line x1="200" y1="540" x2="824" y2="540" />
+    <line x1="200" y1="600" x2="824" y2="600" />
+    <line x1="200" y1="660" x2="824" y2="660" />
+    <line x1="200" y1="720" x2="824" y2="720" />
+  </g>
+
+  <!-- Scale - Center pillar -->
+  <rect x="496" y="340" width="32" height="320" rx="6" fill="url(#tealGrad)" />
+
+  <!-- Scale - Base -->
+  <rect x="396" y="640" width="232" height="28" rx="14" fill="url(#tealGrad)" />
+
+  <!-- Scale - Base foot -->
+  <rect x="440" y="660" width="144" height="24" rx="12" fill="#3aa89f" />
+
+  <!-- Scale - Top beam pivot (circle) -->
+  <circle cx="512" cy="340" r="24" fill="url(#tealGrad)" />
+  <circle cx="512" cy="340" r="12" fill="#0f1a2e" />
+
+  <!-- Scale - Beam (slightly tilted to show weighing) -->
+  <rect x="260" y="326" width="504" height="14" rx="7" fill="url(#tealGrad)" transform="rotate(-4, 512, 333)" />
+
+  <!-- Scale - Left chain -->
+  <line x1="310" y1="312" x2="290" y2="420" stroke="#5de8df" stroke-width="8" stroke-linecap="round" />
+  <line x1="400" y1="318" x2="390" y2="420" stroke="#5de8df" stroke-width="8" stroke-linecap="round" />
+
+  <!-- Scale - Left pan (lower, heavier side - has metal) -->
+  <path d="M240 420 Q245 460 340 460 Q435 460 440 420 Z" fill="url(#panGradL)" />
+  <ellipse cx="340" cy="420" rx="100" ry="16" fill="#5de8df" />
+
+  <!-- Metal chunks on left pan -->
+  <rect x="295" y="395" width="35" height="25" rx="4" fill="#8899aa" transform="rotate(-10, 312, 407)" />
+  <rect x="330" y="398" width="30" height="22" rx="4" fill="#99aabb" transform="rotate(5, 345, 409)" />
+  <rect x="310" y="385" width="28" height="20" rx="3" fill="#7788aa" transform="rotate(-5, 324, 395)" />
+
+  <!-- Scale - Right chain -->
+  <line x1="624" y1="342" x2="634" y2="420" stroke="#5de8df" stroke-width="8" stroke-linecap="round" />
+  <line x1="714" y1="348" x2="734" y2="420" stroke="#5de8df" stroke-width="8" stroke-linecap="round" />
+
+  <!-- Scale - Right pan (higher, lighter side) -->
+  <path d="M584 420 Q589 460 684 460 Q779 460 784 420 Z" fill="url(#panGradR)" />
+  <ellipse cx="684" cy="420" rx="100" ry="16" fill="#5de8df" />
+
+  <!-- Dollar sign on right pan -->
+  <text x="684" y="414" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="48" fill="#0f1a2e" opacity="0.6">$</text>
+
+  <!-- "YL" Monogram -->
+  <text x="512" y="260" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="140" letter-spacing="-5" fill="url(#tealGrad)">YL</text>
+
+  <!-- "YARD LEDGER" text at bottom -->
+  <text x="512" y="780" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="56" letter-spacing="14" fill="#4ecdc4" opacity="0.9">YARD</text>
+  <text x="512" y="840" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="300" font-size="52" letter-spacing="18" fill="#4ecdc4" opacity="0.6">LEDGER</text>
+</svg>

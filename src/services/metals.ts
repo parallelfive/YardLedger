@@ -10,10 +10,14 @@ export async function fetchMetals() {
   return data;
 }
 
-export async function createMetal(name: string, pricePerLb: number) {
+export async function createMetal(
+  name: string,
+  pricePerLb: number,
+  categoryId?: string
+) {
   const { data, error } = await supabase
     .from('metals')
-    .insert({ name, price_per_lb: pricePerLb })
+    .insert({ name, price_per_lb: pricePerLb, category_id: categoryId })
     .select()
     .single();
   if (error) throw error;
@@ -28,6 +32,21 @@ export async function updateMetalPrice(
   const { data, error } = await supabase
     .from('metals')
     .update({ price_per_lb: pricePerLb, updated_by: updatedBy })
+    .eq('id', metalId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updateMetal(
+  metalId: string,
+  updates: { name?: string; price_per_lb?: number },
+  updatedBy: string
+) {
+  const { data, error } = await supabase
+    .from('metals')
+    .update({ ...updates, updated_by: updatedBy })
     .eq('id', metalId)
     .select()
     .single();

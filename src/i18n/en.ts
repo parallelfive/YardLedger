@@ -138,13 +138,28 @@ export default {
   codeGenerated: 'Remember this code — it will not be shown again.',
   generateNew: 'Generate New Code',
 
-  // Pricing
+  // Pricing & Metals Management
   pricing: 'Pricing',
   editPricing: 'Edit Pricing',
   enterAccessCode: 'Enter Access Code',
   invalidCode: 'Invalid or already used code',
   priceUpdated: 'Price updated!',
   perLb: '/lb',
+  addMetal: 'Add Metal',
+  newMetal: 'New Metal',
+  metalName: 'Metal Name',
+  metalNamePlaceholder: 'e.g. #1 Copper Wire',
+  initialPrice: 'Initial Price ($/lb)',
+  selectCategoryForMetal: 'Category',
+  metalAdded: 'Metal added!',
+  editMetal: 'Edit Metal',
+  renameMetal: 'Rename',
+  removeMetal: 'Remove Metal',
+  removeMetalConfirm:
+    'This will hide the metal from all lists. Existing receipts are not affected.',
+  metalRemoved: 'Metal removed!',
+  metalUpdated: 'Metal updated!',
+  enterMetalName: 'Enter a metal name',
 
   // Reports
   tabReports: 'Reports',

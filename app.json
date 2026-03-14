@@ -28,6 +28,17 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-sharing"]
+    "plugins": ["expo-sharing", "expo-secure-store"],
+    "extra": {
+      "eas": {
+        "projectId": "119ad3ea-3267-4b4c-9097-50dc55879a40"
+      }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/119ad3ea-3267-4b4c-9097-50dc55879a40"
+    }
   }
 }

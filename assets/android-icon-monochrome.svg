@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="432" height="432">
+  <!-- Scale pillar -->
+  <rect x="52" y="36" width="4" height="32" rx="1" fill="white" />
+
+  <!-- Base -->
+  <rect x="42" y="66" width="24" height="3" rx="1.5" fill="white" />
+
+  <!-- Pivot -->
+  <circle cx="54" cy="36" r="3" fill="white" />
+
+  <!-- Beam -->
+  <rect x="30" y="34" width="48" height="2" rx="1" fill="white" transform="rotate(-4, 54, 35)" />
+
+  <!-- Left pan -->
+  <ellipse cx="37" cy="44" rx="10" ry="2" fill="white" />
+  <path d="M27 44 Q28 49 37 49 Q46 49 47 44 Z" fill="white" />
+
+  <!-- Right pan -->
+  <ellipse cx="71" cy="44" rx="10" ry="2" fill="white" />
+  <path d="M61 44 Q62 49 71 49 Q80 49 81 44 Z" fill="white" />
+
+  <!-- Chains -->
+  <line x1="34" y1="33" x2="32" y2="44" stroke="white" stroke-width="1" />
+  <line x1="40" y1="33.5" x2="42" y2="44" stroke="white" stroke-width="1" />
+  <line x1="68" y1="35.5" x2="66" y2="44" stroke="white" stroke-width="1" />
+  <line x1="74" y1="36" x2="76" y2="44" stroke="white" stroke-width="1" />
+
+  <!-- YL text -->
+  <text x="54" y="28" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="16" fill="white">YL</text>
+</svg>
