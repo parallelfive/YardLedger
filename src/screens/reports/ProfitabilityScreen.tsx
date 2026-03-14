@@ -177,6 +177,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   summaryLabel: {
     color: colors.textSecondary,
@@ -186,7 +188,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   metalCard: {
     backgroundColor: colors.card,
@@ -194,6 +196,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     padding: spacing.lg,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   metalHeader: {
     flexDirection: 'row',
@@ -212,7 +216,7 @@ const styles = StyleSheet.create({
   },
   metalProfit: {
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   metalDetails: {
     gap: spacing.xs,

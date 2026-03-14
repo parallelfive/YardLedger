@@ -128,6 +128,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     padding: spacing.lg,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     borderLeftWidth: 3,
   },
   cardHeader: {
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
   },
   discrepancyValue: {
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   discrepancyPercent: {
     fontSize: fontSize.sm,

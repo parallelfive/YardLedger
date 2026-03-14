@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSize.xxl,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: colors.warning,
     marginBottom: spacing.md,
   },
@@ -63,15 +63,20 @@ const styles = StyleSheet.create({
   },
   checkButton: {
     backgroundColor: colors.accent,
-    borderRadius: 8,
+    borderRadius: 10,
     paddingVertical: spacing.lg,
     paddingHorizontal: spacing.xxxl,
     marginBottom: spacing.lg,
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 4,
   },
   checkButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   signOutButton: {
     paddingVertical: spacing.md,

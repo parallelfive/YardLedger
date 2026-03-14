@@ -16,6 +16,9 @@ import {
   fetchMetalCategories,
   fetchMetalsByCategory,
   updateMetalPrice,
+  createMetal,
+  updateMetal,
+  deactivateMetal,
 } from '../../services/metals';
 import { useAppSelector, type RootState } from '../../store';
 import { useT } from '../../hooks/useT';
@@ -23,30 +26,36 @@ import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 interface MetalSection {
   title: string;
+  categoryId: string;
   data: Metal[];
 }
+
+type ModalMode = 'edit' | 'add' | null;
 
 export default function PricingScreen() {
   const { t } = useT();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const [sections, setSections] = useState<MetalSection[]>([]);
+  const [categories, setCategories] = useState<MetalCategory[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Edit modal state
+  // Modal state
+  const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [editingMetal, setEditingMetal] = useState<Metal | null>(null);
   const [newPrice, setNewPrice] = useState('');
+  const [newName, setNewName] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [saving, setSaving] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const categories: MetalCategory[] = await fetchMetalCategories();
+      const cats: MetalCategory[] = await fetchMetalCategories();
+      setCategories(cats);
       const results: MetalSection[] = [];
-      for (const cat of categories) {
+      for (const cat of cats) {
         const metals = await fetchMetalsByCategory(cat.id);
-        if (metals.length > 0) {
-          results.push({ title: cat.name, data: metals });
-        }
+        results.push({ title: cat.name, categoryId: cat.id, data: metals });
       }
       setSections(results);
     } catch (err) {
@@ -62,17 +71,31 @@ export default function PricingScreen() {
     }, [loadData])
   );
 
+  // --- Edit existing metal ---
   const openEdit = (metal: Metal) => {
     setEditingMetal(metal);
     setNewPrice(metal.price_per_lb.toString());
+    setNewName(metal.name);
+    setModalMode('edit');
   };
 
-  const closeEdit = () => {
+  // --- Add new metal ---
+  const openAdd = (categoryId: string) => {
+    setSelectedCategoryId(categoryId);
+    setNewName('');
+    setNewPrice('');
+    setModalMode('add');
+  };
+
+  const closeModal = () => {
+    setModalMode(null);
     setEditingMetal(null);
     setNewPrice('');
+    setNewName('');
+    setSelectedCategoryId('');
   };
 
-  const handleSave = async () => {
+  const handleSaveEdit = async () => {
     if (!editingMetal || !profile) return;
 
     const price = parseFloat(newPrice);
@@ -81,22 +104,93 @@ export default function PricingScreen() {
       return;
     }
 
-    if (price === editingMetal.price_per_lb) {
-      closeEdit();
+    const trimmedName = newName.trim();
+    if (!trimmedName) {
+      Alert.alert(t.error, t.enterMetalName);
+      return;
+    }
+
+    const priceChanged = price !== editingMetal.price_per_lb;
+    const nameChanged = trimmedName !== editingMetal.name;
+
+    if (!priceChanged && !nameChanged) {
+      closeModal();
       return;
     }
 
     setSaving(true);
     try {
-      await updateMetalPrice(editingMetal.id, price, profile.id);
-      Alert.alert(t.success, t.priceUpdated);
-      closeEdit();
+      if (nameChanged && priceChanged) {
+        await updateMetal(
+          editingMetal.id,
+          { name: trimmedName, price_per_lb: price },
+          profile.id
+        );
+      } else if (nameChanged) {
+        await updateMetal(editingMetal.id, { name: trimmedName }, profile.id);
+      } else {
+        await updateMetalPrice(editingMetal.id, price, profile.id);
+      }
+      Alert.alert(t.success, t.metalUpdated);
+      closeModal();
       loadData();
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAdd = async () => {
+    if (!profile) return;
+
+    const trimmedName = newName.trim();
+    if (!trimmedName) {
+      Alert.alert(t.error, t.enterMetalName);
+      return;
+    }
+
+    const price = parseFloat(newPrice);
+    if (!price || price <= 0) {
+      Alert.alert(t.error, t.enterValidPrice);
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await createMetal(trimmedName, price, selectedCategoryId);
+      Alert.alert(t.success, t.metalAdded);
+      closeModal();
+      loadData();
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemove = () => {
+    if (!editingMetal) return;
+    Alert.alert(t.removeMetal, t.removeMetalConfirm, [
+      { text: t.cancel, style: 'cancel' },
+      {
+        text: t.delete,
+        style: 'destructive',
+        onPress: async () => {
+          setSaving(true);
+          try {
+            await deactivateMetal(editingMetal.id);
+            Alert.alert(t.success, t.metalRemoved);
+            closeModal();
+            loadData();
+          } catch (err) {
+            Alert.alert(t.error, (err as Error).message);
+          } finally {
+            setSaving(false);
+          }
+        },
+      },
+    ]);
   };
 
   return (
@@ -109,6 +203,12 @@ export default function PricingScreen() {
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => openAdd(section.categoryId)}
+            >
+              <Text style={styles.addButtonText}>{t.addMetal}</Text>
+            </TouchableOpacity>
           </View>
         )}
         renderItem={({ item }) => (
@@ -132,28 +232,31 @@ export default function PricingScreen() {
         }
       />
 
-      {/* Edit Price Modal */}
+      {/* Edit Metal Modal */}
       <Modal
-        visible={editingMetal !== null}
+        visible={modalMode === 'edit'}
         animationType="slide"
         presentationStyle="formSheet"
-        onRequestClose={closeEdit}
+        onRequestClose={closeModal}
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t.editPricing}</Text>
-            <TouchableOpacity onPress={closeEdit}>
+            <Text style={styles.modalTitle}>{t.editMetal}</Text>
+            <TouchableOpacity onPress={closeModal}>
               <Text style={styles.modalCancel}>{t.cancel}</Text>
             </TouchableOpacity>
           </View>
 
           {editingMetal && (
             <View style={styles.modalContent}>
-              <Text style={styles.editMetalName}>{editingMetal.name}</Text>
-              <Text style={styles.currentPrice}>
-                ${Number(editingMetal.price_per_lb).toFixed(4)}
-                {t.perLb}
-              </Text>
+              <Text style={styles.fieldLabel}>{t.metalName}</Text>
+              <TextInput
+                style={styles.textInput}
+                value={newName}
+                onChangeText={setNewName}
+                placeholder={t.metalNamePlaceholder}
+                placeholderTextColor={colors.textSecondary}
+              />
 
               <Text style={styles.fieldLabel}>{t.pricePerLb}</Text>
               <TextInput
@@ -161,12 +264,11 @@ export default function PricingScreen() {
                 value={newPrice}
                 onChangeText={setNewPrice}
                 keyboardType="decimal-pad"
-                autoFocus
               />
 
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-                onPress={handleSave}
+                onPress={handleSaveEdit}
                 disabled={saving}
               >
                 {saving ? (
@@ -175,8 +277,92 @@ export default function PricingScreen() {
                   <Text style={styles.saveButtonText}>{t.save}</Text>
                 )}
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={handleRemove}
+                disabled={saving}
+              >
+                <Text style={styles.removeButtonText}>{t.removeMetal}</Text>
+              </TouchableOpacity>
             </View>
           )}
+        </View>
+      </Modal>
+
+      {/* Add Metal Modal */}
+      <Modal
+        visible={modalMode === 'add'}
+        animationType="slide"
+        presentationStyle="formSheet"
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t.newMetal}</Text>
+            <TouchableOpacity onPress={closeModal}>
+              <Text style={styles.modalCancel}>{t.cancel}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.modalContent}>
+            <Text style={styles.fieldLabel}>{t.selectCategoryForMetal}</Text>
+            <View style={styles.categoryPicker}>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.categoryChip,
+                    cat.id === selectedCategoryId &&
+                      styles.categoryChipSelected,
+                  ]}
+                  onPress={() => setSelectedCategoryId(cat.id)}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      cat.id === selectedCategoryId &&
+                        styles.categoryChipTextSelected,
+                    ]}
+                  >
+                    {cat.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.fieldLabel}>{t.metalName}</Text>
+            <TextInput
+              style={styles.textInput}
+              value={newName}
+              onChangeText={setNewName}
+              placeholder={t.metalNamePlaceholder}
+              placeholderTextColor={colors.textSecondary}
+              autoFocus
+            />
+
+            <Text style={styles.fieldLabel}>{t.initialPrice}</Text>
+            <TextInput
+              style={styles.priceInput}
+              value={newPrice}
+              onChangeText={setNewPrice}
+              keyboardType="decimal-pad"
+              placeholder="0.0000"
+              placeholderTextColor={colors.textSecondary}
+            />
+
+            <TouchableOpacity
+              style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+              onPress={handleAdd}
+              disabled={saving}
+            >
+              {saving ? (
+                <ActivityIndicator color={colors.background} />
+              ) : (
+                <Text style={styles.saveButtonText}>{t.addMetal}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
     </View>
@@ -189,6 +375,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
@@ -196,7 +385,18 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
+  },
+  addButton: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+  },
+  addButtonText: {
+    color: colors.background,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
   },
   metalRow: {
     flexDirection: 'row',
@@ -207,6 +407,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     padding: spacing.lg,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   metalName: {
     color: colors.textPrimary,
@@ -216,7 +418,7 @@ const styles = StyleSheet.create({
   metalPrice: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   empty: {
     padding: spacing.xxxl,
@@ -243,7 +445,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   modalCancel: {
     color: colors.danger,
@@ -253,21 +455,18 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
   },
-  editMetalName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xxl,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  currentPrice: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xl,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
   fieldLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+  },
+  textInput: {
+    backgroundColor: colors.inputBackground,
+    color: colors.textPrimary,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    fontSize: fontSize.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   priceInput: {
     backgroundColor: colors.inputBackground,
@@ -292,6 +491,43 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
+  },
+  removeButton: {
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  removeButtonText: {
+    color: colors.danger,
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+  },
+  categoryPicker: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  categoryChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  categoryChipSelected: {
+    backgroundColor: colors.accent,
+    borderColor: colors.accent,
+  },
+  categoryChipText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+  },
+  categoryChipTextSelected: {
+    color: colors.background,
+    fontWeight: '600',
   },
 });

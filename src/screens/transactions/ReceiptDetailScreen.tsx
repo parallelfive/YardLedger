@@ -213,7 +213,8 @@ const styles = StyleSheet.create({
   receiptNumber: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   date: {
     color: colors.textSecondary,
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: spacing.sm,
   },
   customerName: {
@@ -246,6 +247,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.md,
     marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   lineItemLeft: {
     flex: 1,
@@ -261,7 +264,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   overrideBadge: {
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    backgroundColor: 'rgba(248, 81, 73, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
@@ -285,7 +288,7 @@ const styles = StyleSheet.create({
   lineItemTotal: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginLeft: spacing.md,
   },
   totalRow: {
@@ -296,6 +299,8 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: borderRadius.md,
     marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     borderLeftWidth: 4,
     borderLeftColor: colors.accent,
   },
@@ -306,7 +311,7 @@ const styles = StyleSheet.create({
   totalValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   signatureBox: {
     backgroundColor: '#ffffff',
@@ -328,6 +333,6 @@ const styles = StyleSheet.create({
   printButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });

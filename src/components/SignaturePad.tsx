@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   label: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   clearButton: {
     color: colors.danger,

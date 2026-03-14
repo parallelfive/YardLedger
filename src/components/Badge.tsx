@@ -9,10 +9,10 @@ interface BadgeProps {
 }
 
 const badgeColors = {
-  danger: { text: colors.danger, bg: 'rgba(255, 107, 107, 0.15)' },
-  warning: { text: colors.warning, bg: 'rgba(255, 167, 38, 0.15)' },
-  success: { text: colors.success, bg: 'rgba(102, 187, 106, 0.15)' },
-  accent: { text: colors.accent, bg: 'rgba(78, 205, 196, 0.15)' },
+  danger: { text: colors.danger, bg: 'rgba(248, 81, 73, 0.15)' },
+  warning: { text: colors.warning, bg: 'rgba(210, 153, 34, 0.15)' },
+  success: { text: colors.success, bg: 'rgba(86, 211, 100, 0.15)' },
+  accent: { text: colors.accent, bg: colors.accentMuted },
 } as const;
 
 export default function Badge({ label, variant = 'danger' }: BadgeProps) {

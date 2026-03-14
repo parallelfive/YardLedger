@@ -146,7 +146,9 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
     padding: spacing.lg,
-    borderRadius: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     borderLeftWidth: 4,
     borderLeftColor: colors.accent,
   },
@@ -157,7 +159,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: colors.success,
     fontSize: fontSize.xxl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   summaryNegative: {
     color: colors.danger,
@@ -169,7 +171,7 @@ const styles = StyleSheet.create({
   categorySectionTitle: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: spacing.sm,
   },
   categoryCard: {
@@ -192,7 +194,7 @@ const styles = StyleSheet.create({
   categoryProfit: {
     color: colors.success,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   categoryProfitNegative: {
     color: colors.danger,
@@ -210,7 +212,11 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.md,
     marginTop: spacing.md,
     padding: spacing.lg,
-    borderRadius: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -221,12 +227,12 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   profit: {
     color: colors.success,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   profitNegative: {
     color: colors.danger,
@@ -249,15 +255,15 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     paddingVertical: 14,
     paddingHorizontal: spacing.xl,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    elevation: 5,
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
   },
   fabText: {
     color: colors.background,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });

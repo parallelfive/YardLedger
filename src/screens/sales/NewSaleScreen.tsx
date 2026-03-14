@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: spacing.md,
     marginTop: spacing.lg,
   },
@@ -381,7 +381,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.inputBackground,
     color: colors.textPrimary,
     borderRadius: borderRadius.md,
-    padding: spacing.lg,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
     fontSize: fontSize.lg,
     borderWidth: 1,
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
   addLineItemButtonText: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   pickerContainer: {
     backgroundColor: colors.card,
@@ -419,7 +420,7 @@ const styles = StyleSheet.create({
   pickerTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
     flex: 1,
     textAlign: 'center',
   },
@@ -488,7 +489,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: colors.background,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   lineItemRow: {
     flexDirection: 'row',
@@ -497,6 +498,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.md,
     marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   lineItemInfo: {
     flex: 1,
@@ -522,7 +525,7 @@ const styles = StyleSheet.create({
   lineItemRevenue: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginRight: spacing.md,
   },
   removeButton: {
@@ -539,6 +542,10 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginTop: spacing.lg,
     gap: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
   },
   totalRow: {
     flexDirection: 'row',
@@ -552,12 +559,12 @@ const styles = StyleSheet.create({
   totalValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   totalProfit: {
     color: colors.success,
     fontSize: fontSize.xxl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   totalProfitNegative: {
     color: colors.danger,

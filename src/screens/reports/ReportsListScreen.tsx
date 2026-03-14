@@ -72,6 +72,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     borderLeftWidth: 3,
     borderLeftColor: colors.accent,
     minHeight: 100,
@@ -80,7 +82,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: spacing.xs,
   },
   cardSubtitle: {

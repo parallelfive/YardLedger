@@ -132,6 +132,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   statLabel: {
     color: colors.textSecondary,
@@ -141,7 +143,7 @@ const styles = StyleSheet.create({
   statValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   statSub: {
     color: colors.textTertiary,
@@ -155,7 +157,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: spacing.md,
   },
   metalRow: {
@@ -165,6 +167,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.md,
     marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   metalName: {
     color: colors.textPrimary,

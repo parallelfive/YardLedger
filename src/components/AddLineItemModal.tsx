@@ -301,7 +301,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
     flex: 1,
     textAlign: 'center',
   },
@@ -342,6 +342,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     padding: spacing.lg,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   optionName: {
     color: colors.textPrimary,
@@ -364,7 +366,7 @@ const styles = StyleSheet.create({
   metalInfo: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
     textAlign: 'center',
   },
   weightInput: {
@@ -395,6 +397,6 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });

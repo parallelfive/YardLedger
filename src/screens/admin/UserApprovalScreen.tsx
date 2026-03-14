@@ -14,6 +14,7 @@ import { createAccessCode } from '../../services/accessCodes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AdminStackParamList } from '../../navigation/MainNavigator';
 import type { PendingUser } from '../../types';
+import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'Users'>;
@@ -173,8 +174,19 @@ export default function UserApprovalScreen({ navigation }: Props) {
             style={styles.pricingButton}
             onPress={() => navigation.navigate('Pricing')}
           >
-            <Text style={styles.pricingButtonText}>{t.editPricing}</Text>
-            <Text style={styles.chevron}>{'>'}</Text>
+            <View style={styles.linkRow}>
+              <Ionicons
+                name="pricetags-outline"
+                size={22}
+                color={colors.accent}
+              />
+              <Text style={styles.pricingButtonText}>{t.editPricing}</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
 
           {/* Company Profile Link */}
@@ -182,8 +194,19 @@ export default function UserApprovalScreen({ navigation }: Props) {
             style={styles.pricingButton}
             onPress={() => navigation.navigate('CompanyProfile')}
           >
-            <Text style={styles.pricingButtonText}>{t.companyProfile}</Text>
-            <Text style={styles.chevron}>{'>'}</Text>
+            <View style={styles.linkRow}>
+              <Ionicons
+                name="business-outline"
+                size={22}
+                color={colors.accent}
+              />
+              <Text style={styles.pricingButtonText}>{t.companyProfile}</Text>
+            </View>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={colors.textTertiary}
+            />
           </TouchableOpacity>
 
           {/* Pending Users Header */}
@@ -220,7 +243,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.warning,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   userCard: {
     flexDirection: 'row',
@@ -229,7 +252,9 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.lg,
     marginBottom: spacing.sm,
     padding: spacing.lg,
-    borderRadius: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   userInfo: {
     flex: 1,
@@ -290,28 +315,33 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
     padding: spacing.lg,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   pricingButtonText: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
     fontWeight: '600',
   },
-  chevron: {
-    color: colors.textTertiary,
-    fontSize: fontSize.xl,
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
   },
   codeSection: {
     margin: spacing.lg,
     padding: spacing.lg,
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
     borderLeftWidth: 4,
     borderLeftColor: colors.accent,
   },
   codeSectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: spacing.md,
   },
   codeDisplay: {
@@ -321,7 +351,7 @@ const styles = StyleSheet.create({
   codeText: {
     color: colors.textPrimary,
     fontSize: fontSize.title,
-    fontWeight: 'bold',
+    fontWeight: '700',
     letterSpacing: 8,
   },
   codeHint: {
@@ -339,7 +369,7 @@ const styles = StyleSheet.create({
   generateButtonText: {
     color: colors.background,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   empty: {
     padding: spacing.xxxl,

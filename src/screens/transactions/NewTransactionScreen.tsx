@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: spacing.md,
     marginTop: spacing.lg,
   },
@@ -236,7 +236,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.inputBackground,
     color: colors.textPrimary,
     borderRadius: borderRadius.md,
-    padding: spacing.lg,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
     fontSize: fontSize.lg,
     borderWidth: 1,
@@ -255,7 +256,7 @@ const styles = StyleSheet.create({
   addLineItemButtonText: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   lineItemRow: {
     flexDirection: 'row',
@@ -264,6 +265,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     borderRadius: borderRadius.md,
     marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   lineItemInfo: {
     flex: 1,
@@ -281,8 +284,8 @@ const styles = StyleSheet.create({
   overrideBadge: {
     color: colors.danger,
     fontSize: fontSize.xs,
-    fontWeight: 'bold',
-    backgroundColor: 'rgba(255, 107, 107, 0.15)',
+    fontWeight: '700',
+    backgroundColor: 'rgba(248, 81, 73, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
@@ -346,7 +349,7 @@ const styles = StyleSheet.create({
   lineItemTotal: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginRight: spacing.md,
   },
   removeButton: {
@@ -365,6 +368,10 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     borderRadius: borderRadius.md,
     marginVertical: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.accent,
   },
   totalLabel: {
     color: colors.textSecondary,
@@ -373,7 +380,7 @@ const styles = StyleSheet.create({
   totalValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -401,11 +408,11 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   saveButtonOutlineText: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });

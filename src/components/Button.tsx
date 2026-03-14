@@ -19,8 +19,8 @@ interface ButtonProps extends TouchableOpacityProps {
 const variantStyles = {
   primary: { bg: colors.accent, text: colors.background },
   danger: { bg: colors.danger, text: colors.white },
-  outline: { bg: 'transparent', text: colors.textSecondary },
-  success: { bg: colors.success, text: colors.white },
+  outline: { bg: 'transparent', text: colors.textPrimary },
+  success: { bg: colors.success, text: colors.background },
 } as const;
 
 export default function Button({
@@ -63,24 +63,35 @@ export default function Button({
 const styles = StyleSheet.create({
   base: {
     borderRadius: borderRadius.md,
-    padding: spacing.lg,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.xl,
     alignItems: 'center',
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 3,
   },
   small: {
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.sm,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   outline: {
     borderWidth: 1,
     borderColor: colors.border,
+    shadowOpacity: 0,
+    elevation: 0,
   },
   disabled: {
     opacity: 0.4,
   },
   text: {
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.3,
   },
   textSmall: {
     fontSize: fontSize.sm,

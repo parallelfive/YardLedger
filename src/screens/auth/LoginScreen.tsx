@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useAppDispatch } from '../../store';
 import { signIn } from '../../store/authStore';
@@ -47,26 +48,35 @@ export default function LoginScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.inner}>
+        <View style={styles.logoWrap}>
+          <Ionicons
+            name="hardware-chip-outline"
+            size={48}
+            color={colors.accent}
+          />
+        </View>
         <Text style={styles.title}>{t.appName}</Text>
         <Text style={styles.subtitle}>{t.appTagline}</Text>
 
-        <TextInput
-          style={styles.input}
-          placeholder={t.email}
-          placeholderTextColor={colors.textSecondary}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={t.password}
-          placeholderTextColor={colors.textSecondary}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
+        <View style={styles.formCard}>
+          <TextInput
+            style={styles.input}
+            placeholder={t.email}
+            placeholderTextColor={colors.textTertiary}
+            value={email}
+            onChangeText={setEmail}
+            autoCapitalize="none"
+            keyboardType="email-address"
+          />
+          <TextInput
+            style={[styles.input, { marginBottom: 0 }]}
+            placeholder={t.password}
+            placeholderTextColor={colors.textTertiary}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+        </View>
 
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
@@ -96,25 +106,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.xl,
   },
+  logoWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.accentMuted,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginBottom: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.accent,
+  },
   title: {
     fontSize: fontSize.title,
-    fontWeight: 'bold',
-    color: colors.accent,
+    fontWeight: '800',
+    color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
+    letterSpacing: 1,
   },
   subtitle: {
-    fontSize: fontSize.lg,
+    fontSize: fontSize.md,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: spacing.xxxl,
+    marginBottom: spacing.xxl,
+  },
+  formCard: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
   },
   input: {
     backgroundColor: colors.inputBackground,
     color: colors.textPrimary,
     borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
     fontSize: fontSize.lg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -122,10 +154,14 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: colors.accent,
     borderRadius: borderRadius.md,
-    padding: spacing.lg,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: spacing.sm,
     marginBottom: spacing.xl,
+    shadowColor: colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -133,10 +169,11 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   linkText: {
-    color: colors.accent,
+    color: colors.textSecondary,
     textAlign: 'center',
     fontSize: fontSize.md,
   },

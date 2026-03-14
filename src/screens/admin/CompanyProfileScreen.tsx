@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
     marginBottom: spacing.md,
     marginTop: spacing.lg,
   },
@@ -244,7 +244,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.inputBackground,
     color: colors.textPrimary,
     borderRadius: borderRadius.md,
-    padding: spacing.lg,
+    paddingVertical: 14,
+    paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
     fontSize: fontSize.lg,
     borderWidth: 1,
@@ -267,7 +268,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   bottomSpacer: {
     height: spacing.xxxl,

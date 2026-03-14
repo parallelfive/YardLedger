@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.warning,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
@@ -183,6 +183,6 @@ const styles = StyleSheet.create({
   verifyButtonText: {
     color: colors.background,
     fontSize: fontSize.lg,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });

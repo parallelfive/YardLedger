@@ -1,6 +1,7 @@
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
 import TransactionsScreen from '../screens/transactions/TransactionsScreen';
 import NewTransactionScreen from '../screens/transactions/NewTransactionScreen';
 import ReceiptDetailScreen from '../screens/transactions/ReceiptDetailScreen';
@@ -19,6 +20,18 @@ import { useAppSelector, useAppDispatch, type RootState } from '../store';
 import { signOut } from '../store/authStore';
 import { useT } from '../hooks/useT';
 import { colors, fontSize, spacing } from '../constants';
+
+const stackScreenOptions = {
+  headerStyle: {
+    backgroundColor: colors.surface,
+  },
+  headerTintColor: colors.textPrimary,
+  headerTitleStyle: {
+    fontWeight: '700' as const,
+    fontSize: fontSize.xl,
+  },
+  headerShadowVisible: false,
+} as const;
 
 export type MainTabParamList = {
   TransactionsTab: undefined;
@@ -64,12 +77,7 @@ function TransactionsNavigator() {
   const { t } = useT();
   const dispatch = useAppDispatch();
   return (
-    <TransactionsStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.card },
-        headerTintColor: colors.textPrimary,
-      }}
-    >
+    <TransactionsStack.Navigator screenOptions={stackScreenOptions}>
       <TransactionsStack.Screen
         name="TransactionsList"
         component={TransactionsScreen}
@@ -102,12 +110,7 @@ function TransactionsNavigator() {
 function SalesNavigator() {
   const { t } = useT();
   return (
-    <SalesStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.card },
-        headerTintColor: colors.textPrimary,
-      }}
-    >
+    <SalesStack.Navigator screenOptions={stackScreenOptions}>
       <SalesStack.Screen
         name="SalesList"
         component={SalesScreen}
@@ -125,12 +128,7 @@ function SalesNavigator() {
 function ReportsNavigator() {
   const { t } = useT();
   return (
-    <ReportsStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.card },
-        headerTintColor: colors.textPrimary,
-      }}
-    >
+    <ReportsStack.Navigator screenOptions={stackScreenOptions}>
       <ReportsStack.Screen
         name="ReportsList"
         component={ReportsListScreen}
@@ -163,12 +161,7 @@ function ReportsNavigator() {
 function AdminNavigator() {
   const { t } = useT();
   return (
-    <AdminStack.Navigator
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.card },
-        headerTintColor: colors.textPrimary,
-      }}
-    >
+    <AdminStack.Navigator screenOptions={stackScreenOptions}>
       <AdminStack.Screen
         name="Users"
         component={UserApprovalScreen}
@@ -198,13 +191,32 @@ export default function MainNavigator() {
     <Tab.Navigator
       screenOptions={{
         tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.borderSubtle,
+          borderTopWidth: 1,
+          paddingTop: spacing.xs,
+          height: 88,
         },
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textSecondary,
-        headerStyle: { backgroundColor: colors.card },
+        tabBarInactiveTintColor: colors.textTertiary,
+        tabBarLabelStyle: {
+          fontSize: fontSize.xs,
+          fontWeight: '600',
+          letterSpacing: 0.3,
+        },
+        headerStyle: {
+          backgroundColor: colors.surface,
+          shadowColor: colors.shadow,
+          shadowOpacity: 0.3,
+          shadowRadius: 4,
+          shadowOffset: { width: 0, height: 2 },
+          elevation: 4,
+        },
         headerTintColor: colors.textPrimary,
+        headerTitleStyle: {
+          fontWeight: '700',
+          fontSize: fontSize.xl,
+        },
         headerRight: () => (
           <TouchableOpacity
             style={navStyles.signOutButton}
@@ -218,30 +230,59 @@ export default function MainNavigator() {
       <Tab.Screen
         name="TransactionsTab"
         component={TransactionsNavigator}
-        options={{ title: t.tabBuy, headerShown: false }}
+        options={{
+          title: t.tabBuy,
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="receipt-outline" size={size} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="Inventory"
         component={InventoryScreen}
-        options={{ title: t.tabInventory }}
+        options={{
+          title: t.tabInventory,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="cube-outline" size={size} color={color} />
+          ),
+        }}
       />
       <Tab.Screen
         name="SalesTab"
         component={SalesNavigator}
-        options={{ title: t.tabSales, headerShown: false }}
+        options={{
+          title: t.tabSales,
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="trending-up-outline" size={size} color={color} />
+          ),
+        }}
       />
       {isAdmin && (
         <Tab.Screen
           name="ReportsTab"
           component={ReportsNavigator}
-          options={{ title: t.tabReports, headerShown: false }}
+          options={{
+            title: t.tabReports,
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="bar-chart-outline" size={size} color={color} />
+            ),
+          }}
         />
       )}
       {isAdmin && (
         <Tab.Screen
           name="AdminTab"
           component={AdminNavigator}
-          options={{ title: t.tabAdmin, headerShown: false }}
+          options={{
+            title: t.tabAdmin,
+            headerShown: false,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="shield-outline" size={size} color={color} />
+            ),
+          }}
         />
       )}
     </Tab.Navigator>
@@ -251,12 +292,12 @@ export default function MainNavigator() {
 const navStyles = StyleSheet.create({
   signOutButton: {
     marginRight: spacing.md,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   signOutText: {
-    color: colors.danger,
-    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
     fontWeight: '600',
   },
 });
