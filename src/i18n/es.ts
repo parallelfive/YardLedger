@@ -221,4 +221,12 @@ export default {
   tabAdmin: 'Admin',
   tabUsers: 'Usuarios',
   transactions: 'Transacciones',
+
+  // Search
+  search: 'Buscar',
+  searchReceipts: 'Cliente, recibo # o metal...',
+  searchSales: 'Metal o nombre del comprador...',
+  clearSearch: 'Limpiar',
+  searchCustomer: 'Buscar clientes anteriores...',
+  noCustomersFound: 'No se encontraron clientes',
 } as const;

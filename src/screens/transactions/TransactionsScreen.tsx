@@ -1,5 +1,11 @@
-import { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect } from '@react-navigation/native';
@@ -15,7 +21,7 @@ import {
   type DatePreset,
   getDateRange,
 } from '../../components/DateRangeSelector';
-import { colors, spacing, fontSize } from '../../constants';
+import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 type Props = NativeStackScreenProps<
   TransactionsStackParamList,
@@ -34,6 +40,8 @@ export default function TransactionsScreen({ navigation }: Props) {
     end
   );
   const [showPrices, setShowPrices] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -41,11 +49,59 @@ export default function TransactionsScreen({ navigation }: Props) {
     }, [refresh])
   );
 
+  const filteredReceipts = useMemo(() => {
+    if (!appliedSearch) return receipts;
+    const q = appliedSearch.toLowerCase();
+    return receipts.filter((r) => {
+      if (r.customer_name?.toLowerCase().includes(q)) return true;
+      if (r.receipt_number?.toLowerCase().includes(q)) return true;
+      if (
+        r.line_items?.some((li: { metal_name?: string }) =>
+          li.metal_name?.toLowerCase().includes(q)
+        )
+      )
+        return true;
+      return false;
+    });
+  }, [receipts, appliedSearch]);
+
+  const handleSearch = () => {
+    setAppliedSearch(searchInput.trim());
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setAppliedSearch('');
+  };
+
   return (
     <View style={styles.container}>
       <DateRangeSelector selected={preset} onSelect={setPreset} />
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder={t.searchReceipts}
+          placeholderTextColor={colors.textTertiary}
+          value={searchInput}
+          onChangeText={setSearchInput}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
+        />
+        {appliedSearch ? (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearSearch}
+          >
+            <Text style={styles.clearButtonText}>{t.clearSearch}</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+            <Text style={styles.searchButtonText}>{t.search}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
       <RefreshableList
-        data={receipts}
+        data={filteredReceipts}
         keyExtractor={(item) => item.id}
         loading={loading}
         onRefresh={refresh}
@@ -102,6 +158,48 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: colors.inputBackground,
+    color: colors.textPrimary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSize.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchButton: {
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  searchButtonText: {
+    color: colors.background,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  clearButton: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  clearButtonText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    fontWeight: '600',
   },
   receiptCard: {
     backgroundColor: colors.card,

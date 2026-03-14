@@ -1,5 +1,11 @@
-import { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { SalesStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect } from '@react-navigation/native';
@@ -21,8 +27,30 @@ export default function SalesScreen({ navigation }: Props) {
   const [preset, setPreset] = useState<DatePreset>('today');
   const { start, end } = getDateRange(preset);
   const { sales, loading, refresh } = useSales(start, end);
-  const totalProfit = calculateTotalProfit(sales);
-  const categorySummaries = aggregateSalesByCategory(sales);
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+
+  const filteredSales = useMemo(() => {
+    if (!appliedSearch) return sales;
+    const q = appliedSearch.toLowerCase();
+    return sales.filter((s) => {
+      if (s.metal_name?.toLowerCase().includes(q)) return true;
+      if (s.buyer_name?.toLowerCase().includes(q)) return true;
+      return false;
+    });
+  }, [sales, appliedSearch]);
+
+  const totalProfit = calculateTotalProfit(filteredSales);
+  const categorySummaries = aggregateSalesByCategory(filteredSales);
+
+  const handleSearch = () => {
+    setAppliedSearch(searchInput.trim());
+  };
+
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setAppliedSearch('');
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -33,7 +61,30 @@ export default function SalesScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <DateRangeSelector selected={preset} onSelect={setPreset} />
-      {sales.length > 0 && (
+      <View style={styles.searchRow}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder={t.searchSales}
+          placeholderTextColor={colors.textTertiary}
+          value={searchInput}
+          onChangeText={setSearchInput}
+          onSubmitEditing={handleSearch}
+          returnKeyType="search"
+        />
+        {appliedSearch ? (
+          <TouchableOpacity
+            style={styles.clearButton}
+            onPress={handleClearSearch}
+          >
+            <Text style={styles.clearButtonText}>{t.clearSearch}</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+            <Text style={styles.searchButtonText}>{t.search}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+      {filteredSales.length > 0 && (
         <>
           <View style={styles.summaryBar}>
             <Text style={styles.summaryLabel}>{t.totalProfit}</Text>
@@ -83,7 +134,7 @@ export default function SalesScreen({ navigation }: Props) {
         </>
       )}
       <RefreshableList
-        data={sales}
+        data={filteredSales}
         keyExtractor={(item) => item.id}
         loading={loading}
         onRefresh={refresh}
@@ -137,6 +188,48 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    gap: spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    backgroundColor: colors.inputBackground,
+    color: colors.textPrimary,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: fontSize.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  searchButton: {
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  searchButtonText: {
+    color: colors.background,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  clearButton: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  clearButtonText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    fontWeight: '600',
   },
   summaryBar: {
     flexDirection: 'row',

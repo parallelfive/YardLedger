@@ -220,4 +220,12 @@ export default {
   tabAdmin: 'Admin',
   tabUsers: 'Users',
   transactions: 'Transactions',
+
+  // Search
+  search: 'Search',
+  searchReceipts: 'Customer, receipt #, or metal...',
+  searchSales: 'Metal or buyer name...',
+  clearSearch: 'Clear',
+  searchCustomer: 'Search past customers...',
+  noCustomersFound: 'No matching customers',
 } as const;

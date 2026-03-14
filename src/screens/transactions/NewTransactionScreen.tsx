@@ -19,6 +19,7 @@ import {
 import type { SignaturePadHandle } from '../../components/SignaturePad';
 import { useT } from '../../hooks/useT';
 import { useNewTransaction } from '../../hooks/useNewTransaction';
+import { searchCustomers, type Customer } from '../../services/customers';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 type Props = NativeStackScreenProps<
@@ -40,6 +41,38 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const [printAfterSave, setPrintAfterSave] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [savedReceipt, setSavedReceipt] = useState<SavedReceipt | null>(null);
+  const [customerResults, setCustomers] = useState<Customer[]>([]);
+  const [searchingCustomers, setSearchingCustomers] = useState(false);
+  const [showCustomers, setShowCustomers] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<
+    string | undefined
+  >();
+
+  const handleCustomerSearch = useCallback(async () => {
+    const query = tx.customerName.trim();
+    if (!query) return;
+    setSearchingCustomers(true);
+    try {
+      const results = await searchCustomers(query);
+      setCustomers(results);
+      setShowCustomers(true);
+    } catch {
+      // silently fail — user can still type manually
+    } finally {
+      setSearchingCustomers(false);
+    }
+  }, [tx.customerName]);
+
+  const handleSelectCustomer = useCallback(
+    (customer: Customer) => {
+      tx.setCustomerName(customer.name);
+      tx.setCustomerPhone(customer.phone ?? '');
+      setSelectedCustomerId(customer.id);
+      setShowCustomers(false);
+      setCustomers([]);
+    },
+    [tx]
+  );
 
   const handleSaveSuccess = useCallback(
     (receiptId: string) => {
@@ -76,13 +109,52 @@ export default function NewTransactionScreen({ navigation }: Props) {
     <>
       <ScrollView style={styles.container}>
         <Text style={styles.sectionTitle}>{t.customerInfo}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder={`${t.customerName} *`}
-          placeholderTextColor={colors.textTertiary}
-          value={tx.customerName}
-          onChangeText={tx.setCustomerName}
-        />
+        <View style={styles.customerSearchRow}>
+          <TextInput
+            style={[styles.input, styles.customerNameInput]}
+            placeholder={`${t.customerName} *`}
+            placeholderTextColor={colors.textTertiary}
+            value={tx.customerName}
+            onChangeText={(text) => {
+              tx.setCustomerName(text);
+              setSelectedCustomerId(undefined);
+              if (showCustomers) setShowCustomers(false);
+            }}
+            onSubmitEditing={handleCustomerSearch}
+            returnKeyType="search"
+          />
+          <TouchableOpacity
+            style={styles.customerSearchButton}
+            onPress={handleCustomerSearch}
+            disabled={searchingCustomers || !tx.customerName.trim()}
+          >
+            {searchingCustomers ? (
+              <ActivityIndicator color={colors.background} size="small" />
+            ) : (
+              <Text style={styles.customerSearchButtonText}>{t.search}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+        {showCustomers && (
+          <View style={styles.customerResultsContainer}>
+            {customerResults.length === 0 ? (
+              <Text style={styles.noCustomersText}>{t.noCustomersFound}</Text>
+            ) : (
+              customerResults.map((c, i) => (
+                <TouchableOpacity
+                  key={`${c.id}-${i}`}
+                  style={styles.customerResultRow}
+                  onPress={() => handleSelectCustomer(c)}
+                >
+                  <Text style={styles.customerResultName}>{c.name}</Text>
+                  {c.phone ? (
+                    <Text style={styles.customerResultPhone}>{c.phone}</Text>
+                  ) : null}
+                </TouchableOpacity>
+              ))
+            )}
+          </View>
+        )}
         <TextInput
           style={styles.input}
           placeholder={t.phoneNumber}
@@ -195,7 +267,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
             ]}
             onPress={() => {
               setPrintAfterSave(false);
-              tx.saveReceipt(handleSaveSuccess);
+              tx.saveReceipt(handleSaveSuccess, selectedCustomerId);
             }}
             disabled={tx.lineItems.length === 0 || tx.saving}
           >
@@ -215,7 +287,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
             ]}
             onPress={() => {
               setPrintAfterSave(true);
-              tx.saveReceipt(handleSaveSuccess);
+              tx.saveReceipt(handleSaveSuccess, selectedCustomerId);
             }}
             disabled={tx.lineItems.length === 0 || tx.saving}
           >
@@ -326,6 +398,56 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  customerSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  customerNameInput: {
+    flex: 1,
+  },
+  customerSearchButton: {
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 15,
+    marginBottom: spacing.md,
+  },
+  customerSearchButtonText: {
+    color: colors.background,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  customerResultsContainer: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
+    maxHeight: 200,
+  },
+  customerResultRow: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+  },
+  customerResultName: {
+    color: colors.textPrimary,
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+  },
+  customerResultPhone: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    marginTop: 2,
+  },
+  noCustomersText: {
+    color: colors.textTertiary,
+    fontSize: fontSize.md,
+    padding: spacing.md,
+    textAlign: 'center',
   },
   addLineItemButton: {
     backgroundColor: colors.card,

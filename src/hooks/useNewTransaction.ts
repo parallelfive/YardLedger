@@ -126,7 +126,10 @@ export function useNewTransaction(
     setEditingIndex(null);
   };
 
-  const saveReceipt = async (onSuccess: (receiptId: string) => void) => {
+  const saveReceipt = async (
+    onSuccess: (receiptId: string) => void,
+    customerId?: string
+  ) => {
     if (!customerName) {
       Alert.alert(t.error, t.enterCustomerName);
       return;
@@ -155,6 +158,7 @@ export function useNewTransaction(
       const receipt = await createReceipt({
         customerName,
         customerPhone,
+        customerId,
         type: 'buy',
         subtotal: receiptTotal,
         signatureUri: signatureData,
