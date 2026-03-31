@@ -18,6 +18,7 @@ export interface LineItemInput {
   isPriceOverride: boolean;
   overrideApprovedBy: string | null;
   total: number;
+  isRestricted: boolean;
 }
 
 export interface MetalCategory {

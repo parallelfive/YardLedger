@@ -159,7 +159,7 @@ export default function ComplianceReportScreen() {
           <th>${t.materialDescription}</th>
           <th style="text-align:right">${t.weightLbsLabel}</th>
           <th style="text-align:right">${t.amountPaid}</th>
-          <th>Affirmed</th>
+          <th>${t.affirmed}</th>
         </tr></thead>
         <tbody>${tableRows}</tbody>
         <tfoot><tr>

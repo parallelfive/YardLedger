@@ -53,6 +53,7 @@ export function useNewTransaction(
         isPriceOverride: false,
         overrideApprovedBy: null,
         total: calculateLineItemTotal(weight, metal.price_per_lb),
+        isRestricted: metal.is_restricted,
       },
     ]);
   };
@@ -115,10 +116,7 @@ export function useNewTransaction(
     setOverridePrice('');
   };
 
-  const hasRestrictedMetal = lineItems.some((item) => {
-    // Check if any line item's metal is restricted — we store this at add time
-    return (item as LineItemInput & { isRestricted?: boolean }).isRestricted;
-  });
+  const hasRestrictedMetal = lineItems.some((item) => item.isRestricted);
 
   const resetForm = (keepCustomer = false) => {
     if (!keepCustomer) {
@@ -147,6 +145,14 @@ export function useNewTransaction(
     }
     if (lineItems.length === 0) {
       Alert.alert(t.error, t.addAtLeastOneItem);
+      return;
+    }
+    if (!vehiclePlate.trim() || !vehicleDescription.trim()) {
+      Alert.alert(t.error, t.vehicleRequired);
+      return;
+    }
+    if (!sellerAffirmed) {
+      Alert.alert(t.error, t.affirmationRequired);
       return;
     }
     if (!profile) {

@@ -280,6 +280,9 @@ export default {
   sellerAffirmation: 'Seller affirms legal ownership of materials',
   restrictedMaterial: 'Restricted Material',
   restrictedWarning: 'This metal requires additional documentation per NM law',
+  vehicleRequired: 'Vehicle plate and description are required',
+  affirmationRequired: 'Seller must affirm legal ownership',
+  affirmed: 'Affirmed',
 
   // Reports & Compliance
   complianceReport: 'Compliance Report',

@@ -282,6 +282,9 @@ export default {
   restrictedMaterial: 'Material Restringido',
   restrictedWarning:
     'Este metal requiere documentación adicional según la ley de NM',
+  vehicleRequired: 'La placa y descripción del vehículo son requeridas',
+  affirmationRequired: 'El vendedor debe afirmar propiedad legal',
+  affirmed: 'Afirmado',
 
   // Reports & Compliance
   complianceReport: 'Reporte de Cumplimiento',
