@@ -133,6 +133,7 @@ export function useNewTransaction(
     setOverrideIndex(null);
     setOverridePrice('');
     setEditingIndex(null);
+    signaturePadRef?.current?.clear();
   };
 
   const saveReceipt = async (

@@ -104,6 +104,8 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
       if (printAfterSave) {
         tx.resetForm();
+        // Pop back to list, then push detail so back button returns to list
+        navigation.popToTop();
         navigation.navigate('ReceiptDetail', {
           receiptId,
           printOnLoad: true,
@@ -124,6 +126,11 @@ export default function NewTransactionScreen({ navigation }: Props) {
     (keepCustomer: boolean) => {
       tx.resetForm(keepCustomer);
       setSavedReceipt(null);
+      if (!keepCustomer) {
+        setSelectedCustomerId(undefined);
+        setCustomerHasId(false);
+        setIdPhotoUri(null);
+      }
     },
     [tx]
   );
@@ -133,6 +140,8 @@ export default function NewTransactionScreen({ navigation }: Props) {
     const receiptId = savedReceipt.id;
     setSavedReceipt(null);
     tx.resetForm();
+    // Pop back to list, then push detail so back button returns to list
+    navigation.popToTop();
     navigation.navigate('ReceiptDetail', {
       receiptId,
       printOnLoad: printAfterSave,

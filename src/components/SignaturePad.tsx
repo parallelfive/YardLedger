@@ -25,6 +25,7 @@ function isValidSignature(uri: string): boolean {
 
 export interface SignaturePadHandle {
   readSignature: () => Promise<string | null>;
+  clear: () => void;
 }
 
 interface SignaturePadProps {
@@ -118,7 +119,6 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
     useImperativeHandle(ref, () => ({
       readSignature: () => {
         return new Promise<string | null>((resolve) => {
-          // If modal is open, read from canvas
           if (modalVisible) {
             pendingResolve.current = resolve;
             signatureRef.current?.readSignature();
@@ -132,6 +132,11 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
             resolve(latestSignature.current);
           }
         });
+      },
+      clear: () => {
+        signatureRef.current?.clearSignature();
+        latestSignature.current = null;
+        setPreviewUri(null);
       },
     }));
 
