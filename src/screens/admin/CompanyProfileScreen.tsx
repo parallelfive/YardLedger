@@ -56,10 +56,10 @@ export default function CompanyProfileScreen() {
   };
 
   const handleSave = async () => {
-    if (!profile || !settingsId) return;
+    if (!profile) return;
     setSaving(true);
     try {
-      await updateCompanySettings(
+      const result = await updateCompanySettings(
         {
           company_name: companyName.trim(),
           address: address.trim(),
@@ -68,6 +68,7 @@ export default function CompanyProfileScreen() {
         profile.id,
         settingsId
       );
+      if (!settingsId) setSettingsId(result.id);
       Alert.alert(t.success, t.companySettingsSaved);
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);

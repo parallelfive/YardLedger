@@ -16,7 +16,7 @@ export async function fetchCompanySettings(): Promise<CompanySettings | null> {
     .from('company_settings')
     .select('*')
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
   return data;
@@ -29,15 +29,26 @@ export async function updateCompanySettings(
     phone?: string;
   },
   userId: string,
-  settingsId: string
+  settingsId?: string | null
 ): Promise<CompanySettings> {
+  if (settingsId) {
+    // Update existing row
+    const { data, error } = await supabase
+      .from('company_settings')
+      .update({ ...updates, updated_by: userId })
+      .eq('id', settingsId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  // Create first row
   const { data, error } = await supabase
     .from('company_settings')
-    .update({ ...updates, updated_by: userId })
-    .eq('id', settingsId)
+    .insert({ ...updates, updated_by: userId })
     .select()
     .single();
-
   if (error) throw error;
   return data;
 }
