@@ -12,14 +12,13 @@ export interface CompanySettings {
 }
 
 export async function fetchCompanySettings(): Promise<CompanySettings | null> {
-  const { data, error } = await supabase
+  const { data } = await supabase
     .from('company_settings')
     .select('*')
     .limit(1)
     .maybeSingle();
 
-  if (error) throw error;
-  return data;
+  return data ?? null;
 }
 
 export async function updateCompanySettings(
