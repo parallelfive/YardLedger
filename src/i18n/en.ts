@@ -302,7 +302,8 @@ export default {
   statementFor: 'Statement for',
   generatedOn: 'Generated on',
 
-  // Quick Print
+  // Share & Quick Print
+  shareReceipt: 'Share',
   quickPrint: 'Quick Print',
 
   // Price History

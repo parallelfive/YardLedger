@@ -13,7 +13,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useT } from '../../hooks/useT';
 import { fetchReceiptById } from '../../services/receipts';
-import { printReceipt } from '../../utils/printReceipt';
+import { printReceipt, shareReceipt } from '../../utils/printReceipt';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 interface ReceiptLineItem {
@@ -65,6 +65,15 @@ export default function ReceiptDetailScreen({ route }: Props) {
     },
     [receipt, t.error]
   );
+
+  const handleShare = useCallback(async () => {
+    if (!receipt) return;
+    try {
+      await shareReceipt(receipt);
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    }
+  }, [receipt, t.error]);
 
   useEffect(() => {
     const load = async () => {
@@ -222,13 +231,18 @@ export default function ReceiptDetailScreen({ route }: Props) {
         )}
       </ScrollView>
 
-      {/* Print Button */}
-      <TouchableOpacity
-        style={styles.printButton}
-        onPress={() => handlePrint()}
-      >
-        <Text style={styles.printButtonText}>{t.print}</Text>
-      </TouchableOpacity>
+      {/* Action Buttons */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+          <Text style={styles.shareButtonText}>{t.shareReceipt}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.printButton}
+          onPress={() => handlePrint()}
+        >
+          <Text style={styles.printButtonText}>{t.print}</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -376,9 +390,27 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
   },
-  printButton: {
-    backgroundColor: colors.accent,
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     margin: spacing.lg,
+  },
+  shareButton: {
+    flex: 1,
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  shareButtonText: {
+    color: colors.accent,
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+  },
+  printButton: {
+    flex: 1,
+    backgroundColor: colors.accent,
     padding: spacing.lg,
     borderRadius: borderRadius.md,
     alignItems: 'center',

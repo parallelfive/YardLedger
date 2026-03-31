@@ -304,7 +304,8 @@ export default {
   statementFor: 'Estado de cuenta para',
   generatedOn: 'Generado el',
 
-  // Quick Print
+  // Share & Quick Print
+  shareReceipt: 'Compartir',
   quickPrint: 'Impresión Rápida',
 
   // Price History

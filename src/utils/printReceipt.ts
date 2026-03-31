@@ -1,4 +1,6 @@
 import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { File, Paths } from 'expo-file-system';
 import {
   fetchCompanySettings,
   type CompanySettings,
@@ -150,6 +152,29 @@ export async function printReceipt(receipt: PrintReceiptData): Promise<void> {
   }
   const html = buildReceiptHtml(receipt, company);
   await Print.printAsync({ html });
+}
+
+export async function shareReceipt(receipt: PrintReceiptData): Promise<void> {
+  let company: CompanySettings | null = null;
+  try {
+    company = await fetchCompanySettings();
+  } catch {
+    // Will use defaults
+  }
+  const html = buildReceiptHtml(receipt, company);
+  const { uri } = await Print.printToFileAsync({ html });
+
+  // Copy to a named file so the share sheet shows a nice filename
+  const fileName = `${receipt.receipt_number || 'receipt'}.pdf`;
+  const dest = new File(Paths.cache, fileName);
+  const source = new File(uri);
+  source.move(dest);
+
+  await Sharing.shareAsync(dest.uri, {
+    mimeType: 'application/pdf',
+    UTI: 'com.adobe.pdf',
+    dialogTitle: receipt.receipt_number,
+  });
 }
 
 export { type PrintReceiptData };
