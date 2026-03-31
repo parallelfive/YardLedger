@@ -12,6 +12,8 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useState, useRef, useCallback } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import {
   AccessCodeModal,
   SignaturePad,
@@ -20,7 +22,11 @@ import {
 import type { SignaturePadHandle } from '../../components/SignaturePad';
 import { useT } from '../../hooks/useT';
 import { useNewTransaction } from '../../hooks/useNewTransaction';
-import { searchCustomers, type Customer } from '../../services/customers';
+import {
+  searchCustomers,
+  uploadCustomerIdPhoto,
+  type Customer,
+} from '../../services/customers';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 type Props = NativeStackScreenProps<
@@ -48,6 +54,9 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const [selectedCustomerId, setSelectedCustomerId] = useState<
     string | undefined
   >();
+  const [customerHasId, setCustomerHasId] = useState(false);
+  const [idPhotoUri, setIdPhotoUri] = useState<string | null>(null);
+  const [scanningId, setScanningId] = useState(false);
 
   const handleCustomerSearch = useCallback(async () => {
     const query = tx.customerName.trim();
@@ -69,6 +78,8 @@ export default function NewTransactionScreen({ navigation }: Props) {
       tx.setCustomerName(customer.name);
       tx.setCustomerPhone(customer.phone ?? '');
       setSelectedCustomerId(customer.id);
+      setCustomerHasId(!!customer.dl_photo_uri);
+      setIdPhotoUri(customer.dl_photo_uri ?? null);
       setShowCustomers(false);
       setCustomers([]);
     },
@@ -76,9 +87,17 @@ export default function NewTransactionScreen({ navigation }: Props) {
   );
 
   const handleSaveSuccess = useCallback(
-    (receiptId: string) => {
+    async (receiptId: string, customerId: string) => {
+      // Upload ID photo if one was captured during this flow
+      if (idPhotoUri && !idPhotoUri.startsWith('http') && customerId) {
+        try {
+          await uploadCustomerIdPhoto(customerId, idPhotoUri);
+        } catch {
+          // Non-blocking — receipt is already saved
+        }
+      }
+
       if (printAfterSave) {
-        // Go straight to receipt detail with print
         tx.resetForm();
         navigation.replace('ReceiptDetail', {
           receiptId,
@@ -93,7 +112,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
         });
       }
     },
-    [printAfterSave, tx, navigation]
+    [printAfterSave, tx, navigation, idPhotoUri]
   );
 
   const handleNewTicket = useCallback(
@@ -128,6 +147,8 @@ export default function NewTransactionScreen({ navigation }: Props) {
             onChangeText={(text) => {
               tx.setCustomerName(text);
               setSelectedCustomerId(undefined);
+              setCustomerHasId(false);
+              setIdPhotoUri(null);
               if (showCustomers) setShowCustomers(false);
             }}
             onSubmitEditing={handleCustomerSearch}
@@ -181,22 +202,35 @@ export default function NewTransactionScreen({ navigation }: Props) {
           keyboardType="phone-pad"
         />
 
-        <Text style={styles.sectionTitle}>{t.vehicleInfo}</Text>
-        <TextInput
-          style={styles.input}
-          placeholder={t.vehiclePlate}
-          placeholderTextColor={colors.textTertiary}
-          value={tx.vehiclePlate}
-          onChangeText={tx.setVehiclePlate}
-          autoCapitalize="characters"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={t.vehicleDescription}
-          placeholderTextColor={colors.textTertiary}
-          value={tx.vehicleDescription}
-          onChangeText={tx.setVehicleDescription}
-        />
+        {/* ID Scan */}
+        {customerHasId ? (
+          <View style={styles.idStatusRow}>
+            <Ionicons
+              name="checkmark-circle"
+              size={20}
+              color={colors.success}
+            />
+            <Text style={styles.idStatusText}>{t.idOnFile}</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.scanIdButton}
+            disabled={scanningId}
+            onPress={async () => {
+              const result = await ImagePicker.launchCameraAsync({
+                mediaTypes: ['images'],
+                quality: 0.8,
+              });
+              if (result.canceled) return;
+              setIdPhotoUri(result.assets[0].uri);
+              setCustomerHasId(true);
+              setScanningId(false);
+            }}
+          >
+            <Ionicons name="camera" size={20} color={colors.accent} />
+            <Text style={styles.scanIdButtonText}>{t.scanId}</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.addLineItemButton}
@@ -294,28 +328,47 @@ export default function NewTransactionScreen({ navigation }: Props) {
           <Text style={styles.totalValue}>${tx.receiptTotal.toFixed(2)}</Text>
         </View>
 
-        {/* Seller Affirmation */}
-        <TouchableOpacity
-          style={styles.affirmationRow}
-          onPress={() => tx.setSellerAffirmed(!tx.sellerAffirmed)}
-        >
-          <View
-            style={[
-              styles.checkbox,
-              tx.sellerAffirmed && styles.checkboxChecked,
-            ]}
-          >
-            {tx.sellerAffirmed && <Text style={styles.checkmark}>✓</Text>}
-          </View>
-          <Text style={styles.affirmationText}>{t.sellerAffirmation}</Text>
-        </TouchableOpacity>
-
+        {/* Vehicle & Compliance — only for restricted metals */}
         {tx.hasRestrictedMetal && (
-          <View style={styles.restrictedBanner}>
-            <Text style={styles.restrictedBannerText}>
-              {t.restrictedWarning}
-            </Text>
-          </View>
+          <>
+            <View style={styles.restrictedBanner}>
+              <Text style={styles.restrictedBannerText}>
+                {t.restrictedWarning}
+              </Text>
+            </View>
+
+            <Text style={styles.sectionTitle}>{t.vehicleInfo}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={`${t.vehiclePlate} *`}
+              placeholderTextColor={colors.textTertiary}
+              value={tx.vehiclePlate}
+              onChangeText={tx.setVehiclePlate}
+              autoCapitalize="characters"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder={`${t.vehicleDescription} *`}
+              placeholderTextColor={colors.textTertiary}
+              value={tx.vehicleDescription}
+              onChangeText={tx.setVehicleDescription}
+            />
+
+            <TouchableOpacity
+              style={styles.affirmationRow}
+              onPress={() => tx.setSellerAffirmed(!tx.sellerAffirmed)}
+            >
+              <View
+                style={[
+                  styles.checkbox,
+                  tx.sellerAffirmed && styles.checkboxChecked,
+                ]}
+              >
+                {tx.sellerAffirmed && <Text style={styles.checkmark}>✓</Text>}
+              </View>
+              <Text style={styles.affirmationText}>{t.sellerAffirmation}</Text>
+            </TouchableOpacity>
+          </>
         )}
 
         <SignaturePad
@@ -784,6 +837,36 @@ const styles = StyleSheet.create({
   viewReceiptButtonText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+  },
+  idStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  idStatusText: {
+    color: colors.success,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  scanIdButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.card,
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    borderStyle: 'dashed',
+  },
+  scanIdButtonText: {
+    color: colors.accent,
+    fontSize: fontSize.md,
+    fontWeight: '600',
   },
   affirmationRow: {
     flexDirection: 'row',

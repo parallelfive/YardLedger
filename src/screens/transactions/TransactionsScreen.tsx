@@ -11,6 +11,7 @@ import type { TransactionsStackParamList } from '../../navigation/MainNavigator'
 import { useFocusEffect } from '@react-navigation/native';
 import { useT } from '../../hooks/useT';
 import { useReceipts } from '../../hooks/useReceipts';
+import { useSales } from '../../hooks/useSales';
 import { useAppSelector, type RootState } from '../../store';
 import {
   RefreshableList,
@@ -39,6 +40,7 @@ export default function TransactionsScreen({ navigation }: Props) {
     start,
     end
   );
+  const { sales, refresh: refreshSales } = useSales(start, end);
   const [showPrices, setShowPrices] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
@@ -46,7 +48,8 @@ export default function TransactionsScreen({ navigation }: Props) {
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh])
+      refreshSales();
+    }, [refresh, refreshSales])
   );
 
   const filteredReceipts = useMemo(() => {
@@ -75,24 +78,34 @@ export default function TransactionsScreen({ navigation }: Props) {
   };
 
   const stats = useMemo(() => {
-    const count = receipts.length;
-    const total = receipts.reduce((sum, r) => sum + Number(r.subtotal ?? 0), 0);
-    return { count, total };
-  }, [receipts]);
+    const buyCount = receipts.length;
+    const buyTotal = receipts.reduce(
+      (sum, r) => sum + Number(r.subtotal ?? 0),
+      0
+    );
+    const saleCount = sales.length;
+    const saleTotal = sales.reduce(
+      (sum, s) => sum + Number(s.total_revenue ?? 0),
+      0
+    );
+    return { buyCount, buyTotal, saleCount, saleTotal };
+  }, [receipts, sales]);
 
   return (
     <View style={styles.container}>
       <DateRangeSelector selected={preset} onSelect={setPreset} />
-      {stats.count > 0 && (
+      {(stats.buyCount > 0 || stats.saleCount > 0) && (
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>{stats.count}</Text>
+            <Text style={styles.statNumber}>{stats.buyCount}</Text>
             <Text style={styles.statLabel}>{t.buys}</Text>
+            <Text style={styles.statSub}>${stats.buyTotal.toFixed(2)}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>${stats.total.toFixed(2)}</Text>
-            <Text style={styles.statLabel}>{t.spent}</Text>
+            <Text style={styles.statNumber}>{stats.saleCount}</Text>
+            <Text style={styles.statLabel}>{t.tabSales}</Text>
+            <Text style={styles.statSub}>${stats.saleTotal.toFixed(2)}</Text>
           </View>
         </View>
       )}
@@ -244,6 +257,11 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
+  statSub: {
+    color: colors.textTertiary,
     fontSize: fontSize.sm,
     marginTop: spacing.xs,
   },

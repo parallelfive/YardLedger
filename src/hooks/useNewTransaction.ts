@@ -136,7 +136,7 @@ export function useNewTransaction(
   };
 
   const saveReceipt = async (
-    onSuccess: (receiptId: string) => void,
+    onSuccess: (receiptId: string, customerId: string) => void,
     customerId?: string
   ) => {
     if (!customerName.trim()) {
@@ -147,13 +147,15 @@ export function useNewTransaction(
       Alert.alert(t.error, t.addAtLeastOneItem);
       return;
     }
-    if (!vehiclePlate.trim() || !vehicleDescription.trim()) {
-      Alert.alert(t.error, t.vehicleRequired);
-      return;
-    }
-    if (!sellerAffirmed) {
-      Alert.alert(t.error, t.affirmationRequired);
-      return;
+    if (hasRestrictedMetal) {
+      if (!vehiclePlate.trim() || !vehicleDescription.trim()) {
+        Alert.alert(t.error, t.vehicleRequired);
+        return;
+      }
+      if (!sellerAffirmed) {
+        Alert.alert(t.error, t.affirmationRequired);
+        return;
+      }
     }
     if (!profile) {
       Alert.alert(t.error, 'No user profile found');
@@ -186,7 +188,7 @@ export function useNewTransaction(
         sellerAffirmed,
         lineItems,
       });
-      onSuccess(receipt.id);
+      onSuccess(receipt.id, receipt.customer_id);
     } catch (err) {
       console.error('[saveReceipt] Error:', err);
       Alert.alert(t.error, (err as Error).message);
