@@ -18,6 +18,9 @@ interface PrintReceiptData {
   receipt_number: string;
   customer_name: string;
   customer_phone?: string;
+  vehicle_plate?: string;
+  vehicle_description?: string;
+  seller_affirmed?: boolean;
   subtotal: number;
   signature_uri?: string | null;
   created_at: string;
@@ -106,10 +109,12 @@ function buildReceiptHtml(
         <span>${escapeHtml(receipt.customer_name)}</span>
       </div>
       ${receipt.customer_phone ? `<div class="info-row"><span class="info-label">Phone</span><span>${escapeHtml(receipt.customer_phone)}</span></div>` : ''}
+      ${receipt.vehicle_plate ? `<div class="info-row"><span class="info-label">Vehicle</span><span>${escapeHtml(receipt.vehicle_plate)} ${escapeHtml(receipt.vehicle_description ?? '')}</span></div>` : ''}
       <div class="info-row">
         <span class="info-label">Date</span>
         <span>${date}</span>
       </div>
+      ${receipt.seller_affirmed ? '<div class="info-row"><span class="info-label">Seller Affirmed</span><span>Yes</span></div>' : ''}
 
       <table>
         <thead>
