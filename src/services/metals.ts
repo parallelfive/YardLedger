@@ -41,7 +41,7 @@ export async function updateMetalPrice(
 
 export async function updateMetal(
   metalId: string,
-  updates: { name?: string; price_per_lb?: number },
+  updates: { name?: string; price_per_lb?: number; is_restricted?: boolean },
   updatedBy: string
 ) {
   const { data, error } = await supabase

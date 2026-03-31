@@ -33,6 +33,9 @@ interface ReceiptDetail {
   receipt_number: string;
   customer_name: string;
   customer_phone?: string;
+  vehicle_plate?: string;
+  vehicle_description?: string;
+  seller_affirmed?: boolean;
   subtotal: number;
   signature_uri?: string | null;
   created_at: string;
@@ -129,6 +132,23 @@ export default function ReceiptDetailScreen({ route }: Props) {
             <Text style={styles.customerPhone}>{receipt.customer_phone}</Text>
           ) : null}
         </View>
+
+        {/* Vehicle Info */}
+        {(receipt.vehicle_plate || receipt.vehicle_description) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.vehicleInfo}</Text>
+            {receipt.vehicle_plate ? (
+              <Text style={styles.customerPhone}>
+                {t.vehiclePlate}: {receipt.vehicle_plate}
+              </Text>
+            ) : null}
+            {receipt.vehicle_description ? (
+              <Text style={styles.customerPhone}>
+                {receipt.vehicle_description}
+              </Text>
+            ) : null}
+          </View>
+        )}
 
         {/* Line Items */}
         <View style={styles.section}>

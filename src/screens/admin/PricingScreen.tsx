@@ -15,7 +15,6 @@ import type { Metal, MetalCategory } from '../../types';
 import {
   fetchMetalCategories,
   fetchMetalsByCategory,
-  updateMetalPrice,
   createMetal,
   updateMetal,
   deactivateMetal,
@@ -44,6 +43,7 @@ export default function PricingScreen() {
   const [editingMetal, setEditingMetal] = useState<Metal | null>(null);
   const [newPrice, setNewPrice] = useState('');
   const [newName, setNewName] = useState('');
+  const [isRestricted, setIsRestricted] = useState(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -76,6 +76,7 @@ export default function PricingScreen() {
     setEditingMetal(metal);
     setNewPrice(metal.price_per_lb.toString());
     setNewName(metal.name);
+    setIsRestricted(metal.is_restricted);
     setModalMode('edit');
   };
 
@@ -92,6 +93,7 @@ export default function PricingScreen() {
     setEditingMetal(null);
     setNewPrice('');
     setNewName('');
+    setIsRestricted(false);
     setSelectedCategoryId('');
   };
 
@@ -112,25 +114,24 @@ export default function PricingScreen() {
 
     const priceChanged = price !== editingMetal.price_per_lb;
     const nameChanged = trimmedName !== editingMetal.name;
+    const restrictedChanged = isRestricted !== editingMetal.is_restricted;
 
-    if (!priceChanged && !nameChanged) {
+    if (!priceChanged && !nameChanged && !restrictedChanged) {
       closeModal();
       return;
     }
 
     setSaving(true);
     try {
-      if (nameChanged && priceChanged) {
-        await updateMetal(
-          editingMetal.id,
-          { name: trimmedName, price_per_lb: price },
-          profile.id
-        );
-      } else if (nameChanged) {
-        await updateMetal(editingMetal.id, { name: trimmedName }, profile.id);
-      } else {
-        await updateMetalPrice(editingMetal.id, price, profile.id);
-      }
+      const updates: {
+        name?: string;
+        price_per_lb?: number;
+        is_restricted?: boolean;
+      } = {};
+      if (nameChanged) updates.name = trimmedName;
+      if (priceChanged) updates.price_per_lb = price;
+      if (restrictedChanged) updates.is_restricted = isRestricted;
+      await updateMetal(editingMetal.id, updates, profile.id);
       Alert.alert(t.success, t.metalUpdated);
       closeModal();
       loadData();
@@ -216,7 +217,14 @@ export default function PricingScreen() {
             style={styles.metalRow}
             onPress={() => openEdit(item)}
           >
-            <Text style={styles.metalName}>{item.name}</Text>
+            <View style={styles.metalNameRow}>
+              <Text style={styles.metalName}>{item.name}</Text>
+              {item.is_restricted && (
+                <View style={styles.restrictedBadge}>
+                  <Text style={styles.restrictedBadgeText}>R</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.metalPrice}>
               ${Number(item.price_per_lb).toFixed(4)}
               {t.perLb}
@@ -276,6 +284,23 @@ export default function PricingScreen() {
                 ) : (
                   <Text style={styles.saveButtonText}>{t.save}</Text>
                 )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.restrictedToggle}
+                onPress={() => setIsRestricted(!isRestricted)}
+              >
+                <View
+                  style={[
+                    styles.toggleBox,
+                    isRestricted && styles.toggleBoxChecked,
+                  ]}
+                >
+                  {isRestricted && <Text style={styles.toggleCheck}>✓</Text>}
+                </View>
+                <Text style={styles.restrictedToggleText}>
+                  {t.restrictedMaterial}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -529,5 +554,50 @@ const styles = StyleSheet.create({
   categoryChipTextSelected: {
     color: colors.background,
     fontWeight: '600',
+  },
+  metalNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  restrictedBadge: {
+    backgroundColor: 'rgba(210, 153, 34, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm,
+  },
+  restrictedBadgeText: {
+    color: colors.warning,
+    fontSize: fontSize.xs,
+    fontWeight: '700',
+  },
+  restrictedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  toggleBox: {
+    width: 24,
+    height: 24,
+    borderRadius: borderRadius.sm,
+    borderWidth: 2,
+    borderColor: colors.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  toggleBoxChecked: {
+    backgroundColor: colors.warning,
+    borderColor: colors.warning,
+  },
+  toggleCheck: {
+    color: colors.background,
+    fontSize: fontSize.sm,
+    fontWeight: '700',
+  },
+  restrictedToggleText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
   },
 });

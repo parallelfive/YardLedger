@@ -45,9 +45,12 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [editingNotes, setEditingNotes] = useState(false);
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [dlNumber, setDlNumber] = useState('');
+  const [address, setAddress] = useState('');
+  const [dob, setDob] = useState('');
   const [notes, setNotes] = useState('');
-  const [savingNotes, setSavingNotes] = useState(false);
+  const [savingInfo, setSavingInfo] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -58,7 +61,12 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
       ]);
       setCustomer(c);
       setReceipts(r as ReceiptRow[]);
-      if (c) setNotes(c.notes);
+      if (c) {
+        setNotes(c.notes);
+        setDlNumber(c.drivers_license);
+        setAddress(c.address);
+        setDob(c.dob ?? '');
+      }
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     } finally {
@@ -93,17 +101,23 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
     }
   };
 
-  const handleSaveNotes = async () => {
+  const handleSaveInfo = async () => {
     if (!customer) return;
-    setSavingNotes(true);
+    setSavingInfo(true);
     try {
-      await updateCustomer(customer.id, { notes });
-      setCustomer({ ...customer, notes });
-      setEditingNotes(false);
+      const updates = {
+        drivers_license: dlNumber.trim(),
+        address: address.trim(),
+        dob: dob.trim() || null,
+        notes: notes.trim(),
+      };
+      await updateCustomer(customer.id, updates);
+      setCustomer({ ...customer, ...updates });
+      setEditingInfo(false);
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     } finally {
-      setSavingNotes(false);
+      setSavingInfo(false);
     }
   };
 
@@ -228,31 +242,110 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
 
       {/* Customer Info */}
       <View style={styles.infoSection}>
-        <Text style={styles.customerName}>{customer.name}</Text>
+        <View style={styles.infoHeader}>
+          <Text style={styles.customerName}>{customer.name}</Text>
+          {!editingInfo && (
+            <TouchableOpacity onPress={() => setEditingInfo(true)}>
+              <Ionicons name="pencil" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
         {customer.phone ? (
           <Text style={styles.infoRow}>
             <Text style={styles.infoLabel}>{t.phone}: </Text>
             {customer.phone}
           </Text>
         ) : null}
-        {customer.drivers_license ? (
-          <Text style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t.dlNumber}: </Text>
-            {customer.drivers_license}
-          </Text>
-        ) : null}
-        {customer.address ? (
-          <Text style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t.address}: </Text>
-            {customer.address}
-          </Text>
-        ) : null}
-        {customer.dob ? (
-          <Text style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t.dateOfBirth}: </Text>
-            {new Date(customer.dob).toLocaleDateString()}
-          </Text>
-        ) : null}
+
+        {editingInfo ? (
+          <View style={styles.editFields}>
+            <Text style={styles.editLabel}>{t.dlNumber}</Text>
+            <TextInput
+              style={styles.editInput}
+              value={dlNumber}
+              onChangeText={setDlNumber}
+              placeholder="DL-123456789"
+              placeholderTextColor={colors.textTertiary}
+            />
+            <Text style={styles.editLabel}>{t.address}</Text>
+            <TextInput
+              style={styles.editInput}
+              value={address}
+              onChangeText={setAddress}
+              placeholder={t.address}
+              placeholderTextColor={colors.textTertiary}
+            />
+            <Text style={styles.editLabel}>{t.dateOfBirth}</Text>
+            <TextInput
+              style={styles.editInput}
+              value={dob}
+              onChangeText={setDob}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.textTertiary}
+            />
+            <Text style={styles.editLabel}>{t.customerNotes}</Text>
+            <TextInput
+              style={[styles.editInput, styles.editInputMultiline]}
+              value={notes}
+              onChangeText={setNotes}
+              placeholder={t.notesPlaceholder}
+              placeholderTextColor={colors.textTertiary}
+              multiline
+              numberOfLines={3}
+            />
+            <View style={styles.editActions}>
+              <TouchableOpacity
+                onPress={() => {
+                  setDlNumber(customer.drivers_license);
+                  setAddress(customer.address);
+                  setDob(customer.dob ?? '');
+                  setNotes(customer.notes);
+                  setEditingInfo(false);
+                }}
+              >
+                <Text style={styles.editCancelText}>{t.cancel}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editSaveButton}
+                onPress={handleSaveInfo}
+                disabled={savingInfo}
+              >
+                {savingInfo ? (
+                  <ActivityIndicator color={colors.background} size="small" />
+                ) : (
+                  <Text style={styles.editSaveText}>{t.save}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <>
+            {customer.drivers_license ? (
+              <Text style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{t.dlNumber}: </Text>
+                {customer.drivers_license}
+              </Text>
+            ) : null}
+            {customer.address ? (
+              <Text style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{t.address}: </Text>
+                {customer.address}
+              </Text>
+            ) : null}
+            {customer.dob ? (
+              <Text style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{t.dateOfBirth}: </Text>
+                {new Date(customer.dob).toLocaleDateString()}
+              </Text>
+            ) : null}
+            {customer.notes ? (
+              <Text style={styles.infoRow}>
+                <Text style={styles.infoLabel}>{t.customerNotes}: </Text>
+                {customer.notes}
+              </Text>
+            ) : null}
+          </>
+        )}
       </View>
 
       {/* Stats */}
@@ -273,56 +366,6 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           </Text>
           <Text style={styles.statLabel}>{t.memberSince}</Text>
         </View>
-      </View>
-
-      {/* Notes */}
-      <View style={styles.notesSection}>
-        <View style={styles.notesHeader}>
-          <Text style={styles.sectionTitle}>{t.customerNotes}</Text>
-          {!editingNotes && (
-            <TouchableOpacity onPress={() => setEditingNotes(true)}>
-              <Ionicons name="pencil" size={18} color={colors.textSecondary} />
-            </TouchableOpacity>
-          )}
-        </View>
-        {editingNotes ? (
-          <View>
-            <TextInput
-              style={styles.notesInput}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder={t.notesPlaceholder}
-              placeholderTextColor={colors.textTertiary}
-              multiline
-              numberOfLines={3}
-            />
-            <View style={styles.notesActions}>
-              <TouchableOpacity
-                onPress={() => {
-                  setNotes(customer.notes);
-                  setEditingNotes(false);
-                }}
-              >
-                <Text style={styles.notesCancelText}>{t.cancel}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.notesSaveButton}
-                onPress={handleSaveNotes}
-                disabled={savingNotes}
-              >
-                {savingNotes ? (
-                  <ActivityIndicator color={colors.background} size="small" />
-                ) : (
-                  <Text style={styles.notesSaveText}>{t.save}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <Text style={styles.notesText}>
-            {customer.notes || t.notesPlaceholder}
-          </Text>
-        )}
       </View>
 
       {/* Transaction History */}
@@ -433,6 +476,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
   },
+  infoHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   customerName: {
     color: colors.textPrimary,
     fontSize: fontSize.xxl,
@@ -478,22 +526,17 @@ const styles = StyleSheet.create({
     height: '60%',
     backgroundColor: colors.border,
   },
-  notesSection: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+  editFields: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
-  notesHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
+  editLabel: {
+    color: colors.textTertiary,
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    marginTop: spacing.xs,
   },
-  sectionTitle: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-  },
-  notesInput: {
+  editInput: {
     backgroundColor: colors.inputBackground,
     color: colors.textPrimary,
     borderRadius: borderRadius.md,
@@ -501,34 +544,37 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  editInputMultiline: {
     minHeight: 80,
     textAlignVertical: 'top',
   },
-  notesActions: {
+  editActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: spacing.md,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
     alignItems: 'center',
   },
-  notesCancelText: {
+  editCancelText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
   },
-  notesSaveButton: {
+  editSaveButton: {
     backgroundColor: colors.accent,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.sm,
   },
-  notesSaveText: {
+  editSaveText: {
     color: colors.background,
     fontSize: fontSize.md,
     fontWeight: '600',
   },
-  notesText: {
-    color: colors.textTertiary,
-    fontSize: fontSize.md,
+  sectionTitle: {
+    color: colors.accent,
+    fontSize: fontSize.xl,
+    fontWeight: '700',
     fontStyle: 'italic',
   },
   historySection: {

@@ -157,9 +157,16 @@ export default function NewTransactionScreen({ navigation }: Props) {
                   onPress={() => handleSelectCustomer(c)}
                 >
                   <Text style={styles.customerResultName}>{c.name}</Text>
-                  {c.phone ? (
-                    <Text style={styles.customerResultPhone}>{c.phone}</Text>
-                  ) : null}
+                  <View style={styles.customerResultDetails}>
+                    {c.phone ? (
+                      <Text style={styles.customerResultPhone}>{c.phone}</Text>
+                    ) : null}
+                    {c.drivers_license ? (
+                      <Text style={styles.customerResultDl}>
+                        {t.dlNumberShort} {c.drivers_license}
+                      </Text>
+                    ) : null}
+                  </View>
                 </TouchableOpacity>
               ))
             )}
@@ -499,10 +506,18 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontWeight: '600',
   },
+  customerResultDetails: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: 2,
+  },
   customerResultPhone: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
-    marginTop: 2,
+  },
+  customerResultDl: {
+    color: colors.textTertiary,
+    fontSize: fontSize.sm,
   },
   noCustomersText: {
     color: colors.textTertiary,
