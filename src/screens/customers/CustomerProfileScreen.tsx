@@ -393,12 +393,15 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
             <TouchableOpacity
               key={r.id}
               style={styles.receiptCard}
-              onPress={() =>
-                navigation.getParent()?.navigate('TransactionsTab', {
-                  screen: 'ReceiptDetail',
-                  params: { receiptId: r.id },
-                })
-              }
+              onPress={() => {
+                const parent = navigation.getParent();
+                if (parent) {
+                  parent.navigate('TransactionsTab', {
+                    screen: 'ReceiptDetail',
+                    params: { receiptId: r.id },
+                  });
+                }
+              }}
             >
               <View style={styles.receiptHeader}>
                 <Text style={styles.receiptNumber}>{r.receipt_number}</Text>

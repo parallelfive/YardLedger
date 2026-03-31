@@ -133,7 +133,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
     const receiptId = savedReceipt.id;
     setSavedReceipt(null);
     tx.resetForm();
-    navigation.replace('ReceiptDetail', {
+    navigation.navigate('ReceiptDetail', {
       receiptId,
       printOnLoad: printAfterSave,
     });

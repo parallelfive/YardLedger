@@ -154,7 +154,7 @@ export default function NewSaleScreen({ navigation }: Props) {
         });
       }
       Alert.alert(t.success, t.saleSaved, [
-        { text: t.ok, onPress: () => navigation.goBack() },
+        { text: t.ok, onPress: () => navigation.navigate('SalesList') },
       ]);
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
