@@ -5,11 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0d1117"
     },
     "ios": {
       "supportsTablet": true,
@@ -31,7 +31,16 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "plugins": ["expo-sharing", "expo-secure-store"],
+    "plugins": [
+      "expo-sharing",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "YardLedger needs camera access to scan customer IDs."
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "119ad3ea-3267-4b4c-9097-50dc55879a40"
