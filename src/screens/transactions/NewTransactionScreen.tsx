@@ -231,6 +231,15 @@ export default function NewTransactionScreen({ navigation }: Props) {
             style={styles.scanIdButton}
             disabled={scanningId}
             onPress={async () => {
+              const { status } =
+                await ImagePicker.requestCameraPermissionsAsync();
+              if (status !== 'granted') {
+                Alert.alert(
+                  t.error,
+                  'Camera permission is required to scan IDs'
+                );
+                return;
+              }
               const result = await ImagePicker.launchCameraAsync({
                 mediaTypes: ['images'],
                 quality: 0.8,
