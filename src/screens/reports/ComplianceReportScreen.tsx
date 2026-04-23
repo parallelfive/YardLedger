@@ -16,7 +16,7 @@ import DateRangeSelector, {
   type DatePreset,
   getDateRange,
 } from '../../components/DateRangeSelector';
-import { supabase } from '../../config/supabase';
+import { fetchComplianceReport } from '../../services/reports';
 import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
@@ -52,18 +52,9 @@ export default function ComplianceReportScreen() {
     setLoading(true);
     try {
       const { start, end } = getDateRange(preset);
-      const { data, error } = await supabase
-        .from('receipts')
-        .select('*, line_items(metal_name, weight, total, is_restricted)')
-        .eq('type', 'buy')
-        .gte('created_at', `${start}T00:00:00`)
-        .lte('created_at', `${end}T23:59:59`)
-        .order('created_at', { ascending: false });
+      const data = await fetchComplianceReport(start, end);
 
-      if (error) throw error;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped: PurchaseRecordRow[] = (data ?? []).map((r: any) => {
+      const mapped: PurchaseRecordRow[] = data.map((r) => {
         const lineItems = (r.line_items ?? []) as {
           metal_name: string;
           weight: number;

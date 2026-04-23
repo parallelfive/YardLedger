@@ -382,3 +382,48 @@ export async function fetchShrinkageReport(): Promise<ShrinkageRow[]> {
     .filter((r) => r.totalBought > 0)
     .sort((a, b) => Math.abs(b.discrepancy) - Math.abs(a.discrepancy));
 }
+
+// ---------- Compliance Report ----------
+
+export interface ComplianceReceiptRow {
+  id: string;
+  receipt_number: string;
+  created_at: string;
+  customer_name: string;
+  seller_name: string | null;
+  seller_dl_number: string | null;
+  seller_state_of_issue: string | null;
+  seller_address: string | null;
+  seller_city: string | null;
+  seller_state: string | null;
+  seller_zip: string | null;
+  seller_affirmed: boolean | null;
+  vehicle_plate: string | null;
+  vehicle_year: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_color: string | null;
+  subtotal: number;
+  line_items: {
+    metal_name: string;
+    weight: number;
+    total: number;
+    is_restricted: boolean;
+  }[];
+}
+
+export async function fetchComplianceReport(
+  startDate: string,
+  endDate: string
+): Promise<ComplianceReceiptRow[]> {
+  const { data, error } = await supabase
+    .from('receipts')
+    .select('*, line_items(metal_name, weight, total, is_restricted)')
+    .eq('type', 'buy')
+    .gte('created_at', `${startDate}T00:00:00`)
+    .lte('created_at', `${endDate}T23:59:59`)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as ComplianceReceiptRow[];
+}
