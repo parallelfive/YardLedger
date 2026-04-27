@@ -294,7 +294,7 @@ function AdminNavigator() {
 export default function MainNavigator() {
   const { t } = useT();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
 
   return (
     <Tab.Navigator

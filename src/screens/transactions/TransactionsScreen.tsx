@@ -32,7 +32,7 @@ type Props = NativeStackScreenProps<
 export default function TransactionsScreen({ navigation }: Props) {
   const { t } = useT();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
-  const isAdmin = profile?.role === 'admin';
+  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
   const [preset, setPreset] = useState<DatePreset>('today');
   const { start, end } = getDateRange(preset);
   const { receipts, loading, refresh } = useReceipts(

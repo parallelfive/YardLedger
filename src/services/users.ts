@@ -35,7 +35,7 @@ export async function verifyAdminCredentials(
     .eq('supabase_id', authData.user.id)
     .single();
 
-  if (userError || userData?.role !== 'admin') {
+  if (userError || (userData?.role !== 'admin' && userData?.role !== 'owner')) {
     return { isAdmin: false, userId: null };
   }
 
