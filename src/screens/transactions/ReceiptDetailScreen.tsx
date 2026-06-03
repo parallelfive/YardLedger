@@ -12,8 +12,13 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useT } from '../../hooks/useT';
-import { fetchReceiptById } from '../../services/receipts';
+import { fetchReceiptById, deleteReceipt } from '../../services/receipts';
+import { AccessCodeModal } from '../../components';
 import { printReceipt, shareReceipt } from '../../utils/printReceipt';
+import {
+  printNmPurchaseRecord,
+  printNmCatConverterForm,
+} from '../../utils/printNmForms';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 interface ReceiptLineItem {
@@ -35,7 +40,24 @@ interface ReceiptDetail {
   customer_phone?: string;
   vehicle_plate?: string;
   vehicle_description?: string;
+  vehicle_year?: string;
+  vehicle_make?: string;
+  vehicle_model?: string;
+  vehicle_color?: string;
   seller_affirmed?: boolean;
+  seller_name?: string;
+  seller_dl_number?: string;
+  seller_state_of_issue?: string;
+  seller_dob?: string;
+  seller_address?: string;
+  seller_city?: string;
+  seller_state?: string;
+  seller_zip?: string;
+  seller_id_photo_uri?: string | null;
+  cat_converter_numbers?: string;
+  transport_vin?: string;
+  cat_converter_photo_uri?: string | null;
+  cat_title_photo_uri?: string | null;
   subtotal: number;
   signature_uri?: string | null;
   created_at: string;
@@ -47,11 +69,12 @@ type Props = NativeStackScreenProps<
   'ReceiptDetail'
 >;
 
-export default function ReceiptDetailScreen({ route }: Props) {
+export default function ReceiptDetailScreen({ route, navigation }: Props) {
   const { t } = useT();
   const { receiptId, printOnLoad } = route.params;
   const [receipt, setReceipt] = useState<ReceiptDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteAuth, setShowDeleteAuth] = useState(false);
 
   const handlePrint = useCallback(
     async (data?: ReceiptDetail) => {
@@ -142,8 +165,51 @@ export default function ReceiptDetailScreen({ route }: Props) {
           ) : null}
         </View>
 
+        {/* Seller ID — regulated materials */}
+        {receipt.seller_name ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.sellerIdInfo}</Text>
+            {receipt.seller_id_photo_uri ? (
+              <View style={styles.sellerIdPhotoBox}>
+                <Image
+                  source={{ uri: receipt.seller_id_photo_uri }}
+                  style={styles.sellerIdPhoto}
+                  resizeMode="contain"
+                />
+              </View>
+            ) : null}
+            <Text style={styles.customerName}>{receipt.seller_name}</Text>
+            {receipt.seller_dl_number ? (
+              <Text style={styles.customerPhone}>
+                {t.sellerDlNumber}: {receipt.seller_dl_number}
+                {receipt.seller_state_of_issue
+                  ? ` (${receipt.seller_state_of_issue})`
+                  : ''}
+              </Text>
+            ) : null}
+            {receipt.seller_dob ? (
+              <Text style={styles.customerPhone}>
+                {t.sellerDateOfBirth}: {receipt.seller_dob}
+              </Text>
+            ) : null}
+            {receipt.seller_address ? (
+              <Text style={styles.customerPhone}>
+                {[
+                  receipt.seller_address,
+                  receipt.seller_city,
+                  receipt.seller_state
+                    ? `${receipt.seller_state} ${receipt.seller_zip ?? ''}`
+                    : receipt.seller_zip,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         {/* Vehicle Info */}
-        {(receipt.vehicle_plate || receipt.vehicle_description) && (
+        {(receipt.vehicle_plate || receipt.vehicle_year) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t.vehicleInfo}</Text>
             {receipt.vehicle_plate ? (
@@ -151,10 +217,58 @@ export default function ReceiptDetailScreen({ route }: Props) {
                 {t.vehiclePlate}: {receipt.vehicle_plate}
               </Text>
             ) : null}
-            {receipt.vehicle_description ? (
+            {(receipt.vehicle_year ||
+              receipt.vehicle_make ||
+              receipt.vehicle_model) && (
               <Text style={styles.customerPhone}>
-                {receipt.vehicle_description}
+                {[
+                  receipt.vehicle_year,
+                  receipt.vehicle_make,
+                  receipt.vehicle_model,
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
               </Text>
+            )}
+            {receipt.vehicle_color ? (
+              <Text style={styles.customerPhone}>
+                {t.vehicleColor}: {receipt.vehicle_color}
+              </Text>
+            ) : null}
+          </View>
+        )}
+
+        {/* Catalytic Converter Info */}
+        {(receipt.cat_converter_numbers || receipt.transport_vin) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.catConverterSection}</Text>
+            {receipt.cat_converter_numbers ? (
+              <Text style={styles.customerPhone}>
+                {t.catConverterNumbers}: {receipt.cat_converter_numbers}
+              </Text>
+            ) : null}
+            {receipt.transport_vin ? (
+              <Text style={styles.customerPhone}>
+                {t.transportVin}: {receipt.transport_vin}
+              </Text>
+            ) : null}
+            {receipt.cat_converter_photo_uri ? (
+              <View style={styles.sellerIdPhotoBox}>
+                <Image
+                  source={{ uri: receipt.cat_converter_photo_uri }}
+                  style={styles.sellerIdPhoto}
+                  resizeMode="contain"
+                />
+              </View>
+            ) : null}
+            {receipt.cat_title_photo_uri ? (
+              <View style={styles.sellerIdPhotoBox}>
+                <Image
+                  source={{ uri: receipt.cat_title_photo_uri }}
+                  style={styles.sellerIdPhoto}
+                  resizeMode="contain"
+                />
+              </View>
             ) : null}
           </View>
         )}
@@ -243,6 +357,72 @@ export default function ReceiptDetailScreen({ route }: Props) {
           <Text style={styles.printButtonText}>{t.print}</Text>
         </TouchableOpacity>
       </View>
+      {receipt.seller_name ? (
+        <View style={styles.nmFormRow}>
+          <TouchableOpacity
+            style={styles.nmFormButton}
+            onPress={async () => {
+              try {
+                await printNmPurchaseRecord(receipt);
+              } catch (err) {
+                Alert.alert(t.error, (err as Error).message);
+              }
+            }}
+          >
+            <Text style={styles.nmFormButtonText}>{t.printNmForms}</Text>
+          </TouchableOpacity>
+          {(receipt.cat_converter_numbers || receipt.transport_vin) && (
+            <TouchableOpacity
+              style={[styles.nmFormButton, { marginTop: spacing.sm }]}
+              onPress={async () => {
+                try {
+                  await printNmCatConverterForm(receipt);
+                } catch (err) {
+                  Alert.alert(t.error, (err as Error).message);
+                }
+              }}
+            >
+              <Text style={styles.nmFormButtonText}>
+                {t.catConverterSection}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      ) : null}
+
+      {/* Delete */}
+      <View style={styles.deleteRow}>
+        <TouchableOpacity
+          style={styles.deleteButton}
+          onPress={() => {
+            Alert.alert(t.deleteReceipt, t.deleteReceiptConfirm, [
+              { text: t.cancel, style: 'cancel' },
+              {
+                text: t.deleteReceipt,
+                style: 'destructive',
+                onPress: () => setShowDeleteAuth(true),
+              },
+            ]);
+          }}
+        >
+          <Text style={styles.deleteButtonText}>{t.deleteReceipt}</Text>
+        </TouchableOpacity>
+      </View>
+
+      <AccessCodeModal
+        visible={showDeleteAuth}
+        onSuccess={async () => {
+          setShowDeleteAuth(false);
+          try {
+            await deleteReceipt(receiptId);
+            Alert.alert(t.success, t.receiptDeleted);
+            navigation.goBack();
+          } catch (err) {
+            Alert.alert(t.error, (err as Error).message);
+          }
+        }}
+        onCancel={() => setShowDeleteAuth(false)}
+      />
     </View>
   );
 }
@@ -380,6 +560,18 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xxl,
     fontWeight: '700',
   },
+  sellerIdPhotoBox: {
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+  },
+  sellerIdPhoto: {
+    width: '100%',
+    height: 180,
+    backgroundColor: colors.card,
+  },
   signatureBox: {
     backgroundColor: '#ffffff',
     borderRadius: borderRadius.md,
@@ -419,5 +611,38 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: fontSize.xl,
     fontWeight: '700',
+  },
+  nmFormRow: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.lg,
+  },
+  nmFormButton: {
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.warning,
+    backgroundColor: 'rgba(210, 153, 34, 0.1)',
+  },
+  nmFormButtonText: {
+    color: colors.warning,
+    fontSize: fontSize.lg,
+    fontWeight: '700',
+  },
+  deleteRow: {
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xxxl,
+  },
+  deleteButton: {
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.danger,
+  },
+  deleteButtonText: {
+    color: colors.danger,
+    fontSize: fontSize.md,
+    fontWeight: '600',
   },
 });

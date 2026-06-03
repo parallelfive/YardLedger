@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { PendingUser } from '../types';
+import type { PendingUser, UserRole } from '../types';
 import {
   fetchAllUsers,
   approveUser,
   deactivateUser,
   promoteToAdmin,
+  updateUserRole,
 } from '../services/users';
 
 export function useUserApproval() {
@@ -53,6 +54,11 @@ export function useUserApproval() {
     );
   };
 
+  const handleChangeRole = async (userId: string, role: UserRole) => {
+    await updateUserRole(userId, role);
+    setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, role } : u)));
+  };
+
   return {
     users,
     pendingUsers,
@@ -63,5 +69,6 @@ export function useUserApproval() {
     handleApprove,
     handleDeactivate,
     handlePromote,
+    handleChangeRole,
   };
 }

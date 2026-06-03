@@ -13,7 +13,6 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { CustomersStackParamList } from '../../navigation/MainNavigator';
-import * as ImagePicker from 'expo-image-picker';
 import * as Print from 'expo-print';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -26,6 +25,7 @@ import {
 import { fetchCompanySettings } from '../../services/companySettings';
 import { escapeHtml } from '../../utils/validation';
 import { useT } from '../../hooks/useT';
+import { useIdScanner } from '../../hooks/useIdScanner';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 type Props = NativeStackScreenProps<CustomersStackParamList, 'CustomerProfile'>;
@@ -51,6 +51,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
   const [dob, setDob] = useState('');
   const [notes, setNotes] = useState('');
   const [savingInfo, setSavingInfo] = useState(false);
+  const { scanning, scanAndRecognize } = useIdScanner();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -81,18 +82,25 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
   );
 
   const handleScanId = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-    });
-    if (result.canceled || !customer) return;
+    if (!customer) return;
+    const scanResult = await scanAndRecognize();
+    if (!scanResult) return;
 
+    const { imageUri, fields } = scanResult;
+
+    // Pre-fill empty fields from OCR
+    if (fields.driversLicense && !dlNumber.trim())
+      setDlNumber(fields.driversLicense);
+    if (fields.address && !address.trim()) setAddress(fields.address);
+    if (fields.dob && !dob.trim()) setDob(fields.dob);
+
+    // Open edit mode so worker can review/correct OCR results
+    setEditingInfo(true);
+
+    // Upload the clean scanned image
     setUploading(true);
     try {
-      const url = await uploadCustomerIdPhoto(
-        customer.id,
-        result.assets[0].uri
-      );
+      const url = await uploadCustomerIdPhoto(customer.id, imageUri);
       setCustomer({ ...customer, dl_photo_uri: url });
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
@@ -213,7 +221,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
         <TouchableOpacity
           style={styles.idPhotoBox}
           onPress={handleScanId}
-          disabled={uploading}
+          disabled={uploading || scanning}
         >
           {uploading ? (
             <ActivityIndicator color={colors.accent} size="large" />
@@ -289,6 +297,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
               onChangeText={setAddress}
               placeholder={t.address}
               placeholderTextColor={colors.textTertiary}
+              autoCapitalize="words"
             />
             <Text style={styles.editLabel}>{t.dateOfBirth}</Text>
             <TextInput

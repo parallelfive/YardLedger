@@ -29,6 +29,18 @@ export default {
   accountCreated: 'Account created! Check your email for verification.',
   registrationFailed: 'Registration Failed',
   alreadyHaveAccount: 'Already have an account? Sign In',
+  inviteCode: 'Invite Code',
+  inviteUser: 'Invite User',
+  roleWorker: 'Worker',
+  roleAdmin: 'Admin',
+  roleOwner: 'Owner',
+  generateInviteCode: 'Generate Invite Code',
+  unusedInviteCodes: 'Unused Invite Codes',
+  noUnusedInviteCodes: 'No unused invite codes',
+  shareInviteCode:
+    'Share this code with the person you want to invite. They enter it when signing up.',
+  makeOwner: 'Make Owner',
+  makeWorker: 'Make Worker',
 
   // Auth - Pending
   accountPending: 'Account Pending',
@@ -273,16 +285,62 @@ export default {
   customerNotes: 'Notes',
   notesPlaceholder: 'Add notes about this customer...',
 
+  // Seller ID (Regulated Materials — NM Purchase Record)
+  sellerIdInfo: 'Seller Identification',
+  sellerFullName: 'Full Name',
+  sellerDlNumber: "Driver's License #",
+  sellerStateOfIssue: 'State of Issue',
+  sellerDateOfBirth: 'Date of Birth',
+  sellerAddress: 'Street Address',
+  sellerCity: 'City',
+  sellerState: 'State',
+  sellerZip: 'Zip',
+  sellerIdRequired:
+    "Seller name and driver's license are required for regulated materials",
+  sellerIdPhoto: 'ID Photo',
+  regulatedWarning:
+    'This transaction contains regulated material — ID, vehicle info, and seller signature required per NM law',
+
   // Vehicle & Compliance
   vehicleInfo: 'Vehicle Info',
-  vehiclePlate: 'License Plate',
-  vehicleDescription: 'Vehicle (Year/Make/Model)',
-  sellerAffirmation: 'Seller affirms legal ownership of materials',
+  vehiclePlate: 'License Plate #',
+  vehicleYear: 'Year',
+  vehicleMake: 'Make',
+  vehicleModel: 'Model',
+  vehicleColor: 'Color',
+  sellerAffirmation:
+    'I swear under penalty of perjury that I am the legal owner of the material on this record and have the legal right to sell this material',
   restrictedMaterial: 'Restricted Material',
-  restrictedWarning: 'This metal requires additional documentation per NM law',
-  vehicleRequired: 'Vehicle plate and description are required',
+  restrictedWarning:
+    'This transaction contains RESTRICTED material — additional documentation required per NM 57-30-2.4',
+  restrictedBurntWire:
+    'Burnt regulated material — requires police or fire report',
+  restrictedIdRemoved:
+    'ID marks removed or altered — CANNOT PURCHASE this item',
+  restrictedPropertyOf:
+    '"Property of" utility/railroad/government — requires contract or letter',
+  restrictedInfrastructure:
+    'Utility cover, water meter, guard rail, sign, or signal — requires contract or letter',
+  restrictedBeerKeg:
+    'Beer keg with manufacturer name — requires signed letterhead from manufacturer',
+  restrictedCatalyticConverter:
+    'Catalytic converter — requires additional documentation (ID photo, phone, title/registration, VIN, photo of converter)',
+  catConverterSection: 'Catalytic Converter Documentation',
+  catConverterNumbers: 'Converter Number(s)',
+  transportVin: 'Transport Vehicle VIN (17 digits)',
+  vinRequired:
+    'A valid 17-digit VIN is required for catalytic converter transactions',
+  catConverterPhoto: 'Photo of Catalytic Converter',
+  catTitlePhoto: 'Title/Registration of Source Vehicle',
+  takePhoto: 'Take Photo',
+  vehicleRequired: 'License plate is required for regulated materials',
   affirmationRequired: 'Seller must affirm legal ownership',
   affirmed: 'Affirmed',
+  printNmForms: 'Print NM Forms',
+  deleteReceipt: 'Delete Receipt',
+  deleteReceiptConfirm:
+    'This will permanently delete this receipt and all its line items. This cannot be undone.',
+  receiptDeleted: 'Receipt deleted',
 
   // Reports & Compliance
   complianceReport: 'Compliance Report',
@@ -291,6 +349,26 @@ export default {
   restrictedReport: 'Restricted Materials',
   restrictedReportDesc: 'Transactions requiring extra documentation',
   exportCsv: 'Export CSV',
+  nmrldExport: 'NMRLD Upload File',
+  nmrldExportDesc: 'State database export (NM 57-30-8)',
+  onHoldReport: 'Material On Hold',
+  onHoldDesc: 'Items under a mandatory hold period',
+  noMaterialOnHold: 'No material is currently on hold',
+  holdUntil: 'Hold until',
+  daysLeft: 'days left',
+  catalyticConverter: 'Catalytic Converter',
+  complianceRules: 'Compliance Rules',
+  stateLabel: 'State',
+  generalHoldHoursLabel: 'General hold (hours)',
+  catHoldDaysLabel: 'Catalytic converter hold (days)',
+  catCheckOnlyLabel: 'Catalytic converters: check only',
+  paymentMethodLabel: 'Payment method',
+  paymentCash: 'Cash',
+  paymentCheck: 'Check',
+  paymentOther: 'Other',
+  catCheckOnlyNote: 'Catalytic converters must be paid by check (NM law)',
+  sellerPhoto: 'Seller Photo',
+  materialPhoto: 'Material Photo',
   noDataForRange: 'No data for this date range',
   transactionDate: 'Date',
   sellerName: 'Seller',

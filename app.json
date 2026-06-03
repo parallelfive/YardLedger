@@ -2,9 +2,10 @@
   "expo": {
     "name": "YardLedger",
     "slug": "YardLedger",
+    "scheme": "yardledger",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/final-icon.jpg",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -13,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.damianxrojas.YardLedger",
+      "bundleIdentifier": "com.parallelfive.YardLedger",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -36,6 +37,12 @@
       "expo-secure-store",
       [
         "expo-image-picker",
+        {
+          "cameraPermission": "YardLedger needs camera access to scan customer IDs."
+        }
+      ],
+      [
+        "react-native-document-scanner-plugin",
         {
           "cameraPermission": "YardLedger needs camera access to scan customer IDs."
         }

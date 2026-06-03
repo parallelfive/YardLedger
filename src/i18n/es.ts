@@ -29,6 +29,18 @@ export default {
   accountCreated: '¡Cuenta creada! Revisa tu correo para la verificación.',
   registrationFailed: 'Registro Fallido',
   alreadyHaveAccount: '¿Ya tienes cuenta? Inicia Sesión',
+  inviteCode: 'Código de Invitación',
+  inviteUser: 'Invitar Usuario',
+  roleWorker: 'Trabajador',
+  roleAdmin: 'Administrador',
+  roleOwner: 'Propietario',
+  generateInviteCode: 'Generar Código',
+  unusedInviteCodes: 'Códigos de Invitación Sin Usar',
+  noUnusedInviteCodes: 'Sin códigos de invitación sin usar',
+  shareInviteCode:
+    'Comparte este código con la persona que deseas invitar. Lo ingresa al registrarse.',
+  makeOwner: 'Hacer Propietario',
+  makeWorker: 'Hacer Trabajador',
 
   // Auth - Pending
   accountPending: 'Cuenta Pendiente',
@@ -274,17 +286,63 @@ export default {
   customerNotes: 'Notas',
   notesPlaceholder: 'Agregar notas sobre este cliente...',
 
+  // Seller ID (Regulated Materials — NM Purchase Record)
+  sellerIdInfo: 'Identificación del Vendedor',
+  sellerFullName: 'Nombre Completo',
+  sellerDlNumber: 'Número de Licencia',
+  sellerStateOfIssue: 'Estado de Emisión',
+  sellerDateOfBirth: 'Fecha de Nacimiento',
+  sellerAddress: 'Dirección',
+  sellerCity: 'Ciudad',
+  sellerState: 'Estado',
+  sellerZip: 'Código Postal',
+  sellerIdRequired:
+    'El nombre y licencia del vendedor son requeridos para materiales regulados',
+  sellerIdPhoto: 'Foto de ID',
+  regulatedWarning:
+    'Esta transacción contiene material regulado — se requiere ID, información del vehículo y firma del vendedor según la ley de NM',
+
   // Vehicle & Compliance
   vehicleInfo: 'Información del Vehículo',
-  vehiclePlate: 'Placa del Vehículo',
-  vehicleDescription: 'Vehículo (Año/Marca/Modelo)',
-  sellerAffirmation: 'El vendedor afirma ser propietario legal del material',
+  vehiclePlate: 'Número de Placa',
+  vehicleYear: 'Año',
+  vehicleMake: 'Marca',
+  vehicleModel: 'Modelo',
+  vehicleColor: 'Color',
+  sellerAffirmation:
+    'Juro bajo pena de perjurio que soy el propietario legal del material en este registro y tengo el derecho legal de vender este material',
   restrictedMaterial: 'Material Restringido',
   restrictedWarning:
-    'Este metal requiere documentación adicional según la ley de NM',
-  vehicleRequired: 'La placa y descripción del vehículo son requeridas',
+    'Esta transacción contiene material RESTRINGIDO — se requiere documentación adicional según NM 57-30-2.4',
+  restrictedBurntWire:
+    'Material regulado quemado — requiere reporte policial o de bomberos',
+  restrictedIdRemoved:
+    'Marcas de identificación removidas o alteradas — NO SE PUEDE COMPRAR este artículo',
+  restrictedPropertyOf:
+    'Propiedad de utilidad/ferrocarril/gobierno — requiere contrato o carta',
+  restrictedInfrastructure:
+    'Tapa de acceso, medidor de agua, barandal, letrero o señal — requiere contrato o carta',
+  restrictedBeerKeg:
+    'Barril de cerveza con nombre del fabricante — requiere carta firmada del fabricante',
+  restrictedCatalyticConverter:
+    'Convertidor catalítico — requiere documentación adicional (foto de ID, teléfono, título/registro, VIN, foto del convertidor)',
+  catConverterSection: 'Documentación de Convertidor Catalítico',
+  catConverterNumbers: 'Número(s) de Convertidor',
+  transportVin: 'VIN del Vehículo de Transporte (17 dígitos)',
+  vinRequired:
+    'Se requiere un VIN válido de 17 dígitos para transacciones de convertidor catalítico',
+  catConverterPhoto: 'Foto del Convertidor Catalítico',
+  catTitlePhoto: 'Título/Registro del Vehículo de Origen',
+  takePhoto: 'Tomar Foto',
+  vehicleRequired:
+    'La placa del vehículo es requerida para materiales regulados',
   affirmationRequired: 'El vendedor debe afirmar propiedad legal',
   affirmed: 'Afirmado',
+  printNmForms: 'Imprimir Formularios NM',
+  deleteReceipt: 'Eliminar Recibo',
+  deleteReceiptConfirm:
+    'Esto eliminará permanentemente este recibo y todos sus artículos. No se puede deshacer.',
+  receiptDeleted: 'Recibo eliminado',
 
   // Reports & Compliance
   complianceReport: 'Reporte de Cumplimiento',
@@ -293,6 +351,27 @@ export default {
   restrictedReport: 'Materiales Restringidos',
   restrictedReportDesc: 'Transacciones que requieren documentación adicional',
   exportCsv: 'Exportar CSV',
+  nmrldExport: 'Archivo NMRLD',
+  nmrldExportDesc: 'Exportación a base de datos estatal (NM 57-30-8)',
+  onHoldReport: 'Material en Retención',
+  onHoldDesc: 'Artículos bajo período de retención obligatorio',
+  noMaterialOnHold: 'No hay material en retención actualmente',
+  holdUntil: 'Retener hasta',
+  daysLeft: 'días restantes',
+  catalyticConverter: 'Convertidor Catalítico',
+  complianceRules: 'Reglas de Cumplimiento',
+  stateLabel: 'Estado',
+  generalHoldHoursLabel: 'Retención general (horas)',
+  catHoldDaysLabel: 'Retención de convertidor catalítico (días)',
+  catCheckOnlyLabel: 'Convertidores catalíticos: solo cheque',
+  paymentMethodLabel: 'Método de pago',
+  paymentCash: 'Efectivo',
+  paymentCheck: 'Cheque',
+  paymentOther: 'Otro',
+  catCheckOnlyNote:
+    'Los convertidores catalíticos se pagan con cheque (ley NM)',
+  sellerPhoto: 'Foto del Vendedor',
+  materialPhoto: 'Foto del Material',
   noDataForRange: 'Sin datos para este rango de fechas',
   transactionDate: 'Fecha',
   sellerName: 'Vendedor',

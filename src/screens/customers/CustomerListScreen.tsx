@@ -9,35 +9,22 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { CustomersStackParamList } from '../../navigation/MainNavigator';
-import { fetchAllCustomers, type Customer } from '../../services/customers';
 import { RefreshableList } from '../../components';
 import { useT } from '../../hooks/useT';
+import { useCustomers } from '../../hooks';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 type Props = NativeStackScreenProps<CustomersStackParamList, 'CustomerList'>;
 
 export default function CustomerListScreen({ navigation }: Props) {
   const { t } = useT();
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { customers, loading, refresh } = useCustomers();
   const [search, setSearch] = useState('');
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchAllCustomers();
-      setCustomers(data);
-    } catch {
-      // Will show empty
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load])
+      refresh();
+    }, [refresh])
   );
 
   const filtered = search
@@ -74,7 +61,7 @@ export default function CustomerListScreen({ navigation }: Props) {
         data={filtered}
         keyExtractor={(item) => item.id}
         loading={loading}
-        onRefresh={load}
+        onRefresh={refresh}
         emptyTitle={t.noCustomers}
         emptySubtitle={t.customersWillAppear}
         renderItem={({ item }) => (

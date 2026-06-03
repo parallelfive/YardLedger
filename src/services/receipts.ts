@@ -1,4 +1,6 @@
 import { supabase } from '../config/supabase';
+import { File } from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
 import type { LineItemInput } from '../types';
 import { upsertCustomer } from './customers';
 
@@ -12,12 +14,79 @@ interface CreateReceiptParams {
   workerId: string;
   notes?: string;
   vehiclePlate?: string;
-  vehicleDescription?: string;
+  vehicleYear?: string;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  vehicleColor?: string;
   sellerAffirmed?: boolean;
+  sellerName?: string;
+  sellerDlNumber?: string;
+  sellerStateOfIssue?: string;
+  sellerDob?: string;
+  sellerAddress?: string;
+  sellerCity?: string;
+  sellerState?: string;
+  sellerZip?: string;
+  sellerIdPhotoUri?: string | null;
+  catConverterNumbers?: string;
+  transportVin?: string;
+  catConverterPhotoUri?: string | null;
+  catTitlePhotoUri?: string | null;
+  sellerPhotoUri?: string | null;
+  materialPhotoUri?: string | null;
+  paymentMethod?: 'cash' | 'check' | 'other';
+  isCatalytic?: boolean;
   lineItems: LineItemInput[];
 }
 
+async function uploadIdPhoto(localUri: string): Promise<string> {
+  // Company-scope the path so the private bucket's RLS isolates each yard.
+  const { data: companyId, error: companyErr } =
+    await supabase.rpc('current_company_id');
+  if (companyErr || !companyId) {
+    throw companyErr ?? new Error('No current company for ID upload');
+  }
+  const filePath = `${companyId}/seller_${Date.now()}.jpg`;
+  const file = new File(localUri);
+  const base64 = await file.base64();
+  const { error } = await supabase.storage
+    .from('customer-ids')
+    .upload(filePath, decode(base64), {
+      contentType: 'image/jpeg',
+      upsert: true,
+    });
+  if (error) throw error;
+  // Private bucket → signed URL (getPublicUrl does not authenticate here).
+  const { data: signed, error: signErr } = await supabase.storage
+    .from('customer-ids')
+    .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+  if (signErr || !signed) throw signErr ?? new Error('Failed to sign ID URL');
+  return signed.signedUrl;
+}
+
 export async function createReceipt(params: CreateReceiptParams) {
+  // Upload photos if they're local files
+  let sellerIdPhotoUrl = params.sellerIdPhotoUri ?? null;
+  if (sellerIdPhotoUrl && !sellerIdPhotoUrl.startsWith('http')) {
+    sellerIdPhotoUrl = await uploadIdPhoto(sellerIdPhotoUrl);
+  }
+  let catConverterPhotoUrl = params.catConverterPhotoUri ?? null;
+  if (catConverterPhotoUrl && !catConverterPhotoUrl.startsWith('http')) {
+    catConverterPhotoUrl = await uploadIdPhoto(catConverterPhotoUrl);
+  }
+  let catTitlePhotoUrl = params.catTitlePhotoUri ?? null;
+  if (catTitlePhotoUrl && !catTitlePhotoUrl.startsWith('http')) {
+    catTitlePhotoUrl = await uploadIdPhoto(catTitlePhotoUrl);
+  }
+  let sellerPhotoUrl = params.sellerPhotoUri ?? null;
+  if (sellerPhotoUrl && !sellerPhotoUrl.startsWith('http')) {
+    sellerPhotoUrl = await uploadIdPhoto(sellerPhotoUrl);
+  }
+  let materialPhotoUrl = params.materialPhotoUri ?? null;
+  if (materialPhotoUrl && !materialPhotoUrl.startsWith('http')) {
+    materialPhotoUrl = await uploadIdPhoto(materialPhotoUrl);
+  }
+
   // Upsert customer record
   const customer = params.customerId
     ? { id: params.customerId }
@@ -37,8 +106,36 @@ export async function createReceipt(params: CreateReceiptParams) {
       worker_id: params.workerId,
       notes: params.notes,
       vehicle_plate: params.vehiclePlate ?? '',
-      vehicle_description: params.vehicleDescription ?? '',
+      vehicle_description: [
+        params.vehicleYear,
+        params.vehicleMake,
+        params.vehicleModel,
+      ]
+        .filter(Boolean)
+        .join(' '),
+      vehicle_year: params.vehicleYear ?? '',
+      vehicle_make: params.vehicleMake ?? '',
+      vehicle_model: params.vehicleModel ?? '',
+      vehicle_color: params.vehicleColor ?? '',
       seller_affirmed: params.sellerAffirmed ?? false,
+      seller_name: params.sellerName ?? '',
+      seller_dl_number: params.sellerDlNumber ?? '',
+      seller_state_of_issue: params.sellerStateOfIssue ?? '',
+      seller_dob: params.sellerDob ?? '',
+      seller_address: params.sellerAddress ?? '',
+      seller_city: params.sellerCity ?? '',
+      seller_state: params.sellerState ?? '',
+      seller_zip: params.sellerZip ?? '',
+      seller_id_photo_uri: sellerIdPhotoUrl,
+      cat_converter_numbers: params.catConverterNumbers ?? '',
+      transport_vin: params.transportVin ?? '',
+      cat_converter_photo_uri: catConverterPhotoUrl,
+      cat_title_photo_uri: catTitlePhotoUrl,
+      payment_method: params.paymentMethod ?? 'cash',
+      is_catalytic: params.isCatalytic ?? false,
+      seller_photo_uri: sellerPhotoUrl,
+      material_photo_uri: materialPhotoUrl,
+      // hold_until is stamped by the set_receipt_compliance trigger.
     })
     .select()
     .single();
@@ -56,8 +153,10 @@ export async function createReceipt(params: CreateReceiptParams) {
     price_per_lb: item.pricePerLb,
     original_price_per_lb: item.originalPricePerLb,
     is_price_override: item.isPriceOverride,
-    override_approved_by: item.overrideApprovedBy,
+    override_approved_by: item.overrideApprovedBy ?? null,
     total: item.total,
+    is_regulated: item.isRegulated,
+    is_restricted: item.isRestricted,
   }));
 
   const { error: lineItemsError } = await supabase
@@ -67,6 +166,14 @@ export async function createReceipt(params: CreateReceiptParams) {
   if (lineItemsError) throw lineItemsError;
 
   return receipt;
+}
+
+export async function deleteReceipt(receiptId: string) {
+  const { error } = await supabase
+    .from('receipts')
+    .delete()
+    .eq('id', receiptId);
+  if (error) throw error;
 }
 
 export async function fetchReceipts(

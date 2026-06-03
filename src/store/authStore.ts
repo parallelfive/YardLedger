@@ -2,21 +2,13 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
-import type { UserRole } from '../types';
-
-interface UserProfile {
-  id: string;
-  supabaseId: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  isActive: boolean;
-}
+import type { Company, UserProfile } from '../types';
 
 interface AuthState {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
+  company: Company | null;
   loading: boolean;
   error: string | null;
 }
@@ -25,9 +17,34 @@ const initialState: AuthState = {
   session: null,
   user: null,
   profile: null,
+  company: null,
   loading: true,
   error: null,
 };
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapProfileAndCompany(row: any): {
+  profile: UserProfile;
+  company: Company | null;
+} {
+  const profile: UserProfile = {
+    id: row.id,
+    supabaseId: row.supabase_id,
+    email: row.email,
+    name: row.name,
+    role: row.role,
+    isActive: row.is_active,
+    companyId: row.company_id,
+  };
+  const company: Company | null = row.companies
+    ? {
+        id: row.companies.id,
+        name: row.companies.name,
+        prefix: row.companies.prefix,
+      }
+    : null;
+  return { profile, company };
+}
 
 export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
   const {
@@ -35,26 +52,20 @@ export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
   } = await supabase.auth.getSession();
 
   let profile: UserProfile | null = null;
+  let company: Company | null = null;
   if (session?.user) {
     const { data } = await supabase
       .from('users')
-      .select('*')
+      .select('*, companies(id, name, prefix)')
       .eq('supabase_id', session.user.id)
       .single();
 
     if (data) {
-      profile = {
-        id: data.id,
-        supabaseId: data.supabase_id,
-        email: data.email,
-        name: data.name,
-        role: data.role,
-        isActive: data.is_active,
-      };
+      ({ profile, company } = mapProfileAndCompany(data));
     }
   }
 
-  return { session, profile };
+  return { session, profile, company };
 });
 
 export const fetchProfile = createAsyncThunk(
@@ -62,20 +73,12 @@ export const fetchProfile = createAsyncThunk(
   async (supabaseUserId: string) => {
     const { data, error } = await supabase
       .from('users')
-      .select('*')
+      .select('*, companies(id, name, prefix)')
       .eq('supabase_id', supabaseUserId)
       .single();
 
     if (error) throw error;
-
-    return {
-      id: data.id,
-      supabaseId: data.supabase_id,
-      email: data.email,
-      name: data.name,
-      role: data.role,
-      isActive: data.is_active,
-    } as UserProfile;
+    return mapProfileAndCompany(data);
   }
 );
 
@@ -88,35 +91,43 @@ export const signIn = createAsyncThunk(
     });
     if (error) throw error;
 
-    // Fetch profile to check approval status
     let profile: UserProfile | null = null;
+    let company: Company | null = null;
     if (data.user) {
-      const { data: profileData } = await supabase
+      const { data: row } = await supabase
         .from('users')
-        .select('*')
+        .select('*, companies(id, name, prefix)')
         .eq('supabase_id', data.user.id)
         .single();
 
-      if (profileData) {
-        profile = {
-          id: profileData.id,
-          supabaseId: profileData.supabase_id,
-          email: profileData.email,
-          name: profileData.name,
-          role: profileData.role,
-          isActive: profileData.is_active,
-        };
+      if (row) {
+        ({ profile, company } = mapProfileAndCompany(row));
       }
     }
 
-    return { session: data.session, profile };
+    return { session: data.session, profile, company };
   }
 );
 
 export const signUp = createAsyncThunk(
   'auth/signUp',
-  async ({ email, password }: { email: string; password: string }) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+  async ({
+    email,
+    password,
+    inviteCode,
+  }: {
+    email: string;
+    password: string;
+    inviteCode: string;
+  }) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { invite_code: inviteCode },
+        emailRedirectTo: 'yardledger://auth/callback',
+      },
+    });
     if (error) throw error;
   }
 );
@@ -140,21 +151,20 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Initialize
       .addCase(initializeAuth.fulfilled, (state, action) => {
         state.session = action.payload.session;
         state.user = action.payload.session?.user ?? null;
         state.profile = action.payload.profile;
+        state.company = action.payload.company;
         state.loading = false;
       })
       .addCase(initializeAuth.rejected, (state) => {
         state.loading = false;
       })
-      // Fetch Profile
       .addCase(fetchProfile.fulfilled, (state, action) => {
-        state.profile = action.payload;
+        state.profile = action.payload.profile;
+        state.company = action.payload.company;
       })
-      // Sign In
       .addCase(signIn.pending, (state) => {
         state.error = null;
       })
@@ -162,15 +172,16 @@ const authSlice = createSlice({
         state.session = action.payload.session;
         state.user = action.payload.session?.user ?? null;
         state.profile = action.payload.profile;
+        state.company = action.payload.company;
       })
       .addCase(signIn.rejected, (state, action) => {
         state.error = action.error.message ?? 'Sign in failed';
       })
-      // Sign Out
       .addCase(signOut.fulfilled, (state) => {
         state.session = null;
         state.user = null;
         state.profile = null;
+        state.company = null;
       });
   },
 });

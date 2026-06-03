@@ -12,6 +12,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useState, useRef, useCallback } from 'react';
+import { Image } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -22,9 +23,10 @@ import {
 import type { SignaturePadHandle } from '../../components/SignaturePad';
 import { useT } from '../../hooks/useT';
 import { useNewTransaction } from '../../hooks/useNewTransaction';
+import { useIdScanner } from '../../hooks/useIdScanner';
 import {
   searchCustomers,
-  uploadCustomerIdPhoto,
+  updateCustomerIdPhoto,
   type Customer,
 } from '../../services/customers';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
@@ -54,9 +56,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const [selectedCustomerId, setSelectedCustomerId] = useState<
     string | undefined
   >();
-  const [customerHasId, setCustomerHasId] = useState(false);
-  const [idPhotoUri, setIdPhotoUri] = useState<string | null>(null);
-  const [scanningId, setScanningId] = useState(false);
+  const { scanning: scanningId, scanAndRecognize } = useIdScanner();
 
   const handleCustomerSearch = useCallback(async () => {
     const query = tx.customerName.trim();
@@ -83,8 +83,6 @@ export default function NewTransactionScreen({ navigation }: Props) {
       tx.setCustomerName(customer.name);
       tx.setCustomerPhone(customer.phone ?? '');
       setSelectedCustomerId(customer.id);
-      setCustomerHasId(!!customer.dl_photo_uri);
-      setIdPhotoUri(customer.dl_photo_uri ?? null);
       setShowCustomers(false);
       setCustomers([]);
     },
@@ -92,11 +90,15 @@ export default function NewTransactionScreen({ navigation }: Props) {
   );
 
   const handleSaveSuccess = useCallback(
-    async (receiptId: string, customerId: string) => {
-      // Upload ID photo if one was captured during this flow
-      if (idPhotoUri && !idPhotoUri.startsWith('http') && customerId) {
+    async (
+      receiptId: string,
+      customerId: string,
+      sellerIdPhotoUrl: string | null
+    ) => {
+      // Link the already-uploaded photo to the customer profile
+      if (sellerIdPhotoUrl && customerId) {
         try {
-          await uploadCustomerIdPhoto(customerId, idPhotoUri);
+          await updateCustomerIdPhoto(customerId, sellerIdPhotoUrl);
         } catch {
           // Non-blocking — receipt is already saved
         }
@@ -119,7 +121,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
         });
       }
     },
-    [printAfterSave, tx, navigation, idPhotoUri]
+    [printAfterSave, tx, navigation]
   );
 
   const handleNewTicket = useCallback(
@@ -128,11 +130,26 @@ export default function NewTransactionScreen({ navigation }: Props) {
       setSavedReceipt(null);
       if (!keepCustomer) {
         setSelectedCustomerId(undefined);
-        setCustomerHasId(false);
-        setIdPhotoUri(null);
       }
     },
     [tx]
+  );
+
+  // NM 57-30-5(C) seller/material photos — take a fresh camera shot.
+  const capturePhoto = useCallback(
+    async (setUri: (uri: string) => void) => {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t.error, 'Camera permission required');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+      if (!result.canceled) setUri(result.assets[0].uri);
+    },
+    [t.error]
   );
 
   const handleViewReceipt = useCallback(() => {
@@ -161,12 +178,11 @@ export default function NewTransactionScreen({ navigation }: Props) {
             onChangeText={(text) => {
               tx.setCustomerName(text);
               setSelectedCustomerId(undefined);
-              setCustomerHasId(false);
-              setIdPhotoUri(null);
               if (showCustomers) setShowCustomers(false);
             }}
             onSubmitEditing={handleCustomerSearch}
             returnKeyType="search"
+            autoCapitalize="words"
           />
           <TouchableOpacity
             style={styles.customerSearchButton}
@@ -215,36 +231,6 @@ export default function NewTransactionScreen({ navigation }: Props) {
           onChangeText={tx.setCustomerPhone}
           keyboardType="phone-pad"
         />
-
-        {/* ID Scan */}
-        {customerHasId ? (
-          <View style={styles.idStatusRow}>
-            <Ionicons
-              name="checkmark-circle"
-              size={20}
-              color={colors.success}
-            />
-            <Text style={styles.idStatusText}>{t.idOnFile}</Text>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={styles.scanIdButton}
-            disabled={scanningId}
-            onPress={async () => {
-              const result = await ImagePicker.launchCameraAsync({
-                mediaTypes: ['images'],
-                quality: 0.8,
-              });
-              if (result.canceled) return;
-              setIdPhotoUri(result.assets[0].uri);
-              setCustomerHasId(true);
-              setScanningId(false);
-            }}
-          >
-            <Ionicons name="camera" size={20} color={colors.accent} />
-            <Text style={styles.scanIdButtonText}>{t.scanId}</Text>
-          </TouchableOpacity>
-        )}
 
         <TouchableOpacity
           style={styles.addLineItemButton}
@@ -342,15 +328,208 @@ export default function NewTransactionScreen({ navigation }: Props) {
           <Text style={styles.totalValue}>${tx.receiptTotal.toFixed(2)}</Text>
         </View>
 
-        {/* Vehicle & Compliance — only for restricted metals */}
-        {tx.hasRestrictedMetal && (
+        {/* Payment method (catalytic converters are forced to check) */}
+        <Text style={styles.sectionTitle}>{t.paymentMethodLabel}</Text>
+        <View style={styles.paymentRow}>
+          {(['cash', 'check', 'other'] as const).map((m) => {
+            const locked = tx.hasCatalyticConverter;
+            const active = locked ? m === 'check' : tx.paymentMethod === m;
+            return (
+              <TouchableOpacity
+                key={m}
+                style={[
+                  styles.paymentOption,
+                  active && styles.paymentOptionActive,
+                  locked && m !== 'check' && styles.paymentOptionDisabled,
+                ]}
+                disabled={locked}
+                onPress={() => tx.setPaymentMethod(m)}
+              >
+                <Text
+                  style={[
+                    styles.paymentOptionText,
+                    active && styles.paymentOptionTextActive,
+                  ]}
+                >
+                  {m === 'cash'
+                    ? t.paymentCash
+                    : m === 'check'
+                      ? t.paymentCheck
+                      : t.paymentOther}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {tx.hasCatalyticConverter && (
+          <Text style={styles.paymentNote}>{t.catCheckOnlyNote}</Text>
+        )}
+
+        {/* Tier 2: Regulated Materials — Seller ID + Vehicle + Ownership */}
+        {tx.hasRegulatedMetal && (
           <>
-            <View style={styles.restrictedBanner}>
-              <Text style={styles.restrictedBannerText}>
-                {t.restrictedWarning}
+            <View style={styles.regulatedBanner}>
+              <Text style={styles.regulatedBannerText}>
+                {t.regulatedWarning}
               </Text>
             </View>
 
+            {/* Tier 3: Restricted Material Warnings */}
+            {tx.hasRestrictedMetal && (
+              <View style={styles.restrictedBanner}>
+                <Text style={styles.restrictedBannerText}>
+                  {t.restrictedWarning}
+                </Text>
+                <View style={styles.restrictedNotes}>
+                  <Text style={styles.restrictedNoteItem}>
+                    {t.restrictedBurntWire}
+                  </Text>
+                  <Text style={styles.restrictedNoteItem}>
+                    {t.restrictedIdRemoved}
+                  </Text>
+                  <Text style={styles.restrictedNoteItem}>
+                    {t.restrictedPropertyOf}
+                  </Text>
+                  <Text style={styles.restrictedNoteItem}>
+                    {t.restrictedInfrastructure}
+                  </Text>
+                  <Text style={styles.restrictedNoteItem}>
+                    {t.restrictedBeerKeg}
+                  </Text>
+                  <Text style={styles.restrictedNoteItem}>
+                    {t.restrictedCatalyticConverter}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Seller Identification */}
+            <Text style={styles.sectionTitle}>{t.sellerIdInfo}</Text>
+
+            {tx.sellerIdPhotoUri ? (
+              <View style={styles.idPhotoPreview}>
+                <Image
+                  source={{ uri: tx.sellerIdPhotoUri }}
+                  style={styles.idPhotoImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.rescanButton}
+                  disabled={scanningId}
+                  onPress={async () => {
+                    const result = await scanAndRecognize();
+                    if (!result) return;
+                    tx.setSellerIdPhotoUri(result.imageUri);
+                    if (result.fields.name && !tx.sellerName.trim())
+                      tx.setSellerName(result.fields.name);
+                    if (
+                      result.fields.driversLicense &&
+                      !tx.sellerDlNumber.trim()
+                    )
+                      tx.setSellerDlNumber(result.fields.driversLicense);
+                    if (result.fields.dob && !tx.sellerDob.trim())
+                      tx.setSellerDob(result.fields.dob);
+                    if (result.fields.address && !tx.sellerAddress.trim())
+                      tx.setSellerAddress(result.fields.address);
+                  }}
+                >
+                  <Text style={styles.rescanButtonText}>{t.updateId}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.scanIdButton}
+                disabled={scanningId}
+                onPress={async () => {
+                  const result = await scanAndRecognize();
+                  if (!result) return;
+                  tx.setSellerIdPhotoUri(result.imageUri);
+                  if (result.fields.name && !tx.sellerName.trim())
+                    tx.setSellerName(result.fields.name);
+                  if (result.fields.driversLicense && !tx.sellerDlNumber.trim())
+                    tx.setSellerDlNumber(result.fields.driversLicense);
+                  if (result.fields.dob && !tx.sellerDob.trim())
+                    tx.setSellerDob(result.fields.dob);
+                  if (result.fields.address && !tx.sellerAddress.trim())
+                    tx.setSellerAddress(result.fields.address);
+                }}
+              >
+                <Ionicons name="camera" size={20} color={colors.accent} />
+                <Text style={styles.scanIdButtonText}>{t.scanId}</Text>
+              </TouchableOpacity>
+            )}
+
+            <TextInput
+              style={styles.input}
+              placeholder={`${t.sellerFullName} *`}
+              placeholderTextColor={colors.textTertiary}
+              value={tx.sellerName}
+              onChangeText={tx.setSellerName}
+              autoCapitalize="words"
+            />
+            <View style={styles.rowInputs}>
+              <TextInput
+                style={[styles.input, styles.flexInput]}
+                placeholder={`${t.sellerDlNumber} *`}
+                placeholderTextColor={colors.textTertiary}
+                value={tx.sellerDlNumber}
+                onChangeText={tx.setSellerDlNumber}
+              />
+              <TextInput
+                style={[styles.input, styles.shortInput]}
+                placeholder={t.sellerStateOfIssue}
+                placeholderTextColor={colors.textTertiary}
+                value={tx.sellerStateOfIssue}
+                onChangeText={tx.setSellerStateOfIssue}
+                autoCapitalize="characters"
+                maxLength={2}
+              />
+            </View>
+            <TextInput
+              style={styles.input}
+              placeholder={t.sellerDateOfBirth}
+              placeholderTextColor={colors.textTertiary}
+              value={tx.sellerDob}
+              onChangeText={tx.setSellerDob}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder={t.sellerAddress}
+              placeholderTextColor={colors.textTertiary}
+              value={tx.sellerAddress}
+              onChangeText={tx.setSellerAddress}
+              autoCapitalize="words"
+            />
+            <View style={styles.rowInputs}>
+              <TextInput
+                style={[styles.input, styles.flexInput]}
+                placeholder={t.sellerCity}
+                placeholderTextColor={colors.textTertiary}
+                value={tx.sellerCity}
+                onChangeText={tx.setSellerCity}
+                autoCapitalize="words"
+              />
+              <TextInput
+                style={[styles.input, styles.shortInput]}
+                placeholder={t.sellerState}
+                placeholderTextColor={colors.textTertiary}
+                value={tx.sellerState}
+                onChangeText={tx.setSellerState}
+                autoCapitalize="characters"
+                maxLength={2}
+              />
+              <TextInput
+                style={[styles.input, styles.shortInput]}
+                placeholder={t.sellerZip}
+                placeholderTextColor={colors.textTertiary}
+                value={tx.sellerZip}
+                onChangeText={tx.setSellerZip}
+                keyboardType="number-pad"
+                maxLength={5}
+              />
+            </View>
+
+            {/* Vehicle Info */}
             <Text style={styles.sectionTitle}>{t.vehicleInfo}</Text>
             <TextInput
               style={styles.input}
@@ -360,14 +539,215 @@ export default function NewTransactionScreen({ navigation }: Props) {
               onChangeText={tx.setVehiclePlate}
               autoCapitalize="characters"
             />
-            <TextInput
-              style={styles.input}
-              placeholder={`${t.vehicleDescription} *`}
-              placeholderTextColor={colors.textTertiary}
-              value={tx.vehicleDescription}
-              onChangeText={tx.setVehicleDescription}
-            />
+            <View style={styles.rowInputs}>
+              <TextInput
+                style={[styles.input, styles.shortInput]}
+                placeholder={t.vehicleYear}
+                placeholderTextColor={colors.textTertiary}
+                value={tx.vehicleYear}
+                onChangeText={tx.setVehicleYear}
+                keyboardType="number-pad"
+                maxLength={4}
+              />
+              <TextInput
+                style={[styles.input, styles.flexInput]}
+                placeholder={t.vehicleMake}
+                placeholderTextColor={colors.textTertiary}
+                value={tx.vehicleMake}
+                onChangeText={tx.setVehicleMake}
+                autoCapitalize="words"
+              />
+            </View>
+            <View style={styles.rowInputs}>
+              <TextInput
+                style={[styles.input, styles.flexInput]}
+                placeholder={t.vehicleModel}
+                placeholderTextColor={colors.textTertiary}
+                value={tx.vehicleModel}
+                onChangeText={tx.setVehicleModel}
+                autoCapitalize="words"
+              />
+              <TextInput
+                style={[styles.input, styles.flexInput]}
+                placeholder={t.vehicleColor}
+                placeholderTextColor={colors.textTertiary}
+                value={tx.vehicleColor}
+                onChangeText={tx.setVehicleColor}
+                autoCapitalize="words"
+              />
+            </View>
 
+            {/* Catalytic Converter Additional Documentation */}
+            {tx.hasCatalyticConverter && (
+              <>
+                <Text style={styles.sectionTitle}>{t.catConverterSection}</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder={t.catConverterNumbers}
+                  placeholderTextColor={colors.textTertiary}
+                  value={tx.catConverterNumbers}
+                  onChangeText={tx.setCatConverterNumbers}
+                />
+                <TextInput
+                  style={styles.input}
+                  placeholder={`${t.transportVin} *`}
+                  placeholderTextColor={colors.textTertiary}
+                  value={tx.transportVin}
+                  onChangeText={tx.setTransportVin}
+                  autoCapitalize="characters"
+                  maxLength={17}
+                />
+
+                {/* Photo of catalytic converter */}
+                {tx.catConverterPhotoUri ? (
+                  <View style={styles.idPhotoPreview}>
+                    <Image
+                      source={{ uri: tx.catConverterPhotoUri }}
+                      style={styles.idPhotoImage}
+                      resizeMode="contain"
+                    />
+                    <TouchableOpacity
+                      style={styles.rescanButton}
+                      onPress={async () => {
+                        const result = await ImagePicker.launchCameraAsync({
+                          mediaTypes: ['images'],
+                          quality: 0.8,
+                        });
+                        if (!result.canceled)
+                          tx.setCatConverterPhotoUri(result.assets[0].uri);
+                      }}
+                    >
+                      <Text style={styles.rescanButtonText}>
+                        {t.catConverterPhoto}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.scanIdButton}
+                    onPress={async () => {
+                      const { status } =
+                        await ImagePicker.requestCameraPermissionsAsync();
+                      if (status !== 'granted') {
+                        Alert.alert(t.error, 'Camera permission required');
+                        return;
+                      }
+                      const result = await ImagePicker.launchCameraAsync({
+                        mediaTypes: ['images'],
+                        quality: 0.8,
+                      });
+                      if (!result.canceled)
+                        tx.setCatConverterPhotoUri(result.assets[0].uri);
+                    }}
+                  >
+                    <Ionicons name="camera" size={20} color={colors.accent} />
+                    <Text style={styles.scanIdButtonText}>
+                      {t.catConverterPhoto}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Photo of title/registration */}
+                {tx.catTitlePhotoUri ? (
+                  <View style={styles.idPhotoPreview}>
+                    <Image
+                      source={{ uri: tx.catTitlePhotoUri }}
+                      style={styles.idPhotoImage}
+                      resizeMode="contain"
+                    />
+                    <TouchableOpacity
+                      style={styles.rescanButton}
+                      onPress={async () => {
+                        const result = await ImagePicker.launchCameraAsync({
+                          mediaTypes: ['images'],
+                          quality: 0.8,
+                        });
+                        if (!result.canceled)
+                          tx.setCatTitlePhotoUri(result.assets[0].uri);
+                      }}
+                    >
+                      <Text style={styles.rescanButtonText}>
+                        {t.catTitlePhoto}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.scanIdButton}
+                    onPress={async () => {
+                      const { status } =
+                        await ImagePicker.requestCameraPermissionsAsync();
+                      if (status !== 'granted') {
+                        Alert.alert(t.error, 'Camera permission required');
+                        return;
+                      }
+                      const result = await ImagePicker.launchCameraAsync({
+                        mediaTypes: ['images'],
+                        quality: 0.8,
+                      });
+                      if (!result.canceled)
+                        tx.setCatTitlePhotoUri(result.assets[0].uri);
+                    }}
+                  >
+                    <Ionicons name="camera" size={20} color={colors.accent} />
+                    <Text style={styles.scanIdButtonText}>
+                      {t.catTitlePhoto}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
+
+            {/* Seller & material photos (NM 57-30-5(C)) */}
+            {tx.sellerPhotoUri ? (
+              <View style={styles.idPhotoPreview}>
+                <Image
+                  source={{ uri: tx.sellerPhotoUri }}
+                  style={styles.idPhotoImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.rescanButton}
+                  onPress={() => capturePhoto(tx.setSellerPhotoUri)}
+                >
+                  <Text style={styles.rescanButtonText}>{t.sellerPhoto}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.scanIdButton}
+                onPress={() => capturePhoto(tx.setSellerPhotoUri)}
+              >
+                <Ionicons name="camera" size={20} color={colors.accent} />
+                <Text style={styles.scanIdButtonText}>{t.sellerPhoto}</Text>
+              </TouchableOpacity>
+            )}
+
+            {tx.materialPhotoUri ? (
+              <View style={styles.idPhotoPreview}>
+                <Image
+                  source={{ uri: tx.materialPhotoUri }}
+                  style={styles.idPhotoImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.rescanButton}
+                  onPress={() => capturePhoto(tx.setMaterialPhotoUri)}
+                >
+                  <Text style={styles.rescanButtonText}>{t.materialPhoto}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.scanIdButton}
+                onPress={() => capturePhoto(tx.setMaterialPhotoUri)}
+              >
+                <Ionicons name="camera" size={20} color={colors.accent} />
+                <Text style={styles.scanIdButtonText}>{t.materialPhoto}</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Ownership Affirmation */}
             <TouchableOpacity
               style={styles.affirmationRow}
               onPress={() => tx.setSellerAffirmed(!tx.sellerAffirmed)}
@@ -722,6 +1102,39 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: colors.accent,
   },
+  paymentRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  paymentOption: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+  },
+  paymentOptionActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.inputBackground,
+  },
+  paymentOptionDisabled: {
+    opacity: 0.4,
+  },
+  paymentOptionText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  paymentOptionTextActive: {
+    color: colors.accent,
+  },
+  paymentNote: {
+    color: colors.textTertiary,
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
+  },
   totalLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.xl,
@@ -852,18 +1265,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.md,
   },
-  idStatusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  idStatusText: {
-    color: colors.success,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
   scanIdButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -878,6 +1279,28 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   scanIdButtonText: {
+    color: colors.accent,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  idPhotoPreview: {
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  idPhotoImage: {
+    width: '100%',
+    height: 180,
+    backgroundColor: colors.card,
+  },
+  rescanButton: {
+    padding: spacing.sm,
+    alignItems: 'center',
+    backgroundColor: colors.card,
+  },
+  rescanButtonText: {
     color: colors.accent,
     fontSize: fontSize.md,
     fontWeight: '600',
@@ -911,6 +1334,19 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     flex: 1,
   },
+  regulatedBanner: {
+    backgroundColor: 'rgba(78, 205, 196, 0.1)',
+    padding: spacing.md,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  regulatedBannerText: {
+    color: colors.accent,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
   restrictedBanner: {
     backgroundColor: 'rgba(210, 153, 34, 0.15)',
     padding: spacing.md,
@@ -922,6 +1358,25 @@ const styles = StyleSheet.create({
   restrictedBannerText: {
     color: colors.warning,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginBottom: spacing.sm,
+  },
+  restrictedNotes: {
+    gap: spacing.xs,
+  },
+  restrictedNoteItem: {
+    color: colors.warning,
+    fontSize: fontSize.sm,
+    paddingLeft: spacing.sm,
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  flexInput: {
+    flex: 1,
+  },
+  shortInput: {
+    width: 80,
   },
 });

@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useT } from '../../hooks/useT';
@@ -34,6 +35,12 @@ export default function CompanyProfileScreen() {
   const [phone, setPhone] = useState('');
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
 
+  // State-configurable compliance rules (NM defaults).
+  const [stateCode, setStateCode] = useState('NM');
+  const [generalHoldHours, setGeneralHoldHours] = useState('24');
+  const [catHoldDays, setCatHoldDays] = useState('60');
+  const [catCheckOnly, setCatCheckOnly] = useState(true);
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -47,6 +54,10 @@ export default function CompanyProfileScreen() {
         setAddress(data.address);
         setPhone(data.phone);
         setLogoUrl(data.logo_url);
+        setStateCode(data.state ?? 'NM');
+        setGeneralHoldHours(String(data.general_hold_hours ?? 24));
+        setCatHoldDays(String(data.cat_converter_hold_days ?? 60));
+        setCatCheckOnly(data.cat_converter_check_only ?? true);
       }
     } catch {
       // Will show empty form
@@ -64,6 +75,10 @@ export default function CompanyProfileScreen() {
           company_name: companyName.trim(),
           address: address.trim(),
           phone: phone.trim(),
+          state: stateCode.trim().toUpperCase(),
+          general_hold_hours: parseInt(generalHoldHours, 10) || 24,
+          cat_converter_hold_days: parseInt(catHoldDays, 10) || 60,
+          cat_converter_check_only: catCheckOnly,
         },
         profile.id,
         settingsId
@@ -170,6 +185,39 @@ export default function CompanyProfileScreen() {
         keyboardType="phone-pad"
       />
 
+      {/* Compliance Rules */}
+      <Text style={styles.sectionTitle}>{t.complianceRules}</Text>
+
+      <Text style={styles.label}>{t.stateLabel}</Text>
+      <TextInput
+        style={styles.input}
+        value={stateCode}
+        onChangeText={setStateCode}
+        autoCapitalize="characters"
+        maxLength={2}
+      />
+
+      <Text style={styles.label}>{t.generalHoldHoursLabel}</Text>
+      <TextInput
+        style={styles.input}
+        value={generalHoldHours}
+        onChangeText={setGeneralHoldHours}
+        keyboardType="number-pad"
+      />
+
+      <Text style={styles.label}>{t.catHoldDaysLabel}</Text>
+      <TextInput
+        style={styles.input}
+        value={catHoldDays}
+        onChangeText={setCatHoldDays}
+        keyboardType="number-pad"
+      />
+
+      <View style={styles.switchRow}>
+        <Text style={styles.label}>{t.catCheckOnlyLabel}</Text>
+        <Switch value={catCheckOnly} onValueChange={setCatCheckOnly} />
+      </View>
+
       {/* Save */}
       <TouchableOpacity
         style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -263,6 +311,13 @@ const styles = StyleSheet.create({
   multilineInput: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.sm,
+    marginBottom: spacing.md,
   },
   saveButton: {
     backgroundColor: colors.accent,

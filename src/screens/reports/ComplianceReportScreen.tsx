@@ -16,7 +16,7 @@ import DateRangeSelector, {
   type DatePreset,
   getDateRange,
 } from '../../components/DateRangeSelector';
-import { supabase } from '../../config/supabase';
+import { fetchComplianceReport, exportNmrldCsv } from '../../services/reports';
 import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
@@ -27,8 +27,13 @@ interface PurchaseRecordRow {
   receiptNumber: string;
   sellerName: string;
   dlNumber: string;
+  stateOfIssue: string;
+  sellerAddress: string;
   vehiclePlate: string;
-  vehicleDescription: string;
+  vehicleYear: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  vehicleColor: string;
   materials: string;
   totalWeight: number;
   amountPaid: number;
@@ -47,25 +52,14 @@ export default function ComplianceReportScreen() {
     setLoading(true);
     try {
       const { start, end } = getDateRange(preset);
-      const { data, error } = await supabase
-        .from('receipts')
-        .select(
-          '*, line_items(metal_name, weight, total, metals(is_restricted)), customers(drivers_license)'
-        )
-        .eq('type', 'buy')
-        .gte('created_at', `${start}T00:00:00`)
-        .lte('created_at', `${end}T23:59:59`)
-        .order('created_at', { ascending: false });
+      const data = await fetchComplianceReport(start, end);
 
-      if (error) throw error;
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapped: PurchaseRecordRow[] = (data ?? []).map((r: any) => {
+      const mapped: PurchaseRecordRow[] = data.map((r) => {
         const lineItems = (r.line_items ?? []) as {
           metal_name: string;
           weight: number;
           total: number;
-          metals?: { is_restricted?: boolean } | null;
+          is_restricted: boolean;
         }[];
         const materials = lineItems
           .map((li) => `${li.metal_name} (${Number(li.weight).toFixed(2)} lbs)`)
@@ -74,17 +68,30 @@ export default function ComplianceReportScreen() {
           (sum, li) => sum + Number(li.weight),
           0
         );
-        const hasRestricted = lineItems.some(
-          (li) => li.metals?.is_restricted === true
-        );
+        const hasRestricted = lineItems.some((li) => li.is_restricted);
+
+        const fullAddress = [
+          r.seller_address,
+          r.seller_city,
+          r.seller_state
+            ? `${r.seller_state} ${r.seller_zip ?? ''}`
+            : r.seller_zip,
+        ]
+          .filter(Boolean)
+          .join(', ');
 
         return {
           date: new Date(r.created_at).toLocaleDateString(),
           receiptNumber: r.receipt_number,
-          sellerName: r.customer_name,
-          dlNumber: r.customers?.drivers_license ?? '',
+          sellerName: r.seller_name || r.customer_name,
+          dlNumber: r.seller_dl_number ?? '',
+          stateOfIssue: r.seller_state_of_issue ?? '',
+          sellerAddress: fullAddress,
           vehiclePlate: r.vehicle_plate ?? '',
-          vehicleDescription: r.vehicle_description ?? '',
+          vehicleYear: r.vehicle_year ?? '',
+          vehicleMake: r.vehicle_make ?? '',
+          vehicleModel: r.vehicle_model ?? '',
+          vehicleColor: r.vehicle_color ?? '',
           materials,
           totalWeight,
           amountPaid: Number(r.subtotal),
@@ -117,14 +124,19 @@ export default function ComplianceReportScreen() {
          <p style="margin:4px 0;color:#666">${company.address} | ${company.phone}</p>`
       : '';
 
+    const vehicleDesc = (r: PurchaseRecordRow) =>
+      [r.vehicleYear, r.vehicleMake, r.vehicleModel].filter(Boolean).join(' ');
+
     const tableRows = filtered
       .map(
         (r) => `<tr>
         <td>${r.date}</td>
         <td>${r.receiptNumber}</td>
         <td>${r.sellerName}</td>
-        <td>${r.dlNumber}</td>
+        <td>${r.dlNumber}${r.stateOfIssue ? ` (${r.stateOfIssue})` : ''}</td>
+        <td>${r.sellerAddress}</td>
         <td>${r.vehiclePlate}</td>
+        <td>${vehicleDesc(r)}${r.vehicleColor ? ` — ${r.vehicleColor}` : ''}</td>
         <td>${r.materials}</td>
         <td style="text-align:right">${r.totalWeight.toFixed(2)}</td>
         <td style="text-align:right">$${r.amountPaid.toFixed(2)}</td>
@@ -155,7 +167,9 @@ export default function ComplianceReportScreen() {
           <th>${t.receipt}</th>
           <th>${t.sellerName}</th>
           <th>${t.dlNumberShort}</th>
+          <th>${t.address}</th>
           <th>${t.vehiclePlateShort}</th>
+          <th>${t.vehicleInfo}</th>
           <th>${t.materialDescription}</th>
           <th style="text-align:right">${t.weightLbsLabel}</th>
           <th style="text-align:right">${t.amountPaid}</th>
@@ -163,7 +177,7 @@ export default function ComplianceReportScreen() {
         </tr></thead>
         <tbody>${tableRows}</tbody>
         <tfoot><tr>
-          <td colspan="7" style="text-align:right;font-weight:bold">${t.total}</td>
+          <td colspan="9" style="text-align:right;font-weight:bold">${t.total}</td>
           <td style="text-align:right;font-weight:bold">$${totalPaid.toFixed(2)}</td>
           <td></td>
         </tr></tfoot>
@@ -186,16 +200,34 @@ export default function ComplianceReportScreen() {
   const handleExportCsv = async () => {
     try {
       const header =
-        'Date,Receipt #,Seller,DL #,Plate #,Vehicle,Materials,Weight (lbs),Amount Paid,Affirmed,Restricted\n';
+        'Date,Receipt #,Seller Name,State/ID Number,State of Issue,Address,License Plate,Vehicle Year,Vehicle Make,Vehicle Model,Vehicle Color,Materials,Weight (lbs),Amount Paid,Seller Affirmed,Restricted\n';
       const csvRows = rows
         .map(
           (r) =>
-            `"${r.date}","${r.receiptNumber}","${r.sellerName}","${r.dlNumber}","${r.vehiclePlate}","${r.vehicleDescription}","${r.materials}",${r.totalWeight.toFixed(2)},${r.amountPaid.toFixed(2)},${r.sellerAffirmed},${r.hasRestricted}`
+            `"${r.date}","${r.receiptNumber}","${r.sellerName}","${r.dlNumber}","${r.stateOfIssue}","${r.sellerAddress}","${r.vehiclePlate}","${r.vehicleYear}","${r.vehicleMake}","${r.vehicleModel}","${r.vehicleColor}","${r.materials}",${r.totalWeight.toFixed(2)},${r.amountPaid.toFixed(2)},${r.sellerAffirmed},${r.hasRestricted}`
         )
         .join('\n');
 
       const file = new File(Paths.cache, 'purchase_records.csv');
       file.write(header + csvRows);
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'text/csv',
+        UTI: 'public.comma-separated-values-text',
+      });
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    }
+  };
+
+  // Structured upload file for the NM recycled-metals database (57-30-8/9) —
+  // one row per metal line with VIN, payment method, hold date and catalytic
+  // flag. Distinct from the human-readable purchase-record CSV above.
+  const handleNmrldExport = async () => {
+    try {
+      const { start, end } = getDateRange(preset);
+      const csv = await exportNmrldCsv(start, end);
+      const file = new File(Paths.cache, 'nmrld_upload.csv');
+      file.write(csv);
       await Sharing.shareAsync(file.uri, {
         mimeType: 'text/csv',
         UTI: 'public.comma-separated-values-text',
@@ -263,6 +295,18 @@ export default function ComplianceReportScreen() {
               <Ionicons name="download-outline" size={20} color={colors.teal} />
               <Text style={styles.actionText}>{t.exportCsv}</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleNmrldExport}
+            >
+              <Ionicons
+                name="cloud-upload-outline"
+                size={20}
+                color={colors.accent}
+              />
+              <Text style={styles.actionText}>{t.nmrldExport}</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Transaction List */}
@@ -286,12 +330,16 @@ export default function ComplianceReportScreen() {
               {row.dlNumber ? (
                 <Text style={styles.recordDetail}>
                   {t.dlNumberShort} {row.dlNumber}
+                  {row.stateOfIssue ? ` (${row.stateOfIssue})` : ''}
                 </Text>
               ) : null}
               {row.vehiclePlate ? (
                 <Text style={styles.recordDetail}>
-                  {t.vehiclePlateShort} {row.vehiclePlate}{' '}
-                  {row.vehicleDescription}
+                  {t.vehiclePlateShort} {row.vehiclePlate}
+                  {row.vehicleYear || row.vehicleMake || row.vehicleModel
+                    ? ` — ${[row.vehicleYear, row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ')}`
+                    : ''}
+                  {row.vehicleColor ? ` (${row.vehicleColor})` : ''}
                 </Text>
               ) : null}
               {row.hasRestricted && (

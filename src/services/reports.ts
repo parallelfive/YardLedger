@@ -382,3 +382,160 @@ export async function fetchShrinkageReport(): Promise<ShrinkageRow[]> {
     .filter((r) => r.totalBought > 0)
     .sort((a, b) => Math.abs(b.discrepancy) - Math.abs(a.discrepancy));
 }
+
+// ---------- Compliance Report ----------
+
+export interface ComplianceReceiptRow {
+  id: string;
+  receipt_number: string;
+  created_at: string;
+  customer_name: string;
+  seller_name: string | null;
+  seller_dl_number: string | null;
+  seller_state_of_issue: string | null;
+  seller_address: string | null;
+  seller_city: string | null;
+  seller_state: string | null;
+  seller_zip: string | null;
+  seller_affirmed: boolean | null;
+  vehicle_plate: string | null;
+  vehicle_year: string | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_color: string | null;
+  transport_vin: string | null;
+  cat_converter_numbers: string | null;
+  is_catalytic: boolean | null;
+  payment_method: string | null;
+  hold_until: string | null;
+  subtotal: number;
+  line_items: {
+    metal_name: string;
+    weight: number;
+    total: number;
+    is_restricted: boolean;
+  }[];
+}
+
+export async function fetchComplianceReport(
+  startDate: string,
+  endDate: string
+): Promise<ComplianceReceiptRow[]> {
+  const { data, error } = await supabase
+    .from('receipts')
+    .select('*, line_items(metal_name, weight, total, is_restricted)')
+    .eq('type', 'buy')
+    .gte('created_at', `${startDate}T00:00:00`)
+    .lte('created_at', `${endDate}T23:59:59`)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []) as ComplianceReceiptRow[];
+}
+
+// ---------- NMRLD database export ----------
+// NM 57-30-8/9 requires uploading each purchase to the state recycled-metals
+// database by the 2nd business day. This produces one CSV row per metal line
+// with the seller/vehicle/material/payment data the upload requires.
+
+function csvCell(value: unknown): string {
+  const s = value === null || value === undefined ? '' : String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+const NMRLD_HEADERS = [
+  'receipt_number',
+  'transaction_datetime',
+  'seller_name',
+  'seller_address',
+  'seller_city',
+  'seller_state',
+  'seller_zip',
+  'seller_dl_number',
+  'seller_dl_state',
+  'seller_affirmed_ownership',
+  'vehicle_year',
+  'vehicle_make',
+  'vehicle_model',
+  'vehicle_color',
+  'vehicle_plate',
+  'transport_vin',
+  'material',
+  'weight_lb',
+  'amount_paid',
+  'payment_method',
+  'is_catalytic_converter',
+  'cat_converter_numbers',
+  'hold_until',
+];
+
+export function buildNmrldExportCsv(rows: ComplianceReceiptRow[]): string {
+  const lines: string[] = [NMRLD_HEADERS.join(',')];
+  for (const r of rows) {
+    const items = r.line_items?.length ? r.line_items : [null];
+    for (const li of items) {
+      lines.push(
+        [
+          r.receipt_number,
+          r.created_at,
+          r.seller_name,
+          r.seller_address,
+          r.seller_city,
+          r.seller_state,
+          r.seller_zip,
+          r.seller_dl_number,
+          r.seller_state_of_issue,
+          r.seller_affirmed ? 'yes' : 'no',
+          r.vehicle_year,
+          r.vehicle_make,
+          r.vehicle_model,
+          r.vehicle_color,
+          r.vehicle_plate,
+          r.transport_vin,
+          li?.metal_name ?? '',
+          li?.weight ?? '',
+          li ? li.total : r.subtotal,
+          r.payment_method,
+          r.is_catalytic ? 'yes' : 'no',
+          r.cat_converter_numbers,
+          r.hold_until,
+        ]
+          .map(csvCell)
+          .join(',')
+      );
+    }
+  }
+  return lines.join('\n');
+}
+
+export async function exportNmrldCsv(
+  startDate: string,
+  endDate: string
+): Promise<string> {
+  const rows = await fetchComplianceReport(startDate, endDate);
+  return buildNmrldExportCsv(rows);
+}
+
+// ---------- Material still on a mandatory hold ----------
+// Receipts whose hold window has not expired and that have not been disposed —
+// these may not be processed/resold yet (NM 57-30-11 / 57-30-2.4).
+export interface OnHoldRow {
+  id: string;
+  receipt_number: string;
+  created_at: string;
+  hold_until: string;
+  is_catalytic: boolean;
+}
+
+export async function fetchReceiptsOnHold(): Promise<OnHoldRow[]> {
+  const { data, error } = await supabase
+    .from('receipts')
+    .select('id, receipt_number, created_at, hold_until, is_catalytic')
+    .eq('type', 'buy')
+    .is('disposed_at', null)
+    .gt('hold_until', new Date().toISOString())
+    .order('hold_until', { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as OnHoldRow[];
+}

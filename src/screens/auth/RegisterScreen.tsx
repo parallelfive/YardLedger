@@ -22,13 +22,15 @@ export default function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
   const { t } = useT();
 
   const handleRegister = async () => {
     const trimmedEmail = email.trim();
-    if (!trimmedEmail || !password || !confirmPassword) {
+    const trimmedCode = inviteCode.trim().toUpperCase();
+    if (!trimmedEmail || !password || !confirmPassword || !trimmedCode) {
       Alert.alert(t.error, t.fillAllFields);
       return;
     }
@@ -39,7 +41,13 @@ export default function RegisterScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      await dispatch(signUp({ email: trimmedEmail, password })).unwrap();
+      await dispatch(
+        signUp({
+          email: trimmedEmail,
+          password,
+          inviteCode: trimmedCode,
+        })
+      ).unwrap();
       Alert.alert(t.success, t.accountCreated, [
         { text: t.ok, onPress: () => navigation.navigate('Login') },
       ]);
@@ -82,6 +90,15 @@ export default function RegisterScreen({ navigation }: Props) {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secureTextEntry
+        />
+        <TextInput
+          style={styles.input}
+          placeholder={t.inviteCode}
+          placeholderTextColor={colors.textSecondary}
+          value={inviteCode}
+          onChangeText={setInviteCode}
+          autoCapitalize="characters"
+          autoCorrect={false}
         />
 
         <TouchableOpacity
