@@ -32,24 +32,36 @@ interface CreateReceiptParams {
   transportVin?: string;
   catConverterPhotoUri?: string | null;
   catTitlePhotoUri?: string | null;
+  sellerPhotoUri?: string | null;
+  materialPhotoUri?: string | null;
+  paymentMethod?: 'cash' | 'check' | 'other';
+  isCatalytic?: boolean;
   lineItems: LineItemInput[];
 }
 
 async function uploadIdPhoto(localUri: string): Promise<string> {
-  const fileName = `seller_${Date.now()}.jpg`;
+  // Company-scope the path so the private bucket's RLS isolates each yard.
+  const { data: companyId, error: companyErr } =
+    await supabase.rpc('current_company_id');
+  if (companyErr || !companyId) {
+    throw companyErr ?? new Error('No current company for ID upload');
+  }
+  const filePath = `${companyId}/seller_${Date.now()}.jpg`;
   const file = new File(localUri);
   const base64 = await file.base64();
   const { error } = await supabase.storage
     .from('customer-ids')
-    .upload(fileName, decode(base64), {
+    .upload(filePath, decode(base64), {
       contentType: 'image/jpeg',
       upsert: true,
     });
   if (error) throw error;
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from('customer-ids').getPublicUrl(fileName);
-  return publicUrl;
+  // Private bucket → signed URL (getPublicUrl does not authenticate here).
+  const { data: signed, error: signErr } = await supabase.storage
+    .from('customer-ids')
+    .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+  if (signErr || !signed) throw signErr ?? new Error('Failed to sign ID URL');
+  return signed.signedUrl;
 }
 
 export async function createReceipt(params: CreateReceiptParams) {
@@ -65,6 +77,14 @@ export async function createReceipt(params: CreateReceiptParams) {
   let catTitlePhotoUrl = params.catTitlePhotoUri ?? null;
   if (catTitlePhotoUrl && !catTitlePhotoUrl.startsWith('http')) {
     catTitlePhotoUrl = await uploadIdPhoto(catTitlePhotoUrl);
+  }
+  let sellerPhotoUrl = params.sellerPhotoUri ?? null;
+  if (sellerPhotoUrl && !sellerPhotoUrl.startsWith('http')) {
+    sellerPhotoUrl = await uploadIdPhoto(sellerPhotoUrl);
+  }
+  let materialPhotoUrl = params.materialPhotoUri ?? null;
+  if (materialPhotoUrl && !materialPhotoUrl.startsWith('http')) {
+    materialPhotoUrl = await uploadIdPhoto(materialPhotoUrl);
   }
 
   // Upsert customer record
@@ -111,6 +131,11 @@ export async function createReceipt(params: CreateReceiptParams) {
       transport_vin: params.transportVin ?? '',
       cat_converter_photo_uri: catConverterPhotoUrl,
       cat_title_photo_uri: catTitlePhotoUrl,
+      payment_method: params.paymentMethod ?? 'cash',
+      is_catalytic: params.isCatalytic ?? false,
+      seller_photo_uri: sellerPhotoUrl,
+      material_photo_uri: materialPhotoUrl,
+      // hold_until is stamped by the set_receipt_compliance trigger.
     })
     .select()
     .single();

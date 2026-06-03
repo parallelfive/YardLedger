@@ -135,6 +135,23 @@ export default function NewTransactionScreen({ navigation }: Props) {
     [tx]
   );
 
+  // NM 57-30-5(C) seller/material photos — take a fresh camera shot.
+  const capturePhoto = useCallback(
+    async (setUri: (uri: string) => void) => {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t.error, 'Camera permission required');
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+      if (!result.canceled) setUri(result.assets[0].uri);
+    },
+    [t.error]
+  );
+
   const handleViewReceipt = useCallback(() => {
     if (!savedReceipt) return;
     const receiptId = savedReceipt.id;
@@ -310,6 +327,43 @@ export default function NewTransactionScreen({ navigation }: Props) {
           <Text style={styles.totalLabel}>{t.receiptTotal}</Text>
           <Text style={styles.totalValue}>${tx.receiptTotal.toFixed(2)}</Text>
         </View>
+
+        {/* Payment method (catalytic converters are forced to check) */}
+        <Text style={styles.sectionTitle}>{t.paymentMethodLabel}</Text>
+        <View style={styles.paymentRow}>
+          {(['cash', 'check', 'other'] as const).map((m) => {
+            const locked = tx.hasCatalyticConverter;
+            const active = locked ? m === 'check' : tx.paymentMethod === m;
+            return (
+              <TouchableOpacity
+                key={m}
+                style={[
+                  styles.paymentOption,
+                  active && styles.paymentOptionActive,
+                  locked && m !== 'check' && styles.paymentOptionDisabled,
+                ]}
+                disabled={locked}
+                onPress={() => tx.setPaymentMethod(m)}
+              >
+                <Text
+                  style={[
+                    styles.paymentOptionText,
+                    active && styles.paymentOptionTextActive,
+                  ]}
+                >
+                  {m === 'cash'
+                    ? t.paymentCash
+                    : m === 'check'
+                      ? t.paymentCheck
+                      : t.paymentOther}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+        {tx.hasCatalyticConverter && (
+          <Text style={styles.paymentNote}>{t.catCheckOnlyNote}</Text>
+        )}
 
         {/* Tier 2: Regulated Materials — Seller ID + Vehicle + Ownership */}
         {tx.hasRegulatedMetal && (
@@ -642,6 +696,55 @@ export default function NewTransactionScreen({ navigation }: Props) {
                   </TouchableOpacity>
                 )}
               </>
+            )}
+
+            {/* Seller & material photos (NM 57-30-5(C)) */}
+            {tx.sellerPhotoUri ? (
+              <View style={styles.idPhotoPreview}>
+                <Image
+                  source={{ uri: tx.sellerPhotoUri }}
+                  style={styles.idPhotoImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.rescanButton}
+                  onPress={() => capturePhoto(tx.setSellerPhotoUri)}
+                >
+                  <Text style={styles.rescanButtonText}>{t.sellerPhoto}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.scanIdButton}
+                onPress={() => capturePhoto(tx.setSellerPhotoUri)}
+              >
+                <Ionicons name="camera" size={20} color={colors.accent} />
+                <Text style={styles.scanIdButtonText}>{t.sellerPhoto}</Text>
+              </TouchableOpacity>
+            )}
+
+            {tx.materialPhotoUri ? (
+              <View style={styles.idPhotoPreview}>
+                <Image
+                  source={{ uri: tx.materialPhotoUri }}
+                  style={styles.idPhotoImage}
+                  resizeMode="contain"
+                />
+                <TouchableOpacity
+                  style={styles.rescanButton}
+                  onPress={() => capturePhoto(tx.setMaterialPhotoUri)}
+                >
+                  <Text style={styles.rescanButtonText}>{t.materialPhoto}</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.scanIdButton}
+                onPress={() => capturePhoto(tx.setMaterialPhotoUri)}
+              >
+                <Ionicons name="camera" size={20} color={colors.accent} />
+                <Text style={styles.scanIdButtonText}>{t.materialPhoto}</Text>
+              </TouchableOpacity>
             )}
 
             {/* Ownership Affirmation */}
@@ -998,6 +1101,39 @@ const styles = StyleSheet.create({
     borderColor: colors.borderSubtle,
     borderLeftWidth: 3,
     borderLeftColor: colors.accent,
+  },
+  paymentRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  paymentOption: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+    alignItems: 'center',
+  },
+  paymentOptionActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.inputBackground,
+  },
+  paymentOptionDisabled: {
+    opacity: 0.4,
+  },
+  paymentOptionText: {
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
+    fontWeight: '600',
+  },
+  paymentOptionTextActive: {
+    color: colors.accent,
+  },
+  paymentNote: {
+    color: colors.textTertiary,
+    fontSize: fontSize.sm,
+    marginTop: spacing.xs,
   },
   totalLabel: {
     color: colors.textSecondary,

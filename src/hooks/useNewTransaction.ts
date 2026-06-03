@@ -23,6 +23,11 @@ export function useNewTransaction(
   const [signature, setSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [sellerAffirmed, setSellerAffirmed] = useState(false);
+  // Payment method. NM prohibits cash for catalytic converters (57-30-2.4),
+  // so a converter transaction is forced to check below.
+  const [paymentMethod, setPaymentMethod] = useState<
+    'cash' | 'check' | 'other'
+  >('cash');
 
   // Seller ID (regulated materials — NM Purchase Record)
   const [sellerName, setSellerName] = useState('');
@@ -34,6 +39,9 @@ export function useNewTransaction(
   const [sellerState, setSellerState] = useState('');
   const [sellerZip, setSellerZip] = useState('');
   const [sellerIdPhotoUri, setSellerIdPhotoUri] = useState<string | null>(null);
+  // NM 57-30-5(C): date/time-stamped photo of the seller and the material.
+  const [sellerPhotoUri, setSellerPhotoUri] = useState<string | null>(null);
+  const [materialPhotoUri, setMaterialPhotoUri] = useState<string | null>(null);
 
   // Vehicle info (regulated materials)
   const [vehiclePlate, setVehiclePlate] = useState('');
@@ -161,6 +169,8 @@ export function useNewTransaction(
     setSellerState('');
     setSellerZip('');
     setSellerIdPhotoUri(null);
+    setSellerPhotoUri(null);
+    setMaterialPhotoUri(null);
     setCatConverterNumbers('');
     setTransportVin('');
     setCatConverterPhotoUri(null);
@@ -236,6 +246,11 @@ export function useNewTransaction(
       return;
     }
 
+    // NM 57-30-2.4: catalytic converters must be paid by check, never cash.
+    const effectivePaymentMethod = hasCatalyticConverter
+      ? 'check'
+      : paymentMethod;
+
     setSaving(true);
     try {
       const receipt = await createReceipt({
@@ -266,6 +281,10 @@ export function useNewTransaction(
         transportVin,
         catConverterPhotoUri,
         catTitlePhotoUri,
+        sellerPhotoUri,
+        materialPhotoUri,
+        paymentMethod: effectivePaymentMethod,
+        isCatalytic: hasCatalyticConverter,
         lineItems,
       });
       onSuccess(
@@ -305,9 +324,12 @@ export function useNewTransaction(
     transportVin,
     catConverterPhotoUri,
     catTitlePhotoUri,
+    sellerPhotoUri,
+    materialPhotoUri,
     hasRegulatedMetal,
     hasRestrictedMetal,
     hasCatalyticConverter,
+    paymentMethod,
     receiptTotal,
     signature,
     saving,
@@ -321,6 +343,7 @@ export function useNewTransaction(
     setCustomerName,
     setCustomerPhone,
     setSellerAffirmed,
+    setPaymentMethod,
     setSellerName,
     setSellerDlNumber,
     setSellerStateOfIssue,
@@ -334,6 +357,8 @@ export function useNewTransaction(
     setTransportVin,
     setCatConverterPhotoUri,
     setCatTitlePhotoUri,
+    setSellerPhotoUri,
+    setMaterialPhotoUri,
     setVehiclePlate,
     setVehicleYear,
     setVehicleMake,

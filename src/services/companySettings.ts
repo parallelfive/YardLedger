@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase';
 import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
+import { updateCompany } from './companies';
 
 export interface CompanySettings {
   id: string;
@@ -9,6 +10,13 @@ export interface CompanySettings {
   phone: string;
   logo_url: string | null;
   updated_at: string;
+  // State-configurable compliance rules (NM defaults; see migration 14).
+  state: string;
+  general_hold_hours: number;
+  cat_converter_hold_days: number;
+  cat_converter_check_only: boolean;
+  general_retention_years: number;
+  cat_converter_retention_years: number;
 }
 
 export async function fetchCompanySettings(): Promise<CompanySettings | null> {
@@ -26,10 +34,26 @@ export async function updateCompanySettings(
     company_name?: string;
     address?: string;
     phone?: string;
+    state?: string;
+    general_hold_hours?: number;
+    cat_converter_hold_days?: number;
+    cat_converter_check_only?: boolean;
+    general_retention_years?: number;
+    cat_converter_retention_years?: number;
   },
   userId: string,
   settingsId?: string | null
 ): Promise<CompanySettings> {
+  // company_settings.company_name and companies.name had drifted apart — the
+  // companies row is the canonical display name (Redux reads it), so keep the
+  // two in lockstep whenever the name is edited here.
+  if (updates.company_name !== undefined) {
+    const { data: companyId } = await supabase.rpc('current_company_id');
+    if (companyId) {
+      await updateCompany(companyId as string, { name: updates.company_name });
+    }
+  }
+
   if (settingsId) {
     // Update existing row
     const { data, error } = await supabase
@@ -57,7 +81,14 @@ export async function uploadCompanyLogo(
   userId: string,
   settingsId: string
 ): Promise<string> {
-  const fileName = `logo_${Date.now()}.jpg`;
+  // Scope the path by company so RLS isolates each yard's logo and one
+  // tenant can't overwrite another's (the bucket stays public-read).
+  const { data: companyId, error: companyErr } =
+    await supabase.rpc('current_company_id');
+  if (companyErr || !companyId) {
+    throw companyErr ?? new Error('No current company for logo upload');
+  }
+  const filePath = `${companyId}/logo_${Date.now()}.jpg`;
 
   // Read image as base64
   const file = new File(imageUri);
@@ -65,7 +96,7 @@ export async function uploadCompanyLogo(
 
   const { error: uploadError } = await supabase.storage
     .from('company-logos')
-    .upload(fileName, decode(base64), {
+    .upload(filePath, decode(base64), {
       contentType: 'image/jpeg',
       upsert: true,
     });
@@ -75,7 +106,7 @@ export async function uploadCompanyLogo(
   // Get public URL
   const {
     data: { publicUrl },
-  } = supabase.storage.from('company-logos').getPublicUrl(fileName);
+  } = supabase.storage.from('company-logos').getPublicUrl(filePath);
 
   // Update company_settings with logo URL
   const { error: updateError } = await supabase

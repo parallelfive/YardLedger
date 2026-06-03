@@ -41,6 +41,11 @@ export default function ReportsListScreen({ navigation }: Props) {
       subtitle: t.purchaseRecordDesc,
       screen: 'ComplianceReport',
     },
+    {
+      title: t.onHoldReport,
+      subtitle: t.onHoldDesc,
+      screen: 'OnHold',
+    },
   ];
 
   return (

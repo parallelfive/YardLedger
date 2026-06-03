@@ -16,7 +16,7 @@ import DateRangeSelector, {
   type DatePreset,
   getDateRange,
 } from '../../components/DateRangeSelector';
-import { fetchComplianceReport } from '../../services/reports';
+import { fetchComplianceReport, exportNmrldCsv } from '../../services/reports';
 import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
@@ -219,6 +219,24 @@ export default function ComplianceReportScreen() {
     }
   };
 
+  // Structured upload file for the NM recycled-metals database (57-30-8/9) —
+  // one row per metal line with VIN, payment method, hold date and catalytic
+  // flag. Distinct from the human-readable purchase-record CSV above.
+  const handleNmrldExport = async () => {
+    try {
+      const { start, end } = getDateRange(preset);
+      const csv = await exportNmrldCsv(start, end);
+      const file = new File(Paths.cache, 'nmrld_upload.csv');
+      file.write(csv);
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'text/csv',
+        UTI: 'public.comma-separated-values-text',
+      });
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    }
+  };
+
   const restrictedCount = rows.filter((r) => r.hasRestricted).length;
 
   return (
@@ -276,6 +294,18 @@ export default function ComplianceReportScreen() {
             >
               <Ionicons name="download-outline" size={20} color={colors.teal} />
               <Text style={styles.actionText}>{t.exportCsv}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleNmrldExport}
+            >
+              <Ionicons
+                name="cloud-upload-outline"
+                size={20}
+                color={colors.accent}
+              />
+              <Text style={styles.actionText}>{t.nmrldExport}</Text>
             </TouchableOpacity>
           </View>
 

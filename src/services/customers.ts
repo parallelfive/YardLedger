@@ -133,23 +133,35 @@ export async function uploadCustomerIdPhoto(
   customerId: string,
   imageUri: string
 ): Promise<string> {
-  const fileName = `${customerId}_${Date.now()}.jpg`;
+  // Scope the storage path by company so RLS can isolate each yard's
+  // private ID photos. current_company_id() is the same helper the RLS
+  // policies use, so the path and the policy stay in lockstep.
+  const { data: companyId, error: companyErr } =
+    await supabase.rpc('current_company_id');
+  if (companyErr || !companyId) {
+    throw companyErr ?? new Error('No current company for ID upload');
+  }
+  const filePath = `${companyId}/${customerId}_${Date.now()}.jpg`;
 
   const file = new File(imageUri);
   const base64 = await file.base64();
 
   const { error: uploadError } = await supabase.storage
     .from('customer-ids')
-    .upload(fileName, decode(base64), {
+    .upload(filePath, decode(base64), {
       contentType: 'image/jpeg',
       upsert: true,
     });
 
   if (uploadError) throw uploadError;
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from('customer-ids').getPublicUrl(fileName);
+  // Bucket is private (PII). Return a long-lived signed URL rather than
+  // getPublicUrl(), which does not authenticate against a private bucket.
+  const { data: signed, error: signErr } = await supabase.storage
+    .from('customer-ids')
+    .createSignedUrl(filePath, 60 * 60 * 24 * 365);
+  if (signErr || !signed) throw signErr ?? new Error('Failed to sign ID URL');
+  const publicUrl = signed.signedUrl;
 
   // Save the URL to the customer record
   const { error: updateError } = await supabase
