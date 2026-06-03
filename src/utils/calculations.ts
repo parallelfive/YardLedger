@@ -1,10 +1,12 @@
 import type { LineItemInput } from '../types';
 
+// Round to cents so the client subtotal equals sum(round(line)) and matches
+// the server-side numeric(12,2) total recomputed by the line_items trigger.
 export function calculateLineItemTotal(
   weight: number,
   pricePerLb: number
 ): number {
-  return weight * pricePerLb;
+  return Math.round(weight * pricePerLb * 100) / 100;
 }
 
 export function calculateReceiptTotal(lineItems: LineItemInput[]): number {
@@ -15,7 +17,7 @@ export function calculateCurrentPreview(
   weight: string,
   pricePerLb: number
 ): number {
-  return (parseFloat(weight) || 0) * pricePerLb;
+  return Math.round((parseFloat(weight) || 0) * pricePerLb * 100) / 100;
 }
 
 export function calculateInventoryValue(

@@ -9,18 +9,26 @@ import { useAppDispatch, useAppSelector, type RootState } from '../store';
 import { initializeAuth, setSession, fetchProfile } from '../store/authStore';
 import { supabase } from '../config/supabase';
 
-/** Extract auth tokens from a deep link URL and set the Supabase session. */
-function handleAuthDeepLink(url: string) {
+/** Extract auth tokens from a deep link URL and set the Supabase session.
+ * Only the expected auth callback path may set a session — otherwise any
+ * `yardledger://...#access_token=...` link could fixate an attacker's session. */
+async function handleAuthDeepLink(url: string) {
+  const parsed = Linking.parse(url);
+  if (parsed.hostname !== 'auth' || parsed.path !== 'callback') return;
   const fragment = url.split('#')[1];
   if (!fragment) return;
   const params = new URLSearchParams(fragment);
   const accessToken = params.get('access_token');
   const refreshToken = params.get('refresh_token');
   if (accessToken && refreshToken) {
-    supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
+    try {
+      await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+    } catch {
+      // Invalid/expired tokens — ignore rather than crashing the link handler.
+    }
   }
 }
 
@@ -44,10 +52,10 @@ export default function RootNavigator() {
 
     // Handle email verification deep link
     const linkingSub = Linking.addEventListener('url', (event) => {
-      handleAuthDeepLink(event.url);
+      void handleAuthDeepLink(event.url);
     });
-    Linking.getInitialURL().then((url) => {
-      if (url) handleAuthDeepLink(url);
+    void Linking.getInitialURL().then((url) => {
+      if (url) void handleAuthDeepLink(url);
     });
 
     return () => {
