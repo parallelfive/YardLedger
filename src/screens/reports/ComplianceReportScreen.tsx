@@ -16,10 +16,17 @@ import DateRangeSelector, {
   type DatePreset,
   getDateRange,
 } from '../../components/DateRangeSelector';
-import { fetchComplianceReport, exportNmrldCsv } from '../../services/reports';
+import {
+  fetchComplianceReport,
+  exportNmrldCsv,
+  fetchUnreportedReceipts,
+  buildNmrldExportCsv,
+  markReceiptsReported,
+} from '../../services/reports';
 import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useAppSelector, type RootState } from '../../store';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 interface PurchaseRecordRow {
@@ -43,6 +50,7 @@ interface PurchaseRecordRow {
 
 export default function ComplianceReportScreen() {
   const { t } = useT();
+  const profile = useAppSelector((s: RootState) => s.auth.profile);
   const isFocused = useIsFocused();
   const [preset, setPreset] = useState<DatePreset>('today');
   const [rows, setRows] = useState<PurchaseRecordRow[]>([]);
@@ -237,6 +245,49 @@ export default function ComplianceReportScreen() {
     }
   };
 
+  // Export only the not-yet-reported buys, then (after the operator uploads to
+  // the state DB / LeadsOnline) mark them reported. This is the manual bridge
+  // until the automated SFTP job is wired up.
+  const handleReportUnreported = async () => {
+    try {
+      const unreported = await fetchUnreportedReceipts();
+      if (unreported.length === 0) {
+        Alert.alert(t.nmrldExport, t.noUnreported);
+        return;
+      }
+      const csv = buildNmrldExportCsv(unreported);
+      const file = new File(Paths.cache, 'nmrld_unreported.csv');
+      file.write(csv);
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'text/csv',
+        UTI: 'public.comma-separated-values-text',
+      });
+      Alert.alert(
+        t.markReportedTitle,
+        t.markReportedConfirm.replace('{n}', String(unreported.length)),
+        [
+          { text: t.cancel, style: 'cancel' },
+          {
+            text: t.confirm,
+            onPress: async () => {
+              try {
+                await markReceiptsReported(
+                  unreported.map((r) => r.id),
+                  profile?.id ?? ''
+                );
+                Alert.alert(t.success, t.markedReported);
+              } catch (err) {
+                Alert.alert(t.error, (err as Error).message);
+              }
+            },
+          },
+        ]
+      );
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    }
+  };
+
   const restrictedCount = rows.filter((r) => r.hasRestricted).length;
 
   return (
@@ -306,6 +357,18 @@ export default function ComplianceReportScreen() {
                 color={colors.accent}
               />
               <Text style={styles.actionText}>{t.nmrldExport}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={handleReportUnreported}
+            >
+              <Ionicons
+                name="checkmark-done-outline"
+                size={20}
+                color={colors.success}
+              />
+              <Text style={styles.actionText}>{t.reportUnreported}</Text>
             </TouchableOpacity>
           </View>
 

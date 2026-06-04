@@ -523,6 +523,49 @@ export async function exportNmrldCsv(
   return buildNmrldExportCsv(rows);
 }
 
+// ---------- Reporting queue (state / LeadsOnline upload) ----------
+// Buy receipts not yet reported to the state database. This is the manual
+// bridge today (export -> upload to LeadsOnline -> mark sent) and the exact
+// delta the future automated SFTP job will transmit.
+export async function fetchUnreportedReceipts(): Promise<
+  ComplianceReceiptRow[]
+> {
+  const { data, error } = await supabase
+    .from('receipts')
+    .select('*, line_items(metal_name, weight, total, is_restricted)')
+    .eq('type', 'buy')
+    .is('reported_at', null)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+  return (data ?? []) as ComplianceReceiptRow[];
+}
+
+// Stamp receipts as reported and write an audit-log entry.
+export async function markReceiptsReported(
+  receiptIds: string[],
+  userId: string
+): Promise<void> {
+  if (receiptIds.length === 0) return;
+
+  const { error } = await supabase
+    .from('receipts')
+    .update({ reported_at: new Date().toISOString() })
+    .in('id', receiptIds);
+  if (error) throw error;
+
+  const { error: logError } = await supabase
+    .from('compliance_upload_log')
+    .insert({
+      method: 'manual',
+      receipt_count: receiptIds.length,
+      status: 'success',
+      detail: 'Marked reported after manual state-database upload',
+      created_by: userId,
+    });
+  if (logError) throw logError;
+}
+
 // ---------- Material still on a mandatory hold ----------
 // Receipts whose hold window has not expired and that have not been disposed —
 // these may not be processed/resold yet (NM 57-30-11 / 57-30-2.4).
