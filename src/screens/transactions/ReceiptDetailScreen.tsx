@@ -54,10 +54,16 @@ interface ReceiptDetail {
   seller_state?: string;
   seller_zip?: string;
   seller_id_photo_uri?: string | null;
+  seller_photo_uri?: string | null;
+  material_photo_uri?: string | null;
   cat_converter_numbers?: string;
   transport_vin?: string;
   cat_converter_photo_uri?: string | null;
   cat_title_photo_uri?: string | null;
+  payment_method?: string | null;
+  is_catalytic?: boolean | null;
+  hold_until?: string | null;
+  disposed_at?: string | null;
   subtotal: number;
   signature_uri?: string | null;
   created_at: string;
@@ -269,6 +275,61 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
                   resizeMode="contain"
                 />
               </View>
+            ) : null}
+          </View>
+        )}
+
+        {/* Seller & material photos (NM 57-30-5(C)) */}
+        {(receipt.seller_photo_uri || receipt.material_photo_uri) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.sellerIdInfo}</Text>
+            {receipt.seller_photo_uri ? (
+              <>
+                <Text style={styles.customerPhone}>{t.sellerPhoto}</Text>
+                <View style={styles.sellerIdPhotoBox}>
+                  <Image
+                    source={{ uri: receipt.seller_photo_uri }}
+                    style={styles.sellerIdPhoto}
+                    resizeMode="contain"
+                  />
+                </View>
+              </>
+            ) : null}
+            {receipt.material_photo_uri ? (
+              <>
+                <Text style={styles.customerPhone}>{t.materialPhoto}</Text>
+                <View style={styles.sellerIdPhotoBox}>
+                  <Image
+                    source={{ uri: receipt.material_photo_uri }}
+                    style={styles.sellerIdPhoto}
+                    resizeMode="contain"
+                  />
+                </View>
+              </>
+            ) : null}
+          </View>
+        )}
+
+        {/* Payment method & compliance hold */}
+        {(receipt.payment_method || receipt.hold_until) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t.paymentMethodLabel}</Text>
+            {receipt.payment_method ? (
+              <Text style={styles.customerPhone}>
+                {receipt.payment_method === 'cash'
+                  ? t.paymentCash
+                  : receipt.payment_method === 'check'
+                    ? t.paymentCheck
+                    : t.paymentOther}
+                {receipt.is_catalytic ? ` — ${t.catalyticConverter}` : ''}
+              </Text>
+            ) : null}
+            {receipt.hold_until ? (
+              <Text style={styles.customerPhone}>
+                {t.holdUntil}:{' '}
+                {new Date(receipt.hold_until).toLocaleDateString()}
+                {receipt.disposed_at ? ' ✓' : ''}
+              </Text>
             ) : null}
           </View>
         )}

@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import DocumentScanner from 'react-native-document-scanner-plugin';
 import { recognizeText } from '@infinitered/react-native-mlkit-text-recognition';
 import { parseDriversLicense } from '../utils/parseDriversLicense';
+import { useT } from './useT';
 import type { ParsedIdFields } from '../types';
 
 interface ScanResult {
@@ -11,6 +12,7 @@ interface ScanResult {
 }
 
 export function useIdScanner() {
+  const { t } = useT();
   const [scanning, setScanning] = useState(false);
 
   const scanAndRecognize = async (): Promise<ScanResult | null> => {
@@ -32,7 +34,7 @@ export function useIdScanner() {
 
       return { imageUri, fields };
     } catch (err) {
-      Alert.alert('Scan Error', (err as Error).message);
+      Alert.alert(t.scanError, (err as Error).message);
       return null;
     } finally {
       setScanning(false);

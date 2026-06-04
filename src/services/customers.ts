@@ -17,10 +17,13 @@ export interface Customer {
 }
 
 export async function searchCustomers(query: string): Promise<Customer[]> {
+  // Escape LIKE metacharacters so a user typing % or _ doesn't broaden the
+  // match (and \ doesn't smuggle escapes) in the ilike pattern.
+  const escaped = query.replace(/[\\%_]/g, (c) => `\\${c}`);
   const { data, error } = await supabase
     .from('customers')
     .select('*')
-    .ilike('name', `%${query}%`)
+    .ilike('name', `%${escaped}%`)
     .order('name')
     .limit(20);
   if (error) throw error;

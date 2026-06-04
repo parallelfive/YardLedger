@@ -129,19 +129,27 @@ export default function UserApprovalScreen({ navigation }: Props) {
   };
 
   const onChangeRole = (userId: string, newRole: UserRole) => {
-    Alert.alert(t.promoteToAdmin, t.promoteAdminMessage, [
-      { text: t.cancel, style: 'cancel' },
-      {
-        text: t.promote,
-        onPress: async () => {
-          try {
-            await handleChangeRole(userId, newRole);
-          } catch (err) {
-            Alert.alert(t.error, (err as Error).message);
-          }
+    // Role-aware copy — this handles demotions (e.g. -> worker) too, not just
+    // promotion to admin. Treat a demotion to worker as destructive.
+    const isDemotion = newRole === 'worker';
+    Alert.alert(
+      t.changeRoleTitle,
+      t.changeRoleMessage.replace('{role}', roleLabel(newRole)),
+      [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.confirm,
+          style: isDemotion ? 'destructive' : 'default',
+          onPress: async () => {
+            try {
+              await handleChangeRole(userId, newRole);
+            } catch (err) {
+              Alert.alert(t.error, (err as Error).message);
+            }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const renderUser = ({

@@ -20,19 +20,21 @@ export async function fetchDailySummary(
   const rangeEnd = `${endDate}T23:59:59`;
 
   // Fetch buy receipts with line items in range
-  const { data: receipts } = await supabase
+  const { data: receipts, error: receiptsError } = await supabase
     .from('receipts')
     .select('id, subtotal, line_items(metal_name, weight, price_per_lb)')
     .eq('type', 'buy')
     .gte('created_at', rangeStart)
     .lte('created_at', rangeEnd);
+  if (receiptsError) throw receiptsError;
 
   // Fetch sales in range
-  const { data: sales } = await supabase
+  const { data: sales, error: salesError } = await supabase
     .from('sales')
     .select('weight, total_revenue, profit')
     .gte('created_at', rangeStart)
     .lte('created_at', rangeEnd);
+  if (salesError) throw salesError;
 
   let totalBoughtWeight = 0;
   let totalBoughtDollars = 0;
@@ -172,7 +174,7 @@ export async function fetchProfitabilityReport(
   const rangeEnd = `${endDate}T23:59:59`;
 
   // Fetch buy line items in range
-  const { data: buyData } = await supabase
+  const { data: buyData, error: buyError } = await supabase
     .from('line_items')
     .select(
       'metal_id, metal_name, weight, price_per_lb, receipts!inner(type), metals(metal_categories(name))'
@@ -180,15 +182,17 @@ export async function fetchProfitabilityReport(
     .eq('receipts.type', 'buy')
     .gte('created_at', rangeStart)
     .lte('created_at', rangeEnd);
+  if (buyError) throw buyError;
 
   // Fetch sales in range
-  const { data: salesData } = await supabase
+  const { data: salesData, error: salesError } = await supabase
     .from('sales')
     .select(
       'metal_id, metal_name, weight, cost_basis_per_lb, total_revenue, profit, metals(metal_categories(name))'
     )
     .gte('created_at', rangeStart)
     .lte('created_at', rangeEnd);
+  if (salesError) throw salesError;
 
   // Aggregate by metal_id
   const metalMap = new Map<
@@ -304,22 +308,25 @@ export interface ShrinkageRow {
 
 export async function fetchShrinkageReport(): Promise<ShrinkageRow[]> {
   // All buy line items aggregated by metal
-  const { data: buyData } = await supabase
+  const { data: buyData, error: buyError } = await supabase
     .from('line_items')
     .select(
       'metal_id, metal_name, weight, receipts!inner(type), metals(metal_categories(name))'
     )
     .eq('receipts.type', 'buy');
+  if (buyError) throw buyError;
 
   // All sales aggregated by metal
-  const { data: salesData } = await supabase
+  const { data: salesData, error: salesError } = await supabase
     .from('sales')
     .select('metal_id, weight');
+  if (salesError) throw salesError;
 
   // Current inventory
-  const { data: invData } = await supabase
+  const { data: invData, error: invError } = await supabase
     .from('inventory')
     .select('metal_id, weight');
+  if (invError) throw invError;
 
   // Aggregate buys
   const buyMap = new Map<

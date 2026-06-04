@@ -39,14 +39,14 @@ interface CreateReceiptParams {
   lineItems: LineItemInput[];
 }
 
-async function uploadIdPhoto(localUri: string): Promise<string> {
-  // Company-scope the path so the private bucket's RLS isolates each yard.
-  const { data: companyId, error: companyErr } =
-    await supabase.rpc('current_company_id');
-  if (companyErr || !companyId) {
-    throw companyErr ?? new Error('No current company for ID upload');
-  }
-  const filePath = `${companyId}/seller_${Date.now()}.jpg`;
+// Company-scope the path so the private bucket's RLS isolates each yard. The
+// `label` keeps parallel uploads from colliding on the same timestamped path.
+async function uploadIdPhoto(
+  localUri: string,
+  companyId: string,
+  label: string
+): Promise<string> {
+  const filePath = `${companyId}/${label}_${Date.now()}.jpg`;
   const file = new File(localUri);
   const base64 = await file.base64();
   const { error } = await supabase.storage
@@ -65,27 +65,37 @@ async function uploadIdPhoto(localUri: string): Promise<string> {
 }
 
 export async function createReceipt(params: CreateReceiptParams) {
-  // Upload photos if they're local files
-  let sellerIdPhotoUrl = params.sellerIdPhotoUri ?? null;
-  if (sellerIdPhotoUrl && !sellerIdPhotoUrl.startsWith('http')) {
-    sellerIdPhotoUrl = await uploadIdPhoto(sellerIdPhotoUrl);
+  // Upload any local photo files — resolve the company once, then run the
+  // independent uploads concurrently instead of serially.
+  const photoInputs: { uri: string | null | undefined; label: string }[] = [
+    { uri: params.sellerIdPhotoUri, label: 'sellerid' },
+    { uri: params.catConverterPhotoUri, label: 'catconv' },
+    { uri: params.catTitlePhotoUri, label: 'cattitle' },
+    { uri: params.sellerPhotoUri, label: 'seller' },
+    { uri: params.materialPhotoUri, label: 'material' },
+  ];
+  const needsUpload = photoInputs.some(
+    (p) => p.uri && !p.uri.startsWith('http')
+  );
+  let companyId: string | null = null;
+  if (needsUpload) {
+    const { data, error } = await supabase.rpc('current_company_id');
+    if (error || !data) {
+      throw error ?? new Error('No current company for photo upload');
+    }
+    companyId = data as string;
   }
-  let catConverterPhotoUrl = params.catConverterPhotoUri ?? null;
-  if (catConverterPhotoUrl && !catConverterPhotoUrl.startsWith('http')) {
-    catConverterPhotoUrl = await uploadIdPhoto(catConverterPhotoUrl);
-  }
-  let catTitlePhotoUrl = params.catTitlePhotoUri ?? null;
-  if (catTitlePhotoUrl && !catTitlePhotoUrl.startsWith('http')) {
-    catTitlePhotoUrl = await uploadIdPhoto(catTitlePhotoUrl);
-  }
-  let sellerPhotoUrl = params.sellerPhotoUri ?? null;
-  if (sellerPhotoUrl && !sellerPhotoUrl.startsWith('http')) {
-    sellerPhotoUrl = await uploadIdPhoto(sellerPhotoUrl);
-  }
-  let materialPhotoUrl = params.materialPhotoUri ?? null;
-  if (materialPhotoUrl && !materialPhotoUrl.startsWith('http')) {
-    materialPhotoUrl = await uploadIdPhoto(materialPhotoUrl);
-  }
+  const upload = (uri: string | null | undefined, label: string) =>
+    uri && !uri.startsWith('http')
+      ? uploadIdPhoto(uri, companyId as string, label)
+      : Promise.resolve(uri ?? null);
+  const [
+    sellerIdPhotoUrl,
+    catConverterPhotoUrl,
+    catTitlePhotoUrl,
+    sellerPhotoUrl,
+    materialPhotoUrl,
+  ] = await Promise.all(photoInputs.map((p) => upload(p.uri, p.label)));
 
   // Upsert customer record
   const customer = params.customerId
@@ -181,9 +191,13 @@ export async function fetchReceipts(
   startDate?: string,
   endDate?: string
 ) {
+  // Explicit projection for the list view — omits the heavy base64
+  // signature_uri and photo columns (only the detail screen needs those).
   let query = supabase
     .from('receipts')
-    .select('*, line_items(*)')
+    .select(
+      'id, receipt_number, customer_name, type, subtotal, created_at, worker_id, line_items(id, metal_name, weight, total)'
+    )
     .order('created_at', { ascending: false });
 
   if (workerId) {
