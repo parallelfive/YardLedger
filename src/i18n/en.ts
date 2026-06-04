@@ -366,6 +366,7 @@ export default {
   confirm: 'Confirm',
   complianceRules: 'Compliance Rules',
   stateLabel: 'State',
+  timezoneLabel: 'Timezone (yard location)',
   generalHoldHoursLabel: 'General hold (hours)',
   catHoldDaysLabel: 'Catalytic converter hold (days)',
   catCheckOnlyLabel: 'Catalytic converters: check only',

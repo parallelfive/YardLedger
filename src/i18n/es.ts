@@ -368,6 +368,7 @@ export default {
   confirm: 'Confirmar',
   complianceRules: 'Reglas de Cumplimiento',
   stateLabel: 'Estado',
+  timezoneLabel: 'Zona horaria (ubicación del patio)',
   generalHoldHoursLabel: 'Retención general (horas)',
   catHoldDaysLabel: 'Retención de convertidor catalítico (días)',
   catCheckOnlyLabel: 'Convertidores catalíticos: solo cheque',
