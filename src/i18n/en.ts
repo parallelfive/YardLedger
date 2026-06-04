@@ -364,6 +364,8 @@ export default {
   catalyticConverter: 'Catalytic Converter',
   onHandValue: 'On-Hand Value',
   recentIntake: 'Recent Intake',
+  intakeTrend: '14-Day Intake',
+  totalLast14: 'bought over the last 14 days',
   viewAll: 'All',
   stock: 'Stock',
   metalMix: 'Metal Mix',

@@ -366,6 +366,8 @@ export default {
   catalyticConverter: 'Convertidor Catalítico',
   onHandValue: 'Valor en Inventario',
   recentIntake: 'Entradas Recientes',
+  intakeTrend: 'Entradas 14 Días',
+  totalLast14: 'comprado en los últimos 14 días',
   viewAll: 'Todo',
   stock: 'Inventario',
   metalMix: 'Mezcla de Metales',
