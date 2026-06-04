@@ -216,6 +216,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     borderWidth: 1,
     borderColor: colors.border,
   },

@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     borderWidth: 1,
     borderColor: colors.border,
   },

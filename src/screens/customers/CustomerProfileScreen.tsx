@@ -682,6 +682,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     borderWidth: 1,
     borderColor: colors.border,
   },

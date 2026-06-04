@@ -534,6 +534,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     borderWidth: 1,
     borderColor: colors.border,
   },

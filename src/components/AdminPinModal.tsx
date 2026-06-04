@@ -141,6 +141,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     borderWidth: 1,
     borderColor: colors.border,
   },

@@ -140,6 +140,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     fontSize: fontSize.xxl,
+    fontFamily: fonts.sans,
     textAlign: 'center',
     letterSpacing: 8,
     borderWidth: 1,
