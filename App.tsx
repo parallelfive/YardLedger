@@ -20,7 +20,7 @@ import { colors } from './src/constants/theme';
 import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Archivo_400Regular,
     Archivo_500Medium,
     Archivo_600SemiBold,
@@ -31,7 +31,10 @@ export default function App() {
     SplineSansMono_600SemiBold,
   });
 
-  if (!fontsLoaded) {
+  // Render once fonts load OR if they fail — never block startup on the font
+  // download (a hang here would look like "the app won't open"). On error the
+  // app falls back to the system font.
+  if (!fontsLoaded && !fontError) {
     return <View style={{ flex: 1, backgroundColor: colors.background }} />;
   }
 

@@ -568,16 +568,19 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     color: colors.textSecondary,
-    fontSize: fontSize.xl,
+    fontSize: 12,
+    fontFamily: fonts.sansSemiBold,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
   },
   totalValue: {
     color: colors.accent,
-    fontSize: fontSize.xxl,
+    fontSize: 28,
     fontFamily: fonts.monoSemiBold,
   },
   totalProfit: {
-    color: colors.success,
-    fontSize: fontSize.xxl,
+    color: colors.moss,
+    fontSize: 28,
     fontFamily: fonts.monoSemiBold,
   },
   totalProfitNegative: {
