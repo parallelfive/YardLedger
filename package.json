@@ -12,7 +12,12 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev": "bash scripts/dev.sh start",
+    "dev:clear": "bash scripts/dev.sh start --clear",
+    "dev:stop": "bash scripts/dev.sh stop",
+    "dev:status": "bash scripts/dev.sh status",
+    "dev:reset": "bash scripts/dev.sh reset"
   },
   "dependencies": {
     "@expo-google-fonts/archivo": "^0.4.2",
