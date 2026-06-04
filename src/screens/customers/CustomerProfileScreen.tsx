@@ -23,6 +23,7 @@ import {
 } from '../../services/customers';
 import { fetchCompanySettings } from '../../services/companySettings';
 import { SignedImage } from '../../components';
+import { SectionLabel, Tag, fmtMoney, fmtLbs } from '../../components/foundry';
 import { escapeHtml } from '../../utils/validation';
 import { useT } from '../../hooks/useT';
 import { useIdScanner } from '../../hooks/useIdScanner';
@@ -204,6 +205,50 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
     }
   };
 
+  const handleToggleFlag = async () => {
+    if (!customer) return;
+    if (customer.is_flagged) {
+      try {
+        await updateCustomer(customer.id, {
+          is_flagged: false,
+          flag_reason: '',
+        });
+        setCustomer({ ...customer, is_flagged: false, flag_reason: '' });
+      } catch (err) {
+        Alert.alert(t.error, (err as Error).message);
+      }
+    } else {
+      Alert.prompt(
+        t.flagCustomer,
+        t.flagReasonPlaceholder,
+        [
+          { text: t.cancel, style: 'cancel' },
+          {
+            text: t.flagCustomer,
+            style: 'destructive',
+            onPress: async (reason: string | undefined) => {
+              try {
+                await updateCustomer(customer.id, {
+                  is_flagged: true,
+                  flag_reason: reason ?? '',
+                });
+                setCustomer({
+                  ...customer,
+                  is_flagged: true,
+                  flag_reason: reason ?? '',
+                });
+              } catch (err) {
+                Alert.alert(t.error, (err as Error).message);
+              }
+            },
+          },
+        ],
+        'plain-text',
+        ''
+      );
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.centered}>
@@ -215,49 +260,22 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
   if (!customer) {
     return (
       <View style={styles.centered}>
+        <Ionicons
+          name="alert-circle-outline"
+          size={40}
+          color={colors.textTertiary}
+        />
         <Text style={styles.errorText}>{t.error}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      {/* ID Photo Section */}
-      <View style={styles.idSection}>
-        <TouchableOpacity
-          style={styles.idPhotoBox}
-          onPress={handleScanId}
-          disabled={uploading || scanning}
-        >
-          {uploading ? (
-            <ActivityIndicator color={colors.accent} size="large" />
-          ) : customer.dl_photo_uri ? (
-            <SignedImage
-              value={customer.dl_photo_uri}
-              style={styles.idPhoto}
-              resizeMode="contain"
-            />
-          ) : (
-            <View style={styles.idPlaceholder}>
-              <Ionicons name="camera" size={32} color={colors.textTertiary} />
-              <Text style={styles.idPlaceholderText}>{t.scanId}</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        {customer.dl_photo_uri && (
-          <TouchableOpacity
-            style={styles.updateIdButton}
-            onPress={handleScanId}
-          >
-            <Text style={styles.updateIdText}>{t.updateId}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Flag Warning */}
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Flag banner */}
       {customer.is_flagged && (
         <View style={styles.flagBanner}>
-          <Ionicons name="warning" size={20} color={colors.danger} />
+          <Ionicons name="alert-circle-outline" size={20} color={colors.rust} />
           <View style={styles.flagBannerContent}>
             <Text style={styles.flagBannerText}>{t.flagWarning}</Text>
             {customer.flag_reason ? (
@@ -269,23 +287,98 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
         </View>
       )}
 
-      {/* Customer Info */}
-      <View style={styles.infoSection}>
-        <View style={styles.infoHeader}>
-          <Text style={styles.customerName}>{customer.name}</Text>
-          {!editingInfo && (
-            <TouchableOpacity onPress={() => setEditingInfo(true)}>
-              <Ionicons name="pencil" size={18} color={colors.textSecondary} />
-            </TouchableOpacity>
+      {/* Identity card */}
+      <View style={styles.identityCard}>
+        <View style={styles.identityHeader}>
+          <View style={styles.identityName}>
+            <Text style={styles.customerName} numberOfLines={2}>
+              {customer.name}
+            </Text>
+            {customer.phone ? (
+              <Text style={styles.customerPhone}>{customer.phone}</Text>
+            ) : null}
+          </View>
+          {customer.dl_photo_uri ? (
+            <Tag
+              label={t.idOnFile}
+              color={colors.moss}
+              soft={colors.moss + '22'}
+              icon="checkmark"
+            />
+          ) : (
+            <Tag
+              label={t.noIdOnFile}
+              color={colors.gold}
+              soft={colors.gold + '22'}
+            />
           )}
         </View>
-        {customer.phone ? (
-          <Text style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{t.phone}: </Text>
-            {customer.phone}
-          </Text>
-        ) : null}
 
+        {/* ID photo */}
+        <TouchableOpacity
+          style={styles.idPhotoBox}
+          onPress={handleScanId}
+          disabled={uploading || scanning}
+          activeOpacity={0.8}
+        >
+          {uploading || scanning ? (
+            <ActivityIndicator color={colors.accent} size="large" />
+          ) : customer.dl_photo_uri ? (
+            <>
+              <SignedImage
+                value={customer.dl_photo_uri}
+                style={styles.idPhoto}
+                resizeMode="contain"
+              />
+              <View style={styles.idPhotoOverlay}>
+                <Ionicons
+                  name="camera-outline"
+                  size={14}
+                  color={colors.white}
+                />
+                <Text style={styles.idPhotoOverlayText}>{t.updateId}</Text>
+              </View>
+            </>
+          ) : (
+            <View style={styles.idPlaceholder}>
+              <Ionicons
+                name="scan-outline"
+                size={30}
+                color={colors.textTertiary}
+              />
+              <Text style={styles.idPlaceholderText}>{t.scanId}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Stats */}
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>{t.totalTransactions}</Text>
+          <Text style={styles.statValue}>{receipts.length}</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>{t.totalSpent}</Text>
+          <Text style={styles.statValue}>{fmtMoney(totalSpent)}</Text>
+        </View>
+        <View style={styles.statCard}>
+          <Text style={styles.statLabel}>{t.memberSince}</Text>
+          <Text style={[styles.statValue, styles.statValueSmall]}>
+            {new Date(customer.created_at).toLocaleDateString()}
+          </Text>
+        </View>
+      </View>
+
+      {/* Details */}
+      <SectionLabel
+        actionLabel={editingInfo ? undefined : t.edit}
+        onAction={editingInfo ? undefined : () => setEditingInfo(true)}
+      >
+        {t.detailsLabel}
+      </SectionLabel>
+
+      <View style={styles.detailCard}>
         {editingInfo ? (
           <View style={styles.editFields}>
             <Text style={styles.editLabel}>{t.dlNumber}</Text>
@@ -325,6 +418,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
             />
             <View style={styles.editActions}>
               <TouchableOpacity
+                style={styles.editCancelButton}
                 onPress={() => {
                   setDlNumber(customer.drivers_license);
                   setAddress(customer.address);
@@ -341,7 +435,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
                 disabled={savingInfo}
               >
                 {savingInfo ? (
-                  <ActivityIndicator color={colors.background} size="small" />
+                  <ActivityIndicator color={colors.accentInk} size="small" />
                 ) : (
                   <Text style={styles.editSaveText}>{t.save}</Text>
                 )}
@@ -350,64 +444,44 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           </View>
         ) : (
           <>
-            {customer.drivers_license ? (
-              <Text style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.dlNumber}: </Text>
-                {customer.drivers_license}
-              </Text>
-            ) : null}
-            {customer.address ? (
-              <Text style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.address}: </Text>
-                {customer.address}
-              </Text>
-            ) : null}
-            {customer.dob ? (
-              <Text style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.dateOfBirth}: </Text>
-                {new Date(customer.dob).toLocaleDateString()}
-              </Text>
-            ) : null}
-            {customer.notes ? (
-              <Text style={styles.infoRow}>
-                <Text style={styles.infoLabel}>{t.customerNotes}: </Text>
-                {customer.notes}
-              </Text>
-            ) : null}
+            <DetailRow
+              label={t.dlNumber}
+              value={customer.drivers_license || '—'}
+            />
+            <DetailRow label={t.address} value={customer.address || '—'} />
+            <DetailRow
+              label={t.dateOfBirth}
+              value={
+                customer.dob ? new Date(customer.dob).toLocaleDateString() : '—'
+              }
+            />
+            <DetailRow
+              label={t.customerNotes}
+              value={customer.notes || '—'}
+              last
+            />
           </>
         )}
       </View>
 
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>{receipts.length}</Text>
-          <Text style={styles.statLabel}>{t.totalTransactions}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>${totalSpent.toFixed(2)}</Text>
-          <Text style={styles.statLabel}>{t.totalSpent}</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statBox}>
-          <Text style={styles.statNumber}>
-            {new Date(customer.created_at).toLocaleDateString()}
-          </Text>
-          <Text style={styles.statLabel}>{t.memberSince}</Text>
-        </View>
-      </View>
-
-      {/* Transaction History */}
-      <View style={styles.historySection}>
-        <Text style={styles.sectionTitle}>{t.customerHistory}</Text>
-        {receipts.length === 0 ? (
+      {/* History */}
+      <SectionLabel>{t.customerHistory}</SectionLabel>
+      {receipts.length === 0 ? (
+        <View style={styles.emptyHistory}>
+          <Ionicons
+            name="receipt-outline"
+            size={28}
+            color={colors.textTertiary}
+          />
           <Text style={styles.emptyText}>{t.noTransactions}</Text>
-        ) : (
-          receipts.map((r) => (
+        </View>
+      ) : (
+        <View style={styles.historyList}>
+          {receipts.map((r) => (
             <TouchableOpacity
               key={r.id}
-              style={styles.receiptCard}
+              style={styles.receiptRow}
+              activeOpacity={0.7}
               onPress={() => {
                 const parent = navigation.getParent();
                 if (parent) {
@@ -418,74 +492,53 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
                 }
               }}
             >
-              <View style={styles.receiptHeader}>
-                <Text style={styles.receiptNumber}>{r.receipt_number}</Text>
-                <Text style={styles.receiptTotal}>
-                  ${Number(r.subtotal).toFixed(2)}
+              <View style={styles.receiptIcon}>
+                <Ionicons
+                  name="receipt-outline"
+                  size={18}
+                  color={colors.accent}
+                />
+              </View>
+              <View style={styles.receiptInfo}>
+                <Text style={styles.receiptNumber} numberOfLines={1}>
+                  {r.receipt_number}
+                </Text>
+                <Text style={styles.receiptItems} numberOfLines={1}>
+                  {r.line_items
+                    .map(
+                      (li) =>
+                        `${li.metal_name} (${fmtLbs(Number(li.weight))} lb)`
+                    )
+                    .join(', ')}
                 </Text>
               </View>
-              <Text style={styles.receiptDate}>
-                {new Date(r.created_at).toLocaleDateString()}
-              </Text>
-              <Text style={styles.receiptItems}>
-                {r.line_items
-                  .map(
-                    (li) =>
-                      `${li.metal_name} (${Number(li.weight).toFixed(2)} lbs)`
-                  )
-                  .join(', ')}
-              </Text>
+              <View style={styles.receiptRight}>
+                <Text style={styles.receiptTotal}>
+                  {fmtMoney(Number(r.subtotal))}
+                </Text>
+                <Text style={styles.receiptDate}>
+                  {new Date(r.created_at).toLocaleDateString()}
+                </Text>
+              </View>
             </TouchableOpacity>
-          ))
-        )}
-      </View>
+          ))}
+        </View>
+      )}
 
-      {/* Flag / Print Buttons */}
+      {/* Actions */}
       <View style={styles.actionButtons}>
         <TouchableOpacity
           style={[
             styles.flagButton,
             customer.is_flagged && styles.flagButtonActive,
           ]}
-          onPress={async () => {
-            if (customer.is_flagged) {
-              await updateCustomer(customer.id, {
-                is_flagged: false,
-                flag_reason: '',
-              });
-              setCustomer({ ...customer, is_flagged: false, flag_reason: '' });
-            } else {
-              Alert.prompt(
-                t.flagCustomer,
-                t.flagReasonPlaceholder,
-                [
-                  { text: t.cancel, style: 'cancel' },
-                  {
-                    text: t.flagCustomer,
-                    style: 'destructive',
-                    onPress: async (reason: string | undefined) => {
-                      await updateCustomer(customer.id, {
-                        is_flagged: true,
-                        flag_reason: reason ?? '',
-                      });
-                      setCustomer({
-                        ...customer,
-                        is_flagged: true,
-                        flag_reason: reason ?? '',
-                      });
-                    },
-                  },
-                ],
-                'plain-text',
-                ''
-              );
-            }
-          }}
+          activeOpacity={0.8}
+          onPress={handleToggleFlag}
         >
           <Ionicons
             name={customer.is_flagged ? 'flag' : 'flag-outline'}
-            size={20}
-            color={customer.is_flagged ? colors.danger : colors.textSecondary}
+            size={18}
+            color={customer.is_flagged ? colors.rust : colors.textSecondary}
           />
           <Text
             style={[
@@ -499,186 +552,205 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
 
         <TouchableOpacity
           style={styles.printButton}
+          activeOpacity={0.8}
           onPress={handlePrintStatement}
         >
-          <Ionicons name="print" size={20} color={colors.background} />
+          <Ionicons name="print-outline" size={18} color={colors.accentInk} />
           <Text style={styles.printButtonText}>{t.printStatement}</Text>
         </TouchableOpacity>
       </View>
-
-      <View style={{ height: spacing.xxxl }} />
     </ScrollView>
   );
 }
 
+function DetailRow({
+  label,
+  value,
+  last,
+}: {
+  label: string;
+  value: string;
+  last?: boolean;
+}) {
+  return (
+    <View style={[styles.detailRow, last && styles.detailRowLast]}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+  container: { flex: 1, backgroundColor: colors.background },
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.md,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: colors.background,
+    gap: spacing.sm,
   },
   errorText: {
-    color: colors.danger,
-    fontSize: fontSize.lg,
+    color: colors.textSecondary,
+    fontSize: fontSize.md,
     fontFamily: fonts.sans,
   },
+  // Flag banner
   flagBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: 'rgba(181, 70, 47, 0.1)',
-    marginHorizontal: spacing.lg,
+    backgroundColor: colors.rust + '1A',
     padding: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: colors.danger,
+    borderColor: colors.rust,
   },
-  flagBannerContent: {
-    flex: 1,
-  },
+  flagBannerContent: { flex: 1 },
   flagBannerText: {
-    color: colors.danger,
+    color: colors.rust,
     fontSize: fontSize.md,
     fontFamily: fonts.sansBold,
   },
   flagBannerReason: {
-    color: colors.danger,
+    color: colors.rust,
     fontSize: fontSize.sm,
     fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
-  actionButtons: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  flagButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
+  // Identity card
+  identityCard: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.xl,
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  flagButtonActive: {
-    borderColor: colors.danger,
-    backgroundColor: 'rgba(181, 70, 47, 0.1)',
-  },
-  flagButtonText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansSemiBold,
-  },
-  flagButtonTextActive: {
-    color: colors.danger,
-  },
-  idSection: {
-    alignItems: 'center',
     padding: spacing.lg,
+    gap: spacing.md,
+  },
+  identityHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  identityName: { flex: 1, minWidth: 0 },
+  customerName: {
+    color: colors.textPrimary,
+    fontSize: 24,
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
+  },
+  customerPhone: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontFamily: fonts.mono,
+    marginTop: 4,
   },
   idPhotoBox: {
     width: '100%',
-    height: 200,
-    borderRadius: borderRadius.md,
+    height: 190,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
     borderColor: colors.border,
     borderStyle: 'dashed',
     overflow: 'hidden',
-    backgroundColor: colors.card,
+    backgroundColor: colors.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  idPhoto: {
-    width: '100%',
-    height: '100%',
-  },
-  idPlaceholder: {
+  idPhoto: { width: '100%', height: '100%' },
+  idPhotoOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
+  idPhotoOverlayText: {
+    color: colors.white,
+    fontSize: fontSize.sm,
+    fontFamily: fonts.sansSemiBold,
+  },
+  idPlaceholder: { alignItems: 'center', gap: spacing.sm },
   idPlaceholderText: {
     color: colors.textTertiary,
     fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-  },
-  updateIdButton: {
-    marginTop: spacing.sm,
-  },
-  updateIdText: {
-    color: colors.accent,
-    fontSize: fontSize.md,
     fontFamily: fonts.sansSemiBold,
   },
-  infoSection: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  infoHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  customerName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
-    marginBottom: spacing.sm,
-  },
-  infoRow: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-    marginBottom: spacing.xs,
-  },
-  infoLabel: {
-    color: colors.textTertiary,
-    fontFamily: fonts.sansSemiBold,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  statBox: {
+  // Stats
+  statsRow: { flexDirection: 'row', gap: spacing.sm },
+  statCard: {
     flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.monoSemiBold,
+    padding: spacing.md,
+    borderRadius: 15,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   statLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xs,
+    color: colors.textTertiary,
+    fontSize: 10,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  statValue: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
+    marginTop: 4,
+  },
+  statValueSmall: { fontSize: 13, fontFamily: fonts.monoSemiBold },
+  // Detail card
+  detailCard: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.lg,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.lg,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+  },
+  detailRowLast: { borderBottomWidth: 0 },
+  detailLabel: {
+    color: colors.textTertiary,
+    fontSize: 11.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  detailValue: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: fontSize.md,
     fontFamily: fonts.sans,
-    marginTop: spacing.xs,
+    textAlign: 'right',
   },
-  statDivider: {
-    width: 1,
-    height: '60%',
-    backgroundColor: colors.border,
-  },
-  editFields: {
-    gap: spacing.sm,
-    marginTop: spacing.sm,
-  },
+  // Edit
+  editFields: { gap: spacing.sm, paddingVertical: spacing.md },
   editLabel: {
     color: colors.textTertiary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sansSemiBold,
+    fontSize: 11.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
     marginTop: spacing.xs,
   },
   editInput: {
@@ -691,101 +763,127 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  editInputMultiline: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
+  editInputMultiline: { minHeight: 80, textAlignVertical: 'top' },
   editActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    gap: spacing.md,
+    gap: spacing.sm,
     marginTop: spacing.md,
     alignItems: 'center',
+  },
+  editCancelButton: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   editCancelText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontFamily: fonts.sans,
+    fontFamily: fonts.sansSemiBold,
   },
   editSaveButton: {
     backgroundColor: colors.accent,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm + 2,
+    borderRadius: borderRadius.md,
   },
   editSaveText: {
     color: colors.accentInk,
     fontSize: fontSize.md,
     fontFamily: fonts.sansSemiBold,
   },
-  sectionTitle: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: fonts.sansSemiBold,
-    fontStyle: 'italic',
-    letterSpacing: 0.9,
-    textTransform: 'uppercase',
-  },
-  historySection: {
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+  // History
+  historyList: { gap: spacing.sm },
+  emptyHistory: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xl,
   },
   emptyText: {
     color: colors.textTertiary,
     fontSize: fontSize.md,
     fontFamily: fonts.sans,
-    marginTop: spacing.md,
   },
-  receiptCard: {
-    backgroundColor: colors.card,
+  receiptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     borderLeftWidth: 3,
     borderLeftColor: colors.accent,
   },
-  receiptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  receiptIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: colors.accentMuted,
     alignItems: 'center',
+    justifyContent: 'center',
   },
+  receiptInfo: { flex: 1, minWidth: 0 },
   receiptNumber: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.monoMedium,
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontFamily: fonts.monoSemiBold,
   },
+  receiptItems: {
+    color: colors.textTertiary,
+    fontSize: 11.5,
+    fontFamily: fonts.mono,
+    marginTop: 3,
+  },
+  receiptRight: { alignItems: 'flex-end', gap: 2 },
   receiptTotal: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
+    color: colors.textPrimary,
+    fontSize: 15,
     fontFamily: fonts.monoSemiBold,
   },
   receiptDate: {
     color: colors.textTertiary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    marginTop: spacing.xs,
+    fontSize: 11,
+    fontFamily: fonts.mono,
   },
-  receiptItems: {
+  // Actions
+  actionButtons: { gap: spacing.sm, marginTop: spacing.xs },
+  flagButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  flagButtonActive: {
+    borderColor: colors.rust,
+    backgroundColor: colors.rust + '1A',
+  },
+  flagButtonText: {
     color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    marginTop: spacing.xs,
+    fontSize: fontSize.md,
+    fontFamily: fonts.sansSemiBold,
   },
+  flagButtonTextActive: { color: colors.rust },
   printButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
     backgroundColor: colors.accent,
-    marginHorizontal: spacing.lg,
     padding: spacing.lg,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
   },
   printButtonText: {
     color: colors.accentInk,
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     fontFamily: fonts.sansBold,
   },
 });

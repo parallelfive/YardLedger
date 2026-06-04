@@ -17,6 +17,7 @@ import SignatureScreen, {
   type SignatureViewRef,
 } from 'react-native-signature-canvas';
 import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
+import { useT } from '../hooks/useT';
 
 /** Returns true if the data URI actually contains image data */
 function isValidSignature(uri: string): boolean {
@@ -39,6 +40,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
     { onSignatureChange, label = 'Customer Signature', clearLabel = 'Clear' },
     ref
   ) => {
+    const { t } = useT();
     const signatureRef = useRef<SignatureViewRef>(null);
     const latestSignature = useRef<string | null>(null);
     const pendingResolve = useRef<((val: string | null) => void) | null>(null);
@@ -170,7 +172,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
               resizeMode="contain"
             />
           ) : (
-            <Text style={styles.tapPrompt}>Tap to sign</Text>
+            <Text style={styles.tapPrompt}>{t.tapToSign}</Text>
           )}
         </TouchableOpacity>
 
@@ -188,7 +190,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
               </TouchableOpacity>
               <Text style={styles.modalTitle}>{label}</Text>
               <TouchableOpacity onPress={handleDone}>
-                <Text style={styles.modalDoneText}>Done</Text>
+                <Text style={styles.modalDoneText}>{t.done}</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.modalCanvasContainer}>

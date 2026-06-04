@@ -4,13 +4,15 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  FlatList,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { CustomersStackParamList } from '../../navigation/MainNavigator';
-import { RefreshableList } from '../../components';
-import { Tag } from '../../components/foundry';
+import { Ionicons } from '@expo/vector-icons';
+import { Tag, SectionLabel } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
 import { useCustomers } from '../../hooks';
 import {
@@ -43,189 +45,252 @@ export default function CustomerListScreen({ navigation }: Props) {
       )
     : customers;
 
+  const flaggedCount = customers.filter((c) => c.is_flagged).length;
+
   return (
     <View style={styles.container}>
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t.searchCustomer}
-          placeholderTextColor={colors.textTertiary}
-          value={search}
-          onChangeText={setSearch}
-          returnKeyType="search"
-        />
-        {search ? (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={() => setSearch('')}
-          >
-            <Text style={styles.clearButtonText}>{t.clearSearch}</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
-
-      <RefreshableList
+      <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
-        loading={loading}
-        onRefresh={refresh}
-        emptyTitle={t.noCustomers}
-        emptySubtitle={t.customersWillAppear}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.customerCard}
-            onPress={() =>
-              navigation.navigate('CustomerProfile', { customerId: item.id })
-            }
-          >
-            <View style={styles.cardLeft}>
-              <Text style={styles.customerName}>{item.name}</Text>
-              {item.phone ? (
-                <Text style={styles.customerPhone}>{item.phone}</Text>
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={refresh}
+            tintColor={colors.accent}
+          />
+        }
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        ListHeaderComponent={
+          <>
+            {/* Roster hero */}
+            <View style={styles.hero}>
+              <Text style={styles.heroEyebrow}>{t.customerRoster}</Text>
+              <Text style={styles.heroValue}>{customers.length}</Text>
+              <Text style={styles.heroSub}>
+                {(customers.length === 1
+                  ? t.customer
+                  : t.customers
+                ).toLowerCase()}
+                {flaggedCount > 0
+                  ? ` · ${flaggedCount} ${t.flagged.toLowerCase()}`
+                  : ''}
+              </Text>
+            </View>
+
+            {/* Search */}
+            <View style={styles.searchRow}>
+              <Ionicons
+                name="search-outline"
+                size={17}
+                color={colors.textTertiary}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder={t.searchCustomer}
+                placeholderTextColor={colors.textTertiary}
+                value={search}
+                onChangeText={setSearch}
+                returnKeyType="search"
+              />
+              {search ? (
+                <TouchableOpacity onPress={() => setSearch('')} hitSlop={8}>
+                  <Ionicons
+                    name="close"
+                    size={18}
+                    color={colors.textTertiary}
+                  />
+                </TouchableOpacity>
               ) : null}
-              {item.drivers_license ? (
-                <Text style={styles.customerDl}>
-                  {t.dlNumberShort} {item.drivers_license}
+            </View>
+
+            <SectionLabel>{t.customers}</SectionLabel>
+          </>
+        }
+        ListEmptyComponent={
+          loading ? null : (
+            <View style={styles.empty}>
+              <Ionicons
+                name="people-outline"
+                size={40}
+                color={colors.textTertiary}
+              />
+              <Text style={styles.emptyTitle}>
+                {search ? t.noCustomersFound : t.noCustomers}
+              </Text>
+              <Text style={styles.emptySub}>{t.customersWillAppear}</Text>
+            </View>
+          )
+        }
+        renderItem={({ item }) => {
+          const accent = item.is_flagged ? colors.rust : colors.teal;
+          return (
+            <TouchableOpacity
+              style={[styles.row, { borderLeftColor: accent }]}
+              activeOpacity={0.7}
+              onPress={() =>
+                navigation.navigate('CustomerProfile', { customerId: item.id })
+              }
+            >
+              <View
+                style={[styles.rowIcon, { backgroundColor: accent + '24' }]}
+              >
+                <Ionicons
+                  name={item.is_flagged ? 'flag' : 'person-outline'}
+                  size={19}
+                  color={accent}
+                />
+              </View>
+              <View style={styles.rowInfo}>
+                <View style={styles.rowTitleLine}>
+                  <Text style={styles.rowName} numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {item.is_flagged ? (
+                    <Tag
+                      label={t.flagged}
+                      color={colors.rust}
+                      soft={colors.rust + '22'}
+                      icon="flag"
+                    />
+                  ) : null}
+                </View>
+                <Text style={styles.rowMeta} numberOfLines={1}>
+                  {[
+                    item.phone || null,
+                    item.drivers_license
+                      ? `${t.dlNumberShort} ${item.drivers_license}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join('  ·  ') || t.noContactInfo}
                 </Text>
-              ) : null}
-            </View>
-            <View style={styles.cardRight}>
-              {item.is_flagged && (
-                <Tag
-                  label={t.flagged}
-                  color={colors.rust}
-                  soft="rgba(181, 70, 47, 0.14)"
-                  icon="flag"
+              </View>
+              <View style={styles.rowRight}>
+                {item.dl_photo_uri ? (
+                  <Tag
+                    label={t.idOnFile}
+                    color={colors.moss}
+                    soft={colors.moss + '22'}
+                    icon="checkmark"
+                  />
+                ) : (
+                  <Tag
+                    label={t.noIdOnFile}
+                    color={colors.gold}
+                    soft={colors.gold + '22'}
+                  />
+                )}
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={colors.textTertiary}
                 />
-              )}
-              {item.dl_photo_uri ? (
-                <Tag
-                  label={t.idOnFile}
-                  color={colors.moss}
-                  soft="rgba(93, 122, 78, 0.16)"
-                />
-              ) : (
-                <Tag
-                  label={t.noIdOnFile}
-                  color={colors.gold}
-                  soft="rgba(176, 138, 50, 0.16)"
-                />
-              )}
-            </View>
-          </TouchableOpacity>
-        )}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
+  container: { flex: 1, backgroundColor: colors.background },
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.sm,
+  },
+  hero: {
+    padding: spacing.lg,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
+  },
+  heroEyebrow: {
+    color: colors.textTertiary,
+    fontSize: 11.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  heroValue: {
+    color: colors.textPrimary,
+    fontSize: 40,
+    fontFamily: fonts.display,
+    letterSpacing: -1,
+    marginTop: 5,
+  },
+  heroSub: {
+    color: colors.textSecondary,
+    fontSize: 12.5,
+    fontFamily: fonts.mono,
+    marginTop: 5,
   },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
     gap: spacing.sm,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
   },
   searchInput: {
     flex: 1,
-    backgroundColor: colors.inputBackground,
     color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     fontSize: fontSize.md,
     fontFamily: fonts.sans,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
-  clearButton: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  clearButtonText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansSemiBold,
-  },
-  customerCard: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
     backgroundColor: colors.card,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     borderLeftWidth: 3,
-    borderLeftColor: colors.teal,
   },
-  cardLeft: {
-    flex: 1,
+  rowIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  cardRight: {
-    marginLeft: spacing.md,
-    alignItems: 'flex-end',
-    gap: spacing.xs,
+  rowInfo: { flex: 1, minWidth: 0 },
+  rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  rowName: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontFamily: fonts.sansSemiBold,
+    flexShrink: 1,
   },
-  customerName: {
+  rowMeta: {
+    color: colors.textTertiary,
+    fontSize: 11.5,
+    fontFamily: fonts.mono,
+    marginTop: 3,
+  },
+  rowRight: { alignItems: 'flex-end', gap: 5 },
+  empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
+  emptyTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
     fontFamily: fonts.sansSemiBold,
   },
-  customerPhone: {
+  emptySub: {
     color: colors.textSecondary,
-    fontSize: fontSize.sm,
+    fontSize: 13,
     fontFamily: fonts.sans,
-    marginTop: spacing.xs,
-  },
-  customerDl: {
-    color: colors.textTertiary,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sans,
-    marginTop: spacing.xs,
-  },
-  idBadge: {
-    backgroundColor: 'rgba(93, 122, 78, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  idBadgeText: {
-    color: colors.success,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sansBold,
-  },
-  noIdBadge: {
-    backgroundColor: 'rgba(176, 138, 50, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-  },
-  noIdBadgeText: {
-    color: colors.warning,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sansBold,
-  },
-  flagBadge: {
-    backgroundColor: 'rgba(181, 70, 47, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    marginBottom: spacing.xs,
-  },
-  flagBadgeText: {
-    color: colors.danger,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sansBold,
+    textAlign: 'center',
   },
 });

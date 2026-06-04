@@ -10,7 +10,7 @@ interface BadgeProps {
 
 const badgeColors = {
   danger: { text: colors.rust, bg: 'rgba(181, 70, 47, 0.16)' },
-  warning: { text: colors.gold, bg: 'rgba(176, 138, 50, 0.16)' },
+  warning: { text: colors.gold, bg: colors.gold + '29' },
   success: { text: colors.moss, bg: 'rgba(93, 122, 78, 0.16)' },
   accent: { text: colors.accent, bg: colors.accentMuted },
 } as const;

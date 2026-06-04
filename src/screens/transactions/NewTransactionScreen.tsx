@@ -114,6 +114,11 @@ export default function NewTransactionScreen({ navigation }: Props) {
   // AccessCodeModal). approveOverride then writes it back, tracked per line.
   useEffect(() => {
     if (!pendingOverride) return;
+    // Wait until the new line item has actually landed in state and the hook's
+    // override price reflects what the keypad staged — otherwise requestOverride
+    // would index an undefined line item (crash) or open the code modal with a
+    // stale price.
+    if (pendingOverride.index >= tx.lineItems.length) return;
     if (tx.overridePrice !== String(pendingOverride.price)) return;
     tx.requestOverride(pendingOverride.index);
     setPendingOverride(null);
@@ -197,7 +202,11 @@ export default function NewTransactionScreen({ navigation }: Props) {
       tx.addLineItem(metal, weight);
       setShowAddSheet(false);
       if (overridePrice != null) {
-        tx.startPriceEdit(newIndex);
+        // Stage the override price directly — do NOT call startPriceEdit here,
+        // it reads lineItems[newIndex] which doesn't exist yet in this render's
+        // closure (the addLineItem above is async) and would crash. The effect
+        // above routes the staged price through requestOverride once the line
+        // item lands in state.
         tx.setOverridePrice(String(overridePrice));
         setPendingOverride({ index: newIndex, price: overridePrice });
       }

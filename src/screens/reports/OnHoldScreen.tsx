@@ -1,19 +1,19 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { fetchReceiptsOnHold, type OnHoldRow } from '../../services/reports';
 import { RefreshableList } from '../../components';
-import { Tag } from '../../components/foundry';
+import { Tag, SectionLabel } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
-import {
-  colors,
-  spacing,
-  fontSize,
-  borderRadius,
-  fonts,
-} from '../../constants';
+import { colors, spacing, fonts } from '../../constants';
 
 type Nav = { navigate: (s: string, p?: Record<string, unknown>) => void };
+
+const daysLeft = (holdUntil: string) => {
+  const ms = new Date(holdUntil).getTime() - Date.now();
+  return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
+};
 
 export default function OnHoldScreen() {
   const { t } = useT();
@@ -37,10 +37,13 @@ export default function OnHoldScreen() {
     if (isFocused) load();
   }, [load, isFocused]);
 
-  const daysLeft = (holdUntil: string) => {
-    const ms = new Date(holdUntil).getTime() - Date.now();
-    return Math.max(0, Math.ceil(ms / (1000 * 60 * 60 * 24)));
-  };
+  const { urgentCount, catCount } = useMemo(
+    () => ({
+      urgentCount: rows.filter((r) => daysLeft(r.hold_until) <= 7).length,
+      catCount: rows.filter((r) => r.is_catalytic).length,
+    }),
+    [rows]
+  );
 
   return (
     <View style={styles.container}>
@@ -49,15 +52,39 @@ export default function OnHoldScreen() {
         keyExtractor={(item) => item.id}
         loading={loading}
         onRefresh={load}
+        contentContainerStyle={styles.content}
         emptyTitle={t.noMaterialOnHold}
         emptySubtitle=""
+        ListHeaderComponent={
+          rows.length > 0 ? (
+            <>
+              <View style={styles.triplet}>
+                <Stat
+                  n={rows.length}
+                  label={t.onHoldReport}
+                  color={colors.gold}
+                />
+                <View style={styles.tripletDivider} />
+                <Stat n={urgentCount} label={t.daysLeft} color={colors.rust} />
+                <View style={styles.tripletDivider} />
+                <Stat
+                  n={catCount}
+                  label={t.catalyticConverter}
+                  color={colors.textPrimary}
+                />
+              </View>
+              <SectionLabel>{t.onHoldReport}</SectionLabel>
+            </>
+          ) : null
+        }
         renderItem={({ item }) => {
           const days = daysLeft(item.hold_until);
           const urgent = days <= 7;
+          const tone = urgent ? colors.rust : colors.gold;
           return (
             <TouchableOpacity
               activeOpacity={0.7}
-              style={[styles.card, item.is_catalytic && styles.cardCatalytic]}
+              style={[styles.card, { borderLeftColor: tone }]}
               onPress={() =>
                 navigation.navigate('TransactionsTab', {
                   screen: 'ReceiptDetail',
@@ -65,31 +92,33 @@ export default function OnHoldScreen() {
                 })
               }
             >
-              <View style={styles.cardHeader}>
-                <Text style={styles.receipt}>{item.receipt_number}</Text>
-                <Tag
-                  label={`${days} ${t.daysLeft}`}
-                  color={urgent ? colors.rust : colors.gold}
-                  soft={
-                    urgent
-                      ? 'rgba(181, 70, 47, 0.14)'
-                      : 'rgba(176, 138, 50, 0.15)'
-                  }
+              <View style={[styles.icon, { backgroundColor: tone + '24' }]}>
+                <Ionicons
+                  name={item.is_catalytic ? 'shield-outline' : 'time-outline'}
+                  size={19}
+                  color={tone}
                 />
               </View>
-              <Text style={styles.detail}>
-                {t.holdUntil}: {new Date(item.hold_until).toLocaleDateString()}
-              </Text>
-              {item.is_catalytic && (
-                <View style={styles.catalyticTag}>
-                  <Tag
-                    label={t.catalyticConverter}
-                    color={colors.rust}
-                    soft="rgba(181, 70, 47, 0.14)"
-                    icon="warning"
-                  />
+              <View style={styles.body}>
+                <View style={styles.titleRow}>
+                  <Text style={styles.receipt}>{item.receipt_number}</Text>
+                  {item.is_catalytic && (
+                    <Tag
+                      label={t.catalyticConverter}
+                      color={colors.rust}
+                      soft={colors.rust + '22'}
+                      icon="warning"
+                    />
+                  )}
                 </View>
-              )}
+                <Text style={styles.detail}>
+                  {t.holdUntil} {new Date(item.hold_until).toLocaleDateString()}
+                </Text>
+              </View>
+              <View style={styles.right}>
+                <Text style={[styles.days, { color: tone }]}>{days}</Text>
+                <Text style={styles.daysLabel}>{t.daysLeft}</Text>
+              </View>
             </TouchableOpacity>
           );
         }}
@@ -98,43 +127,92 @@ export default function OnHoldScreen() {
   );
 }
 
+function Stat({
+  n,
+  label,
+  color,
+}: {
+  n: number;
+  label: string;
+  color: string;
+}) {
+  return (
+    <View style={styles.stat}>
+      <Text style={[styles.statN, { color }]}>{n}</Text>
+      <Text style={styles.statL} numberOfLines={1}>
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  card: {
-    backgroundColor: colors.card,
+  container: { flex: 1, backgroundColor: colors.background },
+  content: { paddingBottom: spacing.xxxl },
+  triplet: {
+    flexDirection: 'row',
     marginHorizontal: spacing.lg,
     marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    borderRadius: 16,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  tripletDivider: { width: 1, backgroundColor: colors.borderSubtle },
+  stat: { flex: 1, paddingVertical: 15, alignItems: 'center' },
+  statN: { fontSize: 26, fontFamily: fonts.display, letterSpacing: -0.5 },
+  statL: {
+    color: colors.textTertiary,
+    fontSize: 9.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginTop: 3,
+    paddingHorizontal: 4,
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.card,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 15,
     borderWidth: 1,
     borderColor: colors.borderSubtle,
     borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
   },
-  cardCatalytic: {
-    borderLeftColor: colors.rust,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  icon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
     alignItems: 'center',
+    justifyContent: 'center',
   },
+  body: { flex: 1, minWidth: 0 },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   receipt: {
     color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontSize: 14,
+    fontFamily: fonts.monoSemiBold,
   },
   detail: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
+    color: colors.textTertiary,
+    fontSize: 11.5,
     fontFamily: fonts.mono,
-    marginTop: spacing.xs,
+    marginTop: 3,
   },
-  catalyticTag: {
-    alignSelf: 'flex-start',
-    marginTop: spacing.sm,
+  right: { alignItems: 'flex-end' },
+  days: { fontSize: 22, fontFamily: fonts.display, letterSpacing: -0.5 },
+  daysLabel: {
+    color: colors.textTertiary,
+    fontSize: 9.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginTop: 1,
   },
 });
