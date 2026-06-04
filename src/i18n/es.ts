@@ -481,6 +481,10 @@ export default {
 
   // Dashboard
   tabDashboard: 'Inicio',
+  tabHome: 'Inicio',
+  tabStock: 'Inventario',
+  newBuyAction: 'Nueva compra',
+  newSaleAction: 'Nueva venta',
   dashboard: 'Panel',
   quickActions: 'Acciones Rápidas',
   recentActivity: 'Actividad Reciente',

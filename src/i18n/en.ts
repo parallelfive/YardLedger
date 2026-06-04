@@ -477,6 +477,10 @@ export default {
 
   // Dashboard
   tabDashboard: 'Dashboard',
+  tabHome: 'Home',
+  tabStock: 'Stock',
+  newBuyAction: 'New buy',
+  newSaleAction: 'New sale',
   dashboard: 'Dashboard',
   quickActions: 'Quick Actions',
   recentActivity: 'Recent Activity',
