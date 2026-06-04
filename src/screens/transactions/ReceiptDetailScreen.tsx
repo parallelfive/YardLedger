@@ -206,6 +206,14 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
               icon="time-outline"
             />
           ) : null}
+          {receipt.disposed_at ? (
+            <Tag
+              label={t.disposed}
+              color={colors.moss}
+              soft="rgba(93, 122, 78, 0.16)"
+              icon="checkmark-done-outline"
+            />
+          ) : null}
         </View>
 
         {/* Customer Info */}

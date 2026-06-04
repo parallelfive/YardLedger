@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { fetchReceiptsOnHold, type OnHoldRow } from '../../services/reports';
 import { RefreshableList } from '../../components';
 import { Tag } from '../../components/foundry';
@@ -13,8 +13,11 @@ import {
   fonts,
 } from '../../constants';
 
+type Nav = { navigate: (s: string, p?: Record<string, unknown>) => void };
+
 export default function OnHoldScreen() {
   const { t } = useT();
+  const navigation = useNavigation() as unknown as Nav;
   const isFocused = useIsFocused();
   const [rows, setRows] = useState<OnHoldRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,8 +55,15 @@ export default function OnHoldScreen() {
           const days = daysLeft(item.hold_until);
           const urgent = days <= 7;
           return (
-            <View
+            <TouchableOpacity
+              activeOpacity={0.7}
               style={[styles.card, item.is_catalytic && styles.cardCatalytic]}
+              onPress={() =>
+                navigation.navigate('TransactionsTab', {
+                  screen: 'ReceiptDetail',
+                  params: { receiptId: item.id },
+                })
+              }
             >
               <View style={styles.cardHeader}>
                 <Text style={styles.receipt}>{item.receipt_number}</Text>
@@ -80,7 +90,7 @@ export default function OnHoldScreen() {
                   />
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
           );
         }}
       />

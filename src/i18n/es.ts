@@ -375,6 +375,7 @@ export default {
   markDisposed: 'Marcar Material como Desechado',
   materialDisposed: 'Material marcado como desechado.',
   materialOnHold: 'El material aún está en retención obligatoria',
+  disposed: 'Desechado',
   scanError: 'Error de escaneo',
   changeRoleTitle: 'Cambiar Rol',
   changeRoleMessage: '¿Cambiar este usuario a {role}?',

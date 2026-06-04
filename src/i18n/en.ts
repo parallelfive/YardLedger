@@ -373,6 +373,7 @@ export default {
   markDisposed: 'Mark Material Disposed',
   materialDisposed: 'Material marked as disposed.',
   materialOnHold: 'Material is still on a mandatory hold',
+  disposed: 'Disposed',
   scanError: 'Scan Error',
   changeRoleTitle: 'Change Role',
   changeRoleMessage: 'Change this user to {role}?',
