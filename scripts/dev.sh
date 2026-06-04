@@ -113,7 +113,9 @@ cmd_start() {
       dim "  using $FN_ENV_FILE for function secrets"
     fi
     info "Serving edge functions → $LOG_FILE"
-    supabase functions serve "${env_arg[@]}" >"$LOG_FILE" 2>&1 &
+    # `${arr[@]+"${arr[@]}"}` is the bash-3.2-safe way to expand a possibly-
+    # empty array under `set -u` (macOS ships bash 3.2).
+    supabase functions serve ${env_arg[@]+"${env_arg[@]}"} >"$LOG_FILE" 2>&1 &
     echo $! >"$PID_FILE"
     dim "  pid $(functions_pid)"
   fi
