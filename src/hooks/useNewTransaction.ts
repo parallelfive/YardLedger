@@ -68,9 +68,8 @@ export function useNewTransaction(
   const receiptTotal = calculateReceiptTotal(lineItems);
   const hasRegulatedMetal = lineItems.some((item) => item.isRegulated);
   const hasRestrictedMetal = lineItems.some((item) => item.isRestricted);
-  const hasCatalyticConverter = lineItems.some((item) =>
-    item.metalName.toLowerCase().includes('catalytic')
-  );
+  // Driven by the authoritative metals.is_catalytic flag, not a name match.
+  const hasCatalyticConverter = lineItems.some((item) => item.isCatalytic);
 
   const addLineItem = (
     metal: Metal,
@@ -92,6 +91,7 @@ export function useNewTransaction(
         total: calculateLineItemTotal(weight, metal.price_per_lb),
         isRegulated: metal.is_regulated,
         isRestricted: metal.is_restricted,
+        isCatalytic: metal.is_catalytic,
       },
     ]);
   };
