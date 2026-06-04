@@ -10,6 +10,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { CustomersStackParamList } from '../../navigation/MainNavigator';
 import { RefreshableList } from '../../components';
+import { Tag } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
 import { useCustomers } from '../../hooks';
 import {
@@ -90,18 +91,25 @@ export default function CustomerListScreen({ navigation }: Props) {
             </View>
             <View style={styles.cardRight}>
               {item.is_flagged && (
-                <View style={styles.flagBadge}>
-                  <Text style={styles.flagBadgeText}>{t.flagged}</Text>
-                </View>
+                <Tag
+                  label={t.flagged}
+                  color={colors.rust}
+                  soft="rgba(181, 70, 47, 0.14)"
+                  icon="flag"
+                />
               )}
               {item.dl_photo_uri ? (
-                <View style={styles.idBadge}>
-                  <Text style={styles.idBadgeText}>{t.idOnFile}</Text>
-                </View>
+                <Tag
+                  label={t.idOnFile}
+                  color={colors.moss}
+                  soft="rgba(93, 122, 78, 0.16)"
+                />
               ) : (
-                <View style={styles.noIdBadge}>
-                  <Text style={styles.noIdBadgeText}>{t.noIdOnFile}</Text>
-                </View>
+                <Tag
+                  label={t.noIdOnFile}
+                  color={colors.gold}
+                  soft="rgba(176, 138, 50, 0.16)"
+                />
               )}
             </View>
           </TouchableOpacity>
@@ -165,6 +173,8 @@ const styles = StyleSheet.create({
   },
   cardRight: {
     marginLeft: spacing.md,
+    alignItems: 'flex-end',
+    gap: spacing.xs,
   },
   customerName: {
     color: colors.textPrimary,

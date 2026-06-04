@@ -17,6 +17,7 @@ import { createAccessCode } from '../../services/accessCodes';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AdminStackParamList } from '../../navigation/MainNavigator';
 import type { PendingUser, UserRole } from '../../types';
+import { Tag } from '../../components/foundry';
 import { Ionicons } from '@expo/vector-icons';
 import {
   colors,
@@ -181,10 +182,22 @@ export default function UserApprovalScreen({ navigation }: Props) {
       <View style={styles.userCard}>
         <View style={styles.userInfo}>
           <Text style={styles.userEmail}>{item.email}</Text>
-          <Text style={styles.userMeta}>
-            {roleLabel(item.role as UserRole)}
-            {item.is_active ? '' : ` (${t.pendingApproval.toLowerCase()})`}
-          </Text>
+          <View style={styles.userTags}>
+            <Tag
+              label={roleLabel(item.role as UserRole)}
+              color={
+                item.role === 'owner' ? colors.accent : colors.textSecondary
+              }
+              soft={item.role === 'owner' ? colors.accentMuted : colors.chip}
+            />
+            {!item.is_active && (
+              <Tag
+                label={t.pendingApproval}
+                color={colors.gold}
+                soft="rgba(176, 138, 50, 0.16)"
+              />
+            )}
+          </View>
         </View>
         <View style={styles.actions}>
           {isPending ? (
@@ -504,6 +517,12 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: fontSize.lg,
     fontFamily: fonts.sansSemiBold,
+  },
+  userTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
   },
   userMeta: {
     color: colors.textSecondary,
