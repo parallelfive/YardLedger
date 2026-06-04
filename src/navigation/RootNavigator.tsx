@@ -8,6 +8,7 @@ import PendingApprovalScreen from '../screens/auth/PendingApprovalScreen';
 import { useAppDispatch, useAppSelector, type RootState } from '../store';
 import { initializeAuth, setSession, fetchProfile } from '../store/authStore';
 import { supabase } from '../config/supabase';
+import { colors } from '../constants';
 
 /** Extract auth tokens from a deep link URL and set the Supabase session.
  * Only the expected auth callback path may set a session — otherwise any
@@ -71,10 +72,10 @@ export default function RootNavigator() {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#0f0f23',
+          backgroundColor: colors.background,
         }}
       >
-        <ActivityIndicator size="large" color="#4ecdc4" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }

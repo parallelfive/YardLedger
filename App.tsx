@@ -16,7 +16,7 @@ import {
   SplineSansMono_600SemiBold,
 } from '@expo-google-fonts/spline-sans-mono';
 import { store } from './src/store';
-import { colors } from './src/constants/theme';
+import { colors, isLightTheme } from './src/constants/theme';
 import RootNavigator from './src/navigation/RootNavigator';
 
 export default function App() {
@@ -41,7 +41,7 @@ export default function App() {
   return (
     <Provider store={store}>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style="light" />
+        <StatusBar style={isLightTheme ? 'dark' : 'light'} />
         <RootNavigator />
       </GestureHandlerRootView>
     </Provider>
