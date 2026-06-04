@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
   },
   overrideBadge: {
-    backgroundColor: 'rgba(248, 81, 73, 0.15)',
+    backgroundColor: 'rgba(181, 70, 47, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,
@@ -737,7 +737,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.warning,
-    backgroundColor: 'rgba(210, 153, 34, 0.1)',
+    backgroundColor: 'rgba(176, 138, 50, 0.1)',
   },
   nmFormButtonText: {
     color: colors.warning,

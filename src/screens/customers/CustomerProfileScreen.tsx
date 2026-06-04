@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    backgroundColor: 'rgba(248, 81, 73, 0.1)',
+    backgroundColor: 'rgba(181, 70, 47, 0.1)',
     marginHorizontal: spacing.lg,
     padding: spacing.md,
     borderRadius: borderRadius.md,
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   },
   flagButtonActive: {
     borderColor: colors.danger,
-    backgroundColor: 'rgba(248, 81, 73, 0.1)',
+    backgroundColor: 'rgba(181, 70, 47, 0.1)',
   },
   flagButtonText: {
     color: colors.textSecondary,

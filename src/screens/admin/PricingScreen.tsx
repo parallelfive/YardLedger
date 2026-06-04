@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   restrictedBadge: {
-    backgroundColor: 'rgba(210, 153, 34, 0.15)',
+    backgroundColor: 'rgba(176, 138, 50, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,

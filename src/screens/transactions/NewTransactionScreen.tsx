@@ -1022,7 +1022,7 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: fontSize.xs,
     fontFamily: fonts.sansBold,
-    backgroundColor: 'rgba(248, 81, 73, 0.15)',
+    backgroundColor: 'rgba(181, 70, 47, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: borderRadius.sm,

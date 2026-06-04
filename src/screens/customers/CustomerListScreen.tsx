@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   idBadge: {
-    backgroundColor: 'rgba(86, 211, 100, 0.15)',
+    backgroundColor: 'rgba(93, 122, 78, 0.15)',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansBold,
   },
   noIdBadge: {
-    backgroundColor: 'rgba(210, 153, 34, 0.15)',
+    backgroundColor: 'rgba(176, 138, 50, 0.15)',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansBold,
   },
   flagBadge: {
-    backgroundColor: 'rgba(248, 81, 73, 0.15)',
+    backgroundColor: 'rgba(181, 70, 47, 0.15)',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,

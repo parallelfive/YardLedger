@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(210, 153, 34, 0.15)',
+    backgroundColor: 'rgba(176, 138, 50, 0.15)',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: borderRadius.sm,
