@@ -17,6 +17,8 @@ export interface CompanySettings {
   cat_converter_check_only: boolean;
   general_retention_years: number;
   cat_converter_retention_years: number;
+  // IANA timezone of the yard — drives legal receipt dates (migration 7).
+  timezone: string;
 }
 
 export async function fetchCompanySettings(): Promise<CompanySettings | null> {
@@ -40,6 +42,7 @@ export async function updateCompanySettings(
     cat_converter_check_only?: boolean;
     general_retention_years?: number;
     cat_converter_retention_years?: number;
+    timezone?: string;
   },
   userId: string,
   settingsId?: string | null

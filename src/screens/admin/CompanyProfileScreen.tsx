@@ -37,6 +37,7 @@ export default function CompanyProfileScreen() {
 
   // State-configurable compliance rules (NM defaults).
   const [stateCode, setStateCode] = useState('NM');
+  const [timezone, setTimezone] = useState('America/Denver');
   const [generalHoldHours, setGeneralHoldHours] = useState('24');
   const [catHoldDays, setCatHoldDays] = useState('60');
   const [catCheckOnly, setCatCheckOnly] = useState(true);
@@ -55,6 +56,7 @@ export default function CompanyProfileScreen() {
         setPhone(data.phone);
         setLogoUrl(data.logo_url);
         setStateCode(data.state ?? 'NM');
+        setTimezone(data.timezone ?? 'America/Denver');
         setGeneralHoldHours(String(data.general_hold_hours ?? 24));
         setCatHoldDays(String(data.cat_converter_hold_days ?? 60));
         setCatCheckOnly(data.cat_converter_check_only ?? true);
@@ -76,6 +78,7 @@ export default function CompanyProfileScreen() {
           address: address.trim(),
           phone: phone.trim(),
           state: stateCode.trim().toUpperCase(),
+          timezone: timezone.trim(),
           general_hold_hours: parseInt(generalHoldHours, 10) || 24,
           cat_converter_hold_days: parseInt(catHoldDays, 10) || 60,
           cat_converter_check_only: catCheckOnly,
@@ -195,6 +198,17 @@ export default function CompanyProfileScreen() {
         onChangeText={setStateCode}
         autoCapitalize="characters"
         maxLength={2}
+      />
+
+      <Text style={styles.label}>{t.timezoneLabel}</Text>
+      <TextInput
+        style={styles.input}
+        value={timezone}
+        onChangeText={setTimezone}
+        autoCapitalize="none"
+        autoCorrect={false}
+        placeholder="America/Denver"
+        placeholderTextColor={colors.textTertiary}
       />
 
       <Text style={styles.label}>{t.generalHoldHoursLabel}</Text>
