@@ -175,6 +175,7 @@ export function TicketRow({
   sub,
   restricted,
   onPress,
+  onLongPress,
 }: {
   customer: string;
   meta: string;
@@ -182,9 +183,15 @@ export function TicketRow({
   sub?: string;
   restricted?: boolean;
   onPress?: () => void;
+  onLongPress?: () => void;
 }) {
   return (
-    <TouchableOpacity style={s.ticket} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={s.ticket}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
+    >
       <View style={s.ticketIcon}>
         <Ionicons name="receipt-outline" size={19} color={colors.accent} />
       </View>

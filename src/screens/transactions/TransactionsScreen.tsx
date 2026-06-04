@@ -18,6 +18,7 @@ import {
   PriceSheetModal,
   DateRangeSelector,
 } from '../../components';
+import { TicketRow, fmtMoney } from '../../components/foundry';
 import {
   type DatePreset,
   getDateRange,
@@ -145,37 +146,34 @@ export default function TransactionsScreen({ navigation }: Props) {
         onRefresh={refresh}
         emptyTitle={t.noTransactions}
         emptySubtitle={t.tapToRecordBuy}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.receiptCard}
-            onPress={() =>
-              navigation.navigate('ReceiptDetail', { receiptId: item.id })
-            }
-            onLongPress={() =>
-              navigation.navigate('ReceiptDetail', {
-                receiptId: item.id,
-                printOnLoad: true,
-              })
-            }
-          >
-            <View style={styles.receiptHeader}>
-              <Text style={styles.receiptNumber}>{item.receipt_number}</Text>
-              <Text style={styles.receiptTotal}>
-                ${Number(item.subtotal).toFixed(2)}
-              </Text>
+        renderItem={({ item }) => {
+          const items = (item.line_items ?? []) as {
+            metal_name?: string;
+            is_restricted?: boolean;
+          }[];
+          const no = String(item.receipt_number).split('-').slice(-1)[0];
+          const date = new Date(item.created_at).toLocaleDateString();
+          return (
+            <View style={styles.rowWrap}>
+              <TicketRow
+                customer={item.customer_name}
+                meta={`#${no} · ${date}`}
+                total={fmtMoney(Number(item.subtotal))}
+                sub={`${items.length} item${items.length === 1 ? '' : 's'}`}
+                restricted={items.some((li) => li.is_restricted)}
+                onPress={() =>
+                  navigation.navigate('ReceiptDetail', { receiptId: item.id })
+                }
+                onLongPress={() =>
+                  navigation.navigate('ReceiptDetail', {
+                    receiptId: item.id,
+                    printOnLoad: true,
+                  })
+                }
+              />
             </View>
-            <Text style={styles.customerName}>{item.customer_name}</Text>
-            <Text style={styles.receiptDate}>
-              {new Date(item.created_at).toLocaleDateString()}
-            </Text>
-            {item.line_items && (
-              <Text style={styles.itemCount}>
-                {item.line_items.length}{' '}
-                {item.line_items.length === 1 ? 'item' : 'items'}
-              </Text>
-            )}
-          </TouchableOpacity>
-        )}
+          );
+        }}
       />
       <TouchableOpacity
         style={styles.pricesButton}
@@ -282,16 +280,9 @@ const styles = StyleSheet.create({
     height: '60%',
     backgroundColor: colors.border,
   },
-  receiptCard: {
-    backgroundColor: colors.card,
+  rowWrap: {
     marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
+    marginTop: spacing.sm,
   },
   receiptHeader: {
     flexDirection: 'row',
