@@ -174,6 +174,9 @@ export function TicketRow({
   total,
   sub,
   restricted,
+  icon = 'receipt-outline',
+  iconColor = colors.accent,
+  totalColor,
   onPress,
   onLongPress,
 }: {
@@ -182,6 +185,9 @@ export function TicketRow({
   total: string;
   sub?: string;
   restricted?: boolean;
+  icon?: keyof typeof Ionicons.glyphMap;
+  iconColor?: string;
+  totalColor?: string;
   onPress?: () => void;
   onLongPress?: () => void;
 }) {
@@ -192,8 +198,8 @@ export function TicketRow({
       onLongPress={onLongPress}
       activeOpacity={0.7}
     >
-      <View style={s.ticketIcon}>
-        <Ionicons name="receipt-outline" size={19} color={colors.accent} />
+      <View style={[s.ticketIcon, { backgroundColor: iconColor + '24' }]}>
+        <Ionicons name={icon} size={19} color={iconColor} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={s.ticketTitleRow}>
@@ -207,7 +213,11 @@ export function TicketRow({
         <Text style={s.ticketMeta}>{meta}</Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        <Text style={s.ticketTotal}>{total}</Text>
+        <Text
+          style={[s.ticketTotal, totalColor ? { color: totalColor } : null]}
+        >
+          {total}
+        </Text>
         {sub ? <Text style={s.ticketSub}>{sub}</Text> : null}
       </View>
     </TouchableOpacity>

@@ -12,6 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useT } from '../../hooks/useT';
 import { useSales } from '../../hooks/useSales';
 import { RefreshableList, DateRangeSelector } from '../../components';
+import { TicketRow, fmtMoney, fmtLbs } from '../../components/foundry';
 import {
   type DatePreset,
   getDateRange,
@@ -153,34 +154,18 @@ export default function SalesScreen({ navigation }: Props) {
         emptySubtitle={t.recordSalesProfit}
         renderItem={({ item }) => {
           const profit = Number(item.profit);
+          const date = new Date(item.created_at).toLocaleDateString();
           return (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.metalName}>{item.metal_name}</Text>
-                <Text
-                  style={[styles.profit, profit < 0 && styles.profitNegative]}
-                >
-                  ${profit.toFixed(2)}
-                </Text>
-              </View>
-              <Text style={styles.detail}>
-                {Number(item.weight).toFixed(2)} lbs @ $
-                {Number(item.sale_price_per_lb).toFixed(4)}
-                {t.perLb}
-              </Text>
-              <Text style={styles.detail}>
-                {t.revenue}: ${Number(item.total_revenue).toFixed(2)} |{' '}
-                {t.avgCost}: ${Number(item.cost_basis_per_lb).toFixed(4)}
-                {t.perLb}
-              </Text>
-              {item.buyer_name ? (
-                <Text style={styles.detail}>
-                  {t.buyerName}: {item.buyer_name}
-                </Text>
-              ) : null}
-              <Text style={styles.date}>
-                {new Date(item.created_at).toLocaleDateString()}
-              </Text>
+            <View style={styles.rowWrap}>
+              <TicketRow
+                icon="cube-outline"
+                iconColor={colors.teal}
+                customer={item.metal_name}
+                meta={`${fmtLbs(Number(item.weight))} lb · ${date}`}
+                total={fmtMoney(profit)}
+                totalColor={profit < 0 ? colors.rust : colors.moss}
+                sub={`${fmtMoney(Number(item.total_revenue))} rev`}
+              />
             </View>
           );
         }}
@@ -311,45 +296,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: fontSize.sm,
   },
-  card: {
-    backgroundColor: colors.card,
+  rowWrap: {
     marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.success,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  metalName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-  },
-  profit: {
-    color: colors.success,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.monoSemiBold,
-  },
-  profitNegative: {
-    color: colors.danger,
-  },
-  detail: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
-  },
-  date: {
-    color: colors.textTertiary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
   },
   errorBar: {
     backgroundColor: colors.danger,
