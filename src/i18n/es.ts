@@ -261,6 +261,11 @@ export default {
   english: 'English',
   spanish: 'Español',
 
+  // Theme
+  theme: 'Tema',
+  lightMode: 'Claro',
+  darkMode: 'Oscuro',
+
   // Customers
   tabCustomers: 'Clientes',
   customers: 'Clientes',

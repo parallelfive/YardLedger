@@ -1,9 +1,10 @@
-import { Appearance } from 'react-native';
+import { File, Paths } from 'expo-file-system';
 
 // Foundry has two palettes: "Nightshift" (warm industrial dark) and "Daybook"
 // (warm paper light). Both expose the SAME token keys so every screen adopts
-// whichever is active without per-screen changes. The active palette is chosen
-// from the device color scheme at launch (see `colors` below).
+// whichever is active without per-screen changes. The active palette is the
+// user's saved preference (default: light "Daybook", per the design), read
+// synchronously at module load so the first paint is already correct.
 
 type Palette = {
   background: string;
@@ -108,12 +109,39 @@ export const lightColors: Palette = {
   shadow: 'rgba(40, 33, 22, 0.12)',
 };
 
-// Resolved once at module load from the device color scheme. A live in-app
-// toggle would require threading a theme context through every screen's
-// StyleSheet (those snapshot `colors` at module-eval time), so the supported
-// behaviour is: the app follows the OS light/dark setting.
-export const isLightTheme = Appearance.getColorScheme() === 'light';
+export type ThemeMode = 'light' | 'dark';
+
+// Persisted as a tiny JSON file. expo-file-system's File API is synchronous,
+// so we can read the saved mode at import time — before any StyleSheet is
+// created — which is what lets the toggle work via a quick app reload without
+// threading a theme context through every screen.
+const THEME_FILE = 'theme.json';
+
+function readThemeMode(): ThemeMode {
+  try {
+    const raw = new File(Paths.document, THEME_FILE).textSync();
+    const mode = (JSON.parse(raw) as { mode?: string }).mode;
+    if (mode === 'dark' || mode === 'light') return mode;
+  } catch {
+    // No saved preference yet — fall through to the default.
+  }
+  return 'light'; // Design default is the light "Daybook" palette.
+}
+
+export const themeMode: ThemeMode = readThemeMode();
+export const isLightTheme = themeMode === 'light';
 export const colors: Palette = isLightTheme ? lightColors : darkColors;
+
+// Persist the chosen mode. Callers reload the app afterwards (see toggleTheme
+// in utils) so the new palette is picked up at the next module load.
+export function saveThemeMode(mode: ThemeMode): void {
+  try {
+    const file = new File(Paths.document, THEME_FILE);
+    file.write(JSON.stringify({ mode }));
+  } catch {
+    // Best-effort — if the write fails the app simply keeps the current theme.
+  }
+}
 
 export const spacing = {
   xs: 4,

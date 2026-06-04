@@ -260,6 +260,11 @@ export default {
   english: 'English',
   spanish: 'Español',
 
+  // Theme
+  theme: 'Theme',
+  lightMode: 'Light',
+  darkMode: 'Dark',
+
   // Customers
   tabCustomers: 'Customers',
   customers: 'Customers',

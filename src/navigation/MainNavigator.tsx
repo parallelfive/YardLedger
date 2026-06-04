@@ -28,7 +28,8 @@ import { useAppSelector, useAppDispatch, type RootState } from '../store';
 import { signOut } from '../store/authStore';
 import { toggleLanguage } from '../store/settingsStore';
 import { useT } from '../hooks/useT';
-import { colors, fontSize, spacing, fonts } from '../constants';
+import { toggleThemeMode } from '../utils';
+import { colors, fontSize, spacing, fonts, isLightTheme } from '../constants';
 
 const stackScreenOptions = {
   headerStyle: {
@@ -124,6 +125,24 @@ function SettingsButton() {
           onPress={() => setVisible(false)}
         >
           <View style={navStyles.settingsModal}>
+            <TouchableOpacity
+              style={navStyles.settingsRow}
+              onPress={() => {
+                setVisible(false);
+                void toggleThemeMode();
+              }}
+            >
+              <Ionicons
+                name={isLightTheme ? 'sunny-outline' : 'moon-outline'}
+                size={22}
+                color={colors.accent}
+              />
+              <Text style={navStyles.settingsRowText}>{t.theme}</Text>
+              <Text style={navStyles.settingsRowValue}>
+                {isLightTheme ? t.lightMode : t.darkMode}
+              </Text>
+            </TouchableOpacity>
+            <View style={navStyles.settingsDivider} />
             <TouchableOpacity
               style={navStyles.settingsRow}
               onPress={() => {
