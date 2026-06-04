@@ -63,11 +63,23 @@ These exist and work, but the handoff had no matching screen. Left in place:
   Also: the prototype's keypad-based "Add material" sheet was kept as our
   existing `AddLineItemModal` (it has scale gross/tare capture the keypad
   mockup lacks).
-- **Still reskinned-but-not-structurally-rebuilt** (Foundry paint on existing
-  layout, not yet 1:1 to the prototype flow): New Sale (`SaleFlow` in the
-  prototype is a compact single sheet), Inventory/Stock, the individual Report
-  screens, Admin, Settings. Flag which of these you want rebuilt to the
-  prototype structure next.
+- **Stock** (`InventoryScreen`) — rebuilt to the design: on-hand value hero,
+  dynamic category chips (Restricted included), metal rows with price-now-vs-avg
+  spread delta + tone accent. Set aside vs prototype: value hero has no
+  delta/sparkline (we have no historical valuation series to chart).
+- **Sales** (`SalesScreen`) — rebuilt to the design: sold/profit stat cards +
+  Outbound-loads list (truck rows, revenue + profit delta). Set aside: in-screen
+  search and the profit-by-category breakdown (both still in the service and the
+  Profitability report); our model has no paid/pending status the prototype
+  shows, so the second stat card is gross profit instead of "awaiting pay".
+- **App shell** — rebuilt: light-default theme + working light/dark toggle,
+  5-slot tab bar (Home · Stock · ＋ · Sales · Reports) with center FAB + Quick
+  Actions sheet, header overflow menu for Customers/Admin/Pricing.
+- **Still reskinned-but-not-structurally-rebuilt**: New Buy/Sale need the
+  full-screen overlay header + keypad (logic done, chrome pending); Reports tab
+  (ours is a multi-report index, the prototype's is compliance-first — needs a
+  product call), the individual Report detail screens, Admin, Settings,
+  Customers.
 
 ## Open questions
 
