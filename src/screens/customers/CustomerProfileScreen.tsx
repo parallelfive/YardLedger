@@ -712,10 +712,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
   },
   sectionTitle: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: fonts.sansSemiBold,
     fontStyle: 'italic',
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
   },
   historySection: {
     paddingHorizontal: spacing.lg,

@@ -450,9 +450,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.sm,
   },
   sectionTitle: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: fonts.sansSemiBold,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
   },
   addButton: {
     backgroundColor: colors.accent,

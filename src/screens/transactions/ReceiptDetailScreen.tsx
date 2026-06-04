@@ -579,10 +579,12 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sectionTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: fonts.sansSemiBold,
     marginBottom: spacing.sm,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
   },
   customerName: {
     color: colors.textPrimary,

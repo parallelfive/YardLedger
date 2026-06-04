@@ -382,11 +382,13 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   sectionTitle: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: fonts.sansSemiBold,
     marginBottom: spacing.md,
     marginTop: spacing.lg,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
   },
   input: {
     backgroundColor: colors.inputBackground,
