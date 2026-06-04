@@ -18,6 +18,7 @@ import {
   markReceiptDisposed,
 } from '../../services/receipts';
 import { AccessCodeModal, SignedImage } from '../../components';
+import { Tag } from '../../components/foundry';
 import { printReceipt, shareReceipt } from '../../utils/printReceipt';
 import {
   printNmPurchaseRecord,
@@ -171,6 +172,40 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
               minute: '2-digit',
             })}
           </Text>
+        </View>
+
+        {/* Status chips */}
+        <View style={styles.chipRow}>
+          {receipt.payment_method ? (
+            <Tag
+              label={
+                receipt.payment_method === 'cash'
+                  ? t.paymentCash
+                  : receipt.payment_method === 'check'
+                    ? t.paymentCheck
+                    : t.paymentOther
+              }
+              color={colors.textSecondary}
+              soft={colors.chip}
+              icon="cash-outline"
+            />
+          ) : null}
+          {receipt.is_catalytic ? (
+            <Tag
+              label={t.catalyticConverter}
+              color={colors.rust}
+              soft="rgba(181, 70, 47, 0.14)"
+              icon="warning"
+            />
+          ) : null}
+          {receipt.hold_until && !receipt.disposed_at ? (
+            <Tag
+              label={t.holdUntil}
+              color={colors.gold}
+              soft="rgba(176, 138, 50, 0.15)"
+              icon="time-outline"
+            />
+          ) : null}
         </View>
 
         {/* Customer Info */}
@@ -562,6 +597,12 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxxl,
   },
   header: {
+    marginBottom: spacing.md,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
     marginBottom: spacing.xl,
   },
   receiptNumber: {
