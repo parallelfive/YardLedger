@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { DailySummary } from '../services/reports';
 import { useT } from '../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
 
 interface SummaryCardsProps {
   data: DailySummary;
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   statValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   statSub: {
     color: colors.textTertiary,
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.md,
   },
   metalRow: {

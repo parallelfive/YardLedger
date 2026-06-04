@@ -12,7 +12,13 @@ import {
   type ShrinkageRow,
 } from '../../services/reports';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 export default function ShrinkageScreen() {
   const { t } = useT();
@@ -141,7 +147,7 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   metalCategory: {
     color: colors.textTertiary,
@@ -152,7 +158,7 @@ const styles = StyleSheet.create({
   },
   discrepancyValue: {
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   discrepancyPercent: {
     fontSize: fontSize.sm,

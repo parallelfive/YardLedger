@@ -12,7 +12,13 @@ import type { CustomersStackParamList } from '../../navigation/MainNavigator';
 import { RefreshableList } from '../../components';
 import { useT } from '../../hooks/useT';
 import { useCustomers } from '../../hooks';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 type Props = NativeStackScreenProps<CustomersStackParamList, 'CustomerList'>;
 
@@ -139,7 +145,7 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   customerCard: {
     flexDirection: 'row',
@@ -163,7 +169,7 @@ const styles = StyleSheet.create({
   customerName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   customerPhone: {
     color: colors.textSecondary,
@@ -184,7 +190,7 @@ const styles = StyleSheet.create({
   idBadgeText: {
     color: colors.success,
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   noIdBadge: {
     backgroundColor: 'rgba(210, 153, 34, 0.15)',
@@ -195,7 +201,7 @@ const styles = StyleSheet.create({
   noIdBadgeText: {
     color: colors.warning,
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   flagBadge: {
     backgroundColor: 'rgba(248, 81, 73, 0.15)',
@@ -207,6 +213,6 @@ const styles = StyleSheet.create({
   flagBadgeText: {
     color: colors.danger,
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
 });

@@ -15,7 +15,13 @@ import type { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useAppDispatch } from '../../store';
 import { signIn } from '../../store/authStore';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
@@ -121,7 +127,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSize.title,
-    fontWeight: '800',
+    fontFamily: fonts.display,
     color: colors.textPrimary,
     textAlign: 'center',
     marginBottom: spacing.xs,
@@ -170,7 +176,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     letterSpacing: 0.5,
   },
   linkText: {

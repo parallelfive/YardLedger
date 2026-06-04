@@ -18,7 +18,13 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AdminStackParamList } from '../../navigation/MainNavigator';
 import type { PendingUser, UserRole } from '../../types';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 type Props = NativeStackScreenProps<AdminStackParamList, 'Users'>;
 
@@ -462,7 +468,7 @@ const styles = StyleSheet.create({
   companyName: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   companyPrefix: {
     color: colors.textSecondary,
@@ -476,7 +482,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.warning,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   userCard: {
     flexDirection: 'row',
@@ -495,7 +501,7 @@ const styles = StyleSheet.create({
   userEmail: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   userMeta: {
     color: colors.textSecondary,
@@ -516,7 +522,7 @@ const styles = StyleSheet.create({
   },
   approveButtonText: {
     color: colors.white,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
     fontSize: fontSize.sm,
   },
   adminButton: {
@@ -527,7 +533,7 @@ const styles = StyleSheet.create({
   },
   adminButtonText: {
     color: colors.background,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
     fontSize: fontSize.sm,
   },
   deactivateButton: {
@@ -538,7 +544,7 @@ const styles = StyleSheet.create({
   },
   deactivateButtonText: {
     color: colors.white,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
     fontSize: fontSize.sm,
   },
   pricingButton: {
@@ -556,7 +562,7 @@ const styles = StyleSheet.create({
   pricingButtonText: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   linkRow: {
     flexDirection: 'row',
@@ -566,7 +572,7 @@ const styles = StyleSheet.create({
   languageValue: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   codeSection: {
     margin: spacing.lg,
@@ -581,7 +587,7 @@ const styles = StyleSheet.create({
   codeSectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.md,
   },
   codeDisplay: {
@@ -591,7 +597,7 @@ const styles = StyleSheet.create({
   codeText: {
     color: colors.textPrimary,
     fontSize: fontSize.title,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     letterSpacing: 6,
   },
   codeHint: {
@@ -609,7 +615,7 @@ const styles = StyleSheet.create({
   generateButtonText: {
     color: colors.background,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   rolePicker: {
     flexDirection: 'row',
@@ -631,7 +637,7 @@ const styles = StyleSheet.create({
   },
   rolePillText: {
     color: colors.textSecondary,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   rolePillTextActive: {
     color: colors.background,
@@ -650,7 +656,7 @@ const styles = StyleSheet.create({
   inviteRowCode: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     letterSpacing: 2,
   },
   inviteRowMeta: {

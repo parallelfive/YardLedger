@@ -15,7 +15,13 @@ import { fetchInventory } from '../../services/inventory';
 import { getDateRange } from '../../components/DateRangeSelector';
 import { useT } from '../../hooks/useT';
 import { useAppSelector, type RootState } from '../../store';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 interface InventoryRow {
   metal_name: string;
@@ -178,7 +184,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.lg,
     marginBottom: spacing.md,
@@ -207,7 +213,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     color: colors.textPrimary,
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
     textAlign: 'center',
   },
   invRow: {

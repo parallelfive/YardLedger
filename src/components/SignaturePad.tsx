@@ -16,7 +16,7 @@ import {
 import SignatureScreen, {
   type SignatureViewRef,
 } from 'react-native-signature-canvas';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
 
 /** Returns true if the data URI actually contains image data */
 function isValidSignature(uri: string): boolean {
@@ -233,12 +233,12 @@ const styles = StyleSheet.create({
   label: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   clearButton: {
     color: colors.danger,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   signatureBox: {
     height: 120,
@@ -276,18 +276,18 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   modalClearText: {
     color: colors.danger,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
     minWidth: 60,
   },
   modalDoneText: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     minWidth: 60,
     textAlign: 'right',
   },

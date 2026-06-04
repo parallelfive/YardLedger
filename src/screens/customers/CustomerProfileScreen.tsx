@@ -26,7 +26,13 @@ import { SignedImage } from '../../components';
 import { escapeHtml } from '../../utils/validation';
 import { useT } from '../../hooks/useT';
 import { useIdScanner } from '../../hooks/useIdScanner';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 type Props = NativeStackScreenProps<CustomersStackParamList, 'CustomerProfile'>;
 
@@ -537,7 +543,7 @@ const styles = StyleSheet.create({
   flagBannerText: {
     color: colors.danger,
     fontSize: fontSize.md,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   flagBannerReason: {
     color: colors.danger,
@@ -565,7 +571,7 @@ const styles = StyleSheet.create({
   flagButtonText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   flagButtonTextActive: {
     color: colors.danger,
@@ -604,7 +610,7 @@ const styles = StyleSheet.create({
   updateIdText: {
     color: colors.accent,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   infoSection: {
     paddingHorizontal: spacing.lg,
@@ -618,7 +624,7 @@ const styles = StyleSheet.create({
   customerName: {
     color: colors.textPrimary,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.sm,
   },
   infoRow: {
@@ -628,7 +634,7 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     color: colors.textTertiary,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   statsRow: {
     flexDirection: 'row',
@@ -648,7 +654,7 @@ const styles = StyleSheet.create({
   statNumber: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   statLabel: {
     color: colors.textSecondary,
@@ -667,7 +673,7 @@ const styles = StyleSheet.create({
   editLabel: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
     marginTop: spacing.xs,
   },
   editInput: {
@@ -703,12 +709,12 @@ const styles = StyleSheet.create({
   editSaveText: {
     color: colors.background,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     fontStyle: 'italic',
   },
   historySection: {
@@ -738,12 +744,12 @@ const styles = StyleSheet.create({
   receiptNumber: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   receiptTotal: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   receiptDate: {
     color: colors.textTertiary,
@@ -768,6 +774,6 @@ const styles = StyleSheet.create({
   printButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
 });

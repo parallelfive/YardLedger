@@ -24,7 +24,13 @@ import {
   saveReportingConfig,
   sendReportNow,
 } from '../../services/reporting';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 export default function CompanyProfileScreen() {
   const { t } = useT();
@@ -420,7 +426,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.md,
     marginTop: spacing.lg,
   },
@@ -501,7 +507,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   sendNowButton: {
     backgroundColor: 'transparent',
@@ -512,7 +518,7 @@ const styles = StyleSheet.create({
   sendNowButtonText: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   bottomSpacer: {
     height: spacing.xxxl,

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { useAdminVerification } from '../hooks/useAdminVerification';
 import { useT } from '../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
 
 interface AdminPinModalProps {
   visible: boolean;
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.danger,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     textAlign: 'center',
     marginBottom: spacing.xs,
   },
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: colors.textSecondary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   verifyButton: {
     flex: 1,
@@ -181,6 +181,6 @@ const styles = StyleSheet.create({
   verifyButtonText: {
     color: colors.white,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
 });

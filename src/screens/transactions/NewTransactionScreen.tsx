@@ -29,7 +29,13 @@ import {
   updateCustomerIdPhoto,
   type Customer,
 } from '../../services/customers';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 type Props = NativeStackScreenProps<
   TransactionsStackParamList,
@@ -893,7 +899,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.md,
     marginTop: spacing.lg,
   },
@@ -932,7 +938,7 @@ const styles = StyleSheet.create({
   customerSearchButtonText: {
     color: colors.background,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   customerResultsContainer: {
     backgroundColor: colors.card,
@@ -951,7 +957,7 @@ const styles = StyleSheet.create({
   customerResultName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   customerResultDetails: {
     flexDirection: 'row',
@@ -985,7 +991,7 @@ const styles = StyleSheet.create({
   addLineItemButtonText: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   lineItemRow: {
     flexDirection: 'row',
@@ -1008,12 +1014,12 @@ const styles = StyleSheet.create({
   lineItemName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   overrideBadge: {
     color: colors.danger,
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     backgroundColor: 'rgba(248, 81, 73, 0.15)',
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1027,7 +1033,7 @@ const styles = StyleSheet.create({
   },
   overridePrice: {
     color: colors.danger,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
   },
   originalPrice: {
     color: colors.textTertiary,
@@ -1063,7 +1069,7 @@ const styles = StyleSheet.create({
   },
   editPriceConfirmText: {
     color: colors.background,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
     fontSize: fontSize.sm,
   },
   editPriceCancel: {
@@ -1072,13 +1078,13 @@ const styles = StyleSheet.create({
   },
   editPriceCancelText: {
     color: colors.textSecondary,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
     fontSize: fontSize.sm,
   },
   lineItemTotal: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginRight: spacing.md,
   },
   removeButton: {
@@ -1087,7 +1093,7 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: colors.danger,
     fontSize: fontSize.md,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
   },
   totalRow: {
     flexDirection: 'row',
@@ -1125,7 +1131,7 @@ const styles = StyleSheet.create({
   paymentOptionText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   paymentOptionTextActive: {
     color: colors.accent,
@@ -1142,7 +1148,7 @@ const styles = StyleSheet.create({
   totalValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -1170,12 +1176,12 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   saveButtonOutlineText: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   successOverlay: {
     flex: 1,
@@ -1206,12 +1212,12 @@ const styles = StyleSheet.create({
   successIcon: {
     color: '#ffffff',
     fontSize: 32,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   successTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.md,
   },
   successSummary: {
@@ -1221,7 +1227,7 @@ const styles = StyleSheet.create({
   successCustomer: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   successDetail: {
     color: colors.textSecondary,
@@ -1239,7 +1245,7 @@ const styles = StyleSheet.create({
   quickModeButtonText: {
     color: colors.background,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   quickModeSameCustomer: {
     backgroundColor: 'transparent',
@@ -1254,7 +1260,7 @@ const styles = StyleSheet.create({
   quickModeSameCustomerText: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   viewReceiptButton: {
     padding: spacing.md,
@@ -1281,7 +1287,7 @@ const styles = StyleSheet.create({
   scanIdButtonText: {
     color: colors.accent,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   idPhotoPreview: {
     marginBottom: spacing.md,
@@ -1303,7 +1309,7 @@ const styles = StyleSheet.create({
   rescanButtonText: {
     color: colors.accent,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   affirmationRow: {
     flexDirection: 'row',
@@ -1327,7 +1333,7 @@ const styles = StyleSheet.create({
   checkmark: {
     color: colors.background,
     fontSize: fontSize.sm,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   affirmationText: {
     color: colors.textSecondary,
@@ -1345,7 +1351,7 @@ const styles = StyleSheet.create({
   regulatedBannerText: {
     color: colors.accent,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   restrictedBanner: {
     backgroundColor: 'rgba(210, 153, 34, 0.15)',
@@ -1358,7 +1364,7 @@ const styles = StyleSheet.create({
   restrictedBannerText: {
     color: colors.warning,
     fontSize: fontSize.md,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.sm,
   },
   restrictedNotes: {

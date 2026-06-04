@@ -4,7 +4,13 @@ import { useIsFocused } from '@react-navigation/native';
 import { fetchReceiptsOnHold, type OnHoldRow } from '../../services/reports';
 import { RefreshableList } from '../../components';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 export default function OnHoldScreen() {
   const { t } = useT();
@@ -93,12 +99,12 @@ const styles = StyleSheet.create({
   receipt: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   days: {
     color: colors.accent,
     fontSize: fontSize.md,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   detail: {
     color: colors.textSecondary,
@@ -116,6 +122,6 @@ const styles = StyleSheet.create({
   tagText: {
     color: colors.warning,
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
 });

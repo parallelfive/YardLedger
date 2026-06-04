@@ -16,7 +16,7 @@ import {
 } from '../services/metals';
 import { useT } from '../hooks/useT';
 import { validateWeight } from '../utils/validation';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
 
 // In-memory recent metals cache (persists for the app session)
 const MAX_RECENT = 5;
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     flex: 1,
     textAlign: 'center',
   },
@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   recentTitle: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.xs,
   },
   recentCard: {
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
   optionName: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   optionPrice: {
     color: colors.textSecondary,
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
   metalInfo: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     textAlign: 'center',
   },
   weightModeToggle: {
@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
   weightModeText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   weightModeTextActive: {
     color: colors.background,
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
   tareMinus: {
     color: colors.textTertiary,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     paddingBottom: spacing.md,
   },
   netResult: {
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
   netResultValue: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   weightInput: {
     backgroundColor: colors.inputBackground,
@@ -637,6 +637,6 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
 });

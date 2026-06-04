@@ -14,7 +14,7 @@ import {
   fetchMetalsByCategory,
 } from '../services/metals';
 import { useT } from '../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
 
 interface MetalSection {
   title: string;
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   title: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   closeButton: {
     paddingVertical: spacing.xs,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   metalRow: {
     flexDirection: 'row',
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   metalPrice: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   empty: {
     padding: spacing.xxxl,

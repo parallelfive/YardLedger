@@ -2,7 +2,13 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ReportsStackParamList } from '../../navigation/MainNavigator';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 type Props = NativeStackScreenProps<ReportsStackParamList, 'ReportsList'>;
 
@@ -92,7 +98,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.xs,
   },
   cardSubtitle: {

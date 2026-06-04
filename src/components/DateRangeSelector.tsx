@@ -1,6 +1,6 @@
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { useT } from '../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
 
 export type DatePreset = 'today' | 'week' | 'month';
 
@@ -95,7 +95,7 @@ const styles = StyleSheet.create({
   pillText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   pillTextActive: {
     color: colors.background,

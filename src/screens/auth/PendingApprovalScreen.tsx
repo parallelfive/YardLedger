@@ -10,7 +10,7 @@ import { useAppDispatch, useAppSelector, type RootState } from '../../store';
 import { fetchProfile, signOut } from '../../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fontSize } from '../../constants';
+import { colors, spacing, fontSize, fonts } from '../../constants';
 
 export default function PendingApprovalScreen() {
   const dispatch = useAppDispatch();
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     color: colors.warning,
     marginBottom: spacing.md,
   },
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   checkButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   signOutButton: {
     paddingVertical: spacing.md,

@@ -16,7 +16,13 @@ import {
   type ProfitabilityReport,
 } from '../../services/reports';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 export default function ProfitabilityScreen() {
   const { t } = useT();
@@ -188,7 +194,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   metalCard: {
     backgroundColor: colors.card,
@@ -208,7 +214,7 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   metalCategory: {
     color: colors.textTertiary,
@@ -216,7 +222,7 @@ const styles = StyleSheet.create({
   },
   metalProfit: {
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   metalDetails: {
     gap: spacing.xs,

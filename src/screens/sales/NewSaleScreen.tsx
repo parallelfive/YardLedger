@@ -15,7 +15,13 @@ import { useT } from '../../hooks/useT';
 import { useAppSelector, type RootState } from '../../store';
 import { fetchInventory } from '../../services/inventory';
 import { createSale } from '../../services/sales';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 interface InventoryItem {
   id: string;
@@ -378,7 +384,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.md,
     marginTop: spacing.lg,
   },
@@ -406,7 +412,7 @@ const styles = StyleSheet.create({
   addLineItemButtonText: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   pickerContainer: {
     backgroundColor: colors.card,
@@ -425,7 +431,7 @@ const styles = StyleSheet.create({
   pickerTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     flex: 1,
     textAlign: 'center',
   },
@@ -457,7 +463,7 @@ const styles = StyleSheet.create({
   inventoryName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   inventoryDetail: {
     color: colors.textSecondary,
@@ -494,7 +500,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: colors.background,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   lineItemRow: {
     flexDirection: 'row',
@@ -512,7 +518,7 @@ const styles = StyleSheet.create({
   lineItemName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   lineItemDetail: {
     color: colors.textSecondary,
@@ -530,7 +536,7 @@ const styles = StyleSheet.create({
   lineItemRevenue: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginRight: spacing.md,
   },
   removeButton: {
@@ -539,7 +545,7 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: colors.danger,
     fontSize: fontSize.md,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
   },
   totalsCard: {
     backgroundColor: colors.card,
@@ -564,12 +570,12 @@ const styles = StyleSheet.create({
   totalValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   totalProfit: {
     color: colors.success,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   totalProfitNegative: {
     color: colors.danger,
@@ -587,7 +593,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
   },
   bottomSpacer: {
     height: spacing.xxxl,

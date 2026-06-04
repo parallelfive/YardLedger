@@ -4,7 +4,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useT } from '../../hooks/useT';
 import { useInventory } from '../../hooks/useInventory';
 import { RefreshableList } from '../../components';
-import { colors, spacing, fontSize } from '../../constants';
+import { colors, spacing, fontSize, fonts } from '../../constants';
 import { calculateInventoryValue } from '../../utils/calculations';
 
 export default function InventoryScreen() {
@@ -76,12 +76,12 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   weight: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   detail: {
     color: colors.textSecondary,

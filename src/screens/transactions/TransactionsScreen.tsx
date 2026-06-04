@@ -22,7 +22,13 @@ import {
   type DatePreset,
   getDateRange,
 } from '../../components/DateRangeSelector';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 type Props = NativeStackScreenProps<
   TransactionsStackParamList,
@@ -224,7 +230,7 @@ const styles = StyleSheet.create({
   searchButtonText: {
     color: colors.background,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   clearButton: {
     backgroundColor: colors.surface,
@@ -237,7 +243,7 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   statsRow: {
     flexDirection: 'row',
@@ -259,7 +265,7 @@ const styles = StyleSheet.create({
   statNumber: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   statLabel: {
     color: colors.textSecondary,
@@ -296,18 +302,18 @@ const styles = StyleSheet.create({
   receiptNumber: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
     letterSpacing: 0.5,
   },
   receiptTotal: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   customerName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   receiptDate: {
     color: colors.textSecondary,
@@ -338,7 +344,7 @@ const styles = StyleSheet.create({
   pricesButtonText: {
     color: colors.textPrimary,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   fab: {
     position: 'absolute',
@@ -357,6 +363,6 @@ const styles = StyleSheet.create({
   fabText: {
     color: colors.background,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
 });

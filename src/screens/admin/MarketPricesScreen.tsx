@@ -16,7 +16,13 @@ import {
   fetchMetalsByCategory,
 } from '../../services/metals';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 interface MetalSection {
   title: string;
@@ -144,7 +150,7 @@ const styles = StyleSheet.create({
   linkTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   linkSub: {
     color: colors.textTertiary,
@@ -153,7 +159,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
@@ -169,7 +175,7 @@ const styles = StyleSheet.create({
   catTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   metalRow: {
     flexDirection: 'row',
@@ -196,7 +202,7 @@ const styles = StyleSheet.create({
   metalPrice: {
     color: colors.accent,
     fontSize: fontSize.md,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   restrictedBadge: {
     backgroundColor: 'rgba(210, 153, 34, 0.15)',
@@ -207,6 +213,6 @@ const styles = StyleSheet.create({
   restrictedText: {
     color: colors.warning,
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
 });

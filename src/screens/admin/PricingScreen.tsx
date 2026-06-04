@@ -24,7 +24,13 @@ import {
 } from '../../services/metals';
 import { useAppSelector, type RootState } from '../../store';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 interface MetalSection {
   title: string;
@@ -446,7 +452,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   addButton: {
     backgroundColor: colors.accent,
@@ -457,7 +463,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     color: colors.background,
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   metalRow: {
     flexDirection: 'row',
@@ -479,7 +485,7 @@ const styles = StyleSheet.create({
   metalPrice: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   empty: {
     padding: spacing.xxxl,
@@ -506,7 +512,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   modalCancel: {
     color: colors.danger,
@@ -552,7 +558,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   removeButton: {
     borderRadius: borderRadius.md,
@@ -564,7 +570,7 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: colors.danger,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   categoryPicker: {
     flexDirection: 'row',
@@ -589,7 +595,7 @@ const styles = StyleSheet.create({
   },
   categoryChipTextSelected: {
     color: colors.background,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   metalNameRow: {
     flexDirection: 'row',
@@ -606,7 +612,7 @@ const styles = StyleSheet.create({
   restrictedBadgeText: {
     color: colors.warning,
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   restrictedToggle: {
     flexDirection: 'row',
@@ -630,7 +636,7 @@ const styles = StyleSheet.create({
   toggleCheck: {
     color: colors.background,
     fontSize: fontSize.sm,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   restrictedToggleText: {
     color: colors.textSecondary,
@@ -645,7 +651,7 @@ const styles = StyleSheet.create({
   historyTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.md,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.sm,
   },
   historyRow: {

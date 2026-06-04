@@ -23,7 +23,13 @@ import {
   printNmPurchaseRecord,
   printNmCatConverterForm,
 } from '../../utils/printNmForms';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 interface ReceiptLineItem {
   id: string;
@@ -561,7 +567,7 @@ const styles = StyleSheet.create({
   receiptNumber: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     letterSpacing: 0.5,
   },
   date: {
@@ -575,7 +581,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: colors.textPrimary,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.sm,
   },
   customerName: {
@@ -609,7 +615,7 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   overrideBadge: {
     backgroundColor: 'rgba(248, 81, 73, 0.15)',
@@ -620,7 +626,7 @@ const styles = StyleSheet.create({
   overrideBadgeText: {
     color: colors.danger,
     fontSize: fontSize.xs,
-    fontWeight: 'bold',
+    fontFamily: fonts.sansBold,
   },
   lineItemDetail: {
     color: colors.textSecondary,
@@ -641,7 +647,7 @@ const styles = StyleSheet.create({
   lineItemTotal: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginLeft: spacing.md,
   },
   totalRow: {
@@ -664,7 +670,7 @@ const styles = StyleSheet.create({
   totalValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   sellerIdPhotoBox: {
     borderRadius: borderRadius.md,
@@ -704,7 +710,7 @@ const styles = StyleSheet.create({
   shareButtonText: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   printButton: {
     flex: 1,
@@ -716,7 +722,7 @@ const styles = StyleSheet.create({
   printButtonText: {
     color: colors.background,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   nmFormRow: {
     marginHorizontal: spacing.lg,
@@ -733,7 +739,7 @@ const styles = StyleSheet.create({
   nmFormButtonText: {
     color: colors.warning,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   deleteRow: {
     marginHorizontal: spacing.lg,
@@ -749,6 +755,6 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: colors.danger,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
 });

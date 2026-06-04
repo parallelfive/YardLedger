@@ -16,7 +16,13 @@ import {
   type DatePreset,
   getDateRange,
 } from '../../components/DateRangeSelector';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 import { calculateTotalProfit } from '../../utils/calculations';
 import { aggregateSalesByCategory } from '../../services/sales';
 
@@ -221,7 +227,7 @@ const styles = StyleSheet.create({
   searchButtonText: {
     color: colors.background,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   clearButton: {
     backgroundColor: colors.surface,
@@ -234,7 +240,7 @@ const styles = StyleSheet.create({
   clearButtonText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   summaryBar: {
     flexDirection: 'row',
@@ -257,7 +263,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: colors.success,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   summaryNegative: {
     color: colors.danger,
@@ -269,7 +275,7 @@ const styles = StyleSheet.create({
   categorySectionTitle: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     marginBottom: spacing.sm,
   },
   categoryCard: {
@@ -287,12 +293,12 @@ const styles = StyleSheet.create({
   categoryName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   categoryProfit: {
     color: colors.success,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   categoryProfitNegative: {
     color: colors.danger,
@@ -325,12 +331,12 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   profit: {
     color: colors.success,
     fontSize: fontSize.xl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   profitNegative: {
     color: colors.danger,
@@ -355,7 +361,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#fff',
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   fab: {
     position: 'absolute',
@@ -374,6 +380,6 @@ const styles = StyleSheet.create({
   fabText: {
     color: colors.background,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
 });

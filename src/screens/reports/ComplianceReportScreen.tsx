@@ -27,7 +27,13 @@ import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useAppSelector, type RootState } from '../../store';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  colors,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
 
 interface PurchaseRecordRow {
   date: string;
@@ -455,7 +461,7 @@ const styles = StyleSheet.create({
   statNumber: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   statLabel: {
     color: colors.textSecondary,
@@ -485,7 +491,7 @@ const styles = StyleSheet.create({
   actionText: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   recordCard: {
     backgroundColor: colors.card,
@@ -509,17 +515,17 @@ const styles = StyleSheet.create({
   recordReceipt: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
   },
   recordAmount: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
   recordSeller: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
     marginTop: spacing.xs,
   },
   recordDetail: {
@@ -538,6 +544,6 @@ const styles = StyleSheet.create({
   restrictedTagText: {
     color: colors.warning,
     fontSize: fontSize.xs,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
   },
 });
