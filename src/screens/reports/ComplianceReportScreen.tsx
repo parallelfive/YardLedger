@@ -461,7 +461,7 @@ const styles = StyleSheet.create({
   statNumber: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   statLabel: {
     color: colors.textSecondary,
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
   recordAmount: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   recordSeller: {
     color: colors.textPrimary,

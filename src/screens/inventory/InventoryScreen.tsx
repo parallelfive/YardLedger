@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   weight: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   detail: {
     color: colors.textSecondary,

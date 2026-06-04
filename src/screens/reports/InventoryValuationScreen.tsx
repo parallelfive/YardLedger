@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   metalCard: {
     backgroundColor: colors.card,
@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
   metalWeight: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   metalDetails: {
     gap: spacing.xs,

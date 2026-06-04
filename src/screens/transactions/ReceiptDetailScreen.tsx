@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
   receiptNumber: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
     letterSpacing: 0.5,
   },
   date: {
@@ -641,13 +641,14 @@ const styles = StyleSheet.create({
   originalPrice: {
     color: colors.textTertiary,
     fontSize: fontSize.xs,
+    fontFamily: fonts.mono,
     textDecorationLine: 'line-through',
     marginTop: 2,
   },
   lineItemTotal: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
     marginLeft: spacing.md,
   },
   totalRow: {
@@ -670,7 +671,7 @@ const styles = StyleSheet.create({
   totalValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   sellerIdPhotoBox: {
     borderRadius: borderRadius.md,

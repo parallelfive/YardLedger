@@ -654,7 +654,7 @@ const styles = StyleSheet.create({
   statNumber: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   statLabel: {
     color: colors.textSecondary,
@@ -744,12 +744,12 @@ const styles = StyleSheet.create({
   receiptNumber: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
-    fontFamily: fonts.sansSemiBold,
+    fontFamily: fonts.monoMedium,
   },
   receiptTotal: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   receiptDate: {
     color: colors.textTertiary,

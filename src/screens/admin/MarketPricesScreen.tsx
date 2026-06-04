@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   metalPrice: {
     color: colors.accent,
     fontSize: fontSize.md,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   restrictedBadge: {
     backgroundColor: 'rgba(210, 153, 34, 0.15)',

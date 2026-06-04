@@ -527,6 +527,7 @@ const styles = StyleSheet.create({
   optionPrice: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.mono,
     marginTop: spacing.xs,
   },
   chevron: {
@@ -563,7 +564,7 @@ const styles = StyleSheet.create({
   weightModeText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
-    fontFamily: fonts.sansSemiBold,
+    fontFamily: fonts.monoMedium,
   },
   weightModeTextActive: {
     color: colors.background,
@@ -607,7 +608,7 @@ const styles = StyleSheet.create({
   netResultValue: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   weightInput: {
     backgroundColor: colors.inputBackground,
@@ -615,6 +616,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     fontSize: fontSize.xxl,
+    fontFamily: fonts.mono,
     textAlign: 'center',
     borderWidth: 1,
     borderColor: colors.border,

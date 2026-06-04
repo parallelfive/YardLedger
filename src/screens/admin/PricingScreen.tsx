@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   metalPrice: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   empty: {
     padding: spacing.xxxl,
@@ -541,6 +541,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.lg,
     fontSize: fontSize.xxl,
+    fontFamily: fonts.mono,
     textAlign: 'center',
     borderWidth: 1,
     borderColor: colors.border,

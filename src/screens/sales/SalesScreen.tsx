@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   summaryValue: {
     color: colors.success,
     fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   summaryNegative: {
     color: colors.danger,
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   categoryProfit: {
     color: colors.success,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   categoryProfitNegative: {
     color: colors.danger,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
   profit: {
     color: colors.success,
     fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   profitNegative: {
     color: colors.danger,

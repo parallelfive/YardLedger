@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   languageValue: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
+    fontFamily: fonts.monoMedium,
   },
   codeSection: {
     margin: spacing.lg,

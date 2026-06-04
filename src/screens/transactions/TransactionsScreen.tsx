@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
   statNumber: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   statLabel: {
     color: colors.textSecondary,
@@ -302,13 +302,13 @@ const styles = StyleSheet.create({
   receiptNumber: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
-    fontFamily: fonts.sansSemiBold,
+    fontFamily: fonts.monoMedium,
     letterSpacing: 0.5,
   },
   receiptTotal: {
     color: colors.accent,
     fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   customerName: {
     color: colors.textPrimary,
@@ -323,6 +323,7 @@ const styles = StyleSheet.create({
   itemCount: {
     color: colors.textTertiary,
     fontSize: fontSize.xs,
+    fontFamily: fonts.mono,
     marginTop: spacing.xs,
   },
   pricesButton: {

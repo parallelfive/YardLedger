@@ -1033,11 +1033,12 @@ const styles = StyleSheet.create({
   },
   overridePrice: {
     color: colors.danger,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   originalPrice: {
     color: colors.textTertiary,
     fontSize: fontSize.xs,
+    fontFamily: fonts.mono,
     textDecorationLine: 'line-through',
   },
   editPriceRow: {
@@ -1057,6 +1058,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     fontSize: fontSize.md,
+    fontFamily: fonts.mono,
     borderWidth: 1,
     borderColor: colors.accent,
     minWidth: 80,
@@ -1069,7 +1071,7 @@ const styles = StyleSheet.create({
   },
   editPriceConfirmText: {
     color: colors.background,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
     fontSize: fontSize.sm,
   },
   editPriceCancel: {
@@ -1078,13 +1080,13 @@ const styles = StyleSheet.create({
   },
   editPriceCancelText: {
     color: colors.textSecondary,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
     fontSize: fontSize.sm,
   },
   lineItemTotal: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
     marginRight: spacing.md,
   },
   removeButton: {
@@ -1148,7 +1150,7 @@ const styles = StyleSheet.create({
   totalValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   buttonRow: {
     flexDirection: 'row',

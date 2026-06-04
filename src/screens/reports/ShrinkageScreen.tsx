@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   },
   discrepancyValue: {
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   discrepancyPercent: {
     fontSize: fontSize.sm,

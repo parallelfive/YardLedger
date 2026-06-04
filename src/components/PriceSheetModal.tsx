@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   metalPrice: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   empty: {
     padding: spacing.xxxl,

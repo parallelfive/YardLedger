@@ -528,6 +528,7 @@ const styles = StyleSheet.create({
   lineItemProfit: {
     color: colors.success,
     fontSize: fontSize.sm,
+    fontFamily: fonts.mono,
     marginTop: 2,
   },
   lineItemProfitNegative: {
@@ -536,7 +537,7 @@ const styles = StyleSheet.create({
   lineItemRevenue: {
     color: colors.accent,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
     marginRight: spacing.md,
   },
   removeButton: {
@@ -570,12 +571,12 @@ const styles = StyleSheet.create({
   totalValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   totalProfit: {
     color: colors.success,
     fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   totalProfitNegative: {
     color: colors.danger,
