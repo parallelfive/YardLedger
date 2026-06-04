@@ -26,6 +26,7 @@ export interface LineItemInput {
   total: number;
   isRegulated: boolean;
   isRestricted: boolean;
+  isCatalytic: boolean;
 }
 
 export interface MetalCategory {
@@ -43,6 +44,7 @@ export interface Metal {
   is_active: boolean;
   is_regulated: boolean;
   is_restricted: boolean;
+  is_catalytic: boolean;
   category_id: string | null;
 }
 
