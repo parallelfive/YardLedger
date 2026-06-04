@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
   ScrollView,
   StyleSheet,
   Alert,
@@ -23,6 +22,7 @@ import {
   type Customer,
 } from '../../services/customers';
 import { fetchCompanySettings } from '../../services/companySettings';
+import { SignedImage } from '../../components';
 import { escapeHtml } from '../../utils/validation';
 import { useT } from '../../hooks/useT';
 import { useIdScanner } from '../../hooks/useIdScanner';
@@ -226,8 +226,8 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           {uploading ? (
             <ActivityIndicator color={colors.accent} size="large" />
           ) : customer.dl_photo_uri ? (
-            <Image
-              source={{ uri: customer.dl_photo_uri }}
+            <SignedImage
+              value={customer.dl_photo_uri}
               style={styles.idPhoto}
               resizeMode="contain"
             />

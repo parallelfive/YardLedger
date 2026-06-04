@@ -158,21 +158,14 @@ export async function uploadCustomerIdPhoto(
 
   if (uploadError) throw uploadError;
 
-  // Bucket is private (PII). Return a long-lived signed URL rather than
-  // getPublicUrl(), which does not authenticate against a private bucket.
-  const { data: signed, error: signErr } = await supabase.storage
-    .from('customer-ids')
-    .createSignedUrl(filePath, 60 * 60 * 24 * 365);
-  if (signErr || !signed) throw signErr ?? new Error('Failed to sign ID URL');
-  const publicUrl = signed.signedUrl;
-
-  // Save the URL to the customer record
+  // Store the object PATH (private bucket, PII). Consumers mint a short-lived
+  // signed URL on demand via services/storage.signPrivatePath / SignedImage.
   const { error: updateError } = await supabase
     .from('customers')
-    .update({ dl_photo_uri: publicUrl })
+    .update({ dl_photo_uri: filePath })
     .eq('id', customerId);
 
   if (updateError) throw updateError;
 
-  return publicUrl;
+  return filePath;
 }

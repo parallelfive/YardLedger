@@ -17,7 +17,7 @@ import {
   deleteReceipt,
   markReceiptDisposed,
 } from '../../services/receipts';
-import { AccessCodeModal } from '../../components';
+import { AccessCodeModal, SignedImage } from '../../components';
 import { printReceipt, shareReceipt } from '../../utils/printReceipt';
 import {
   printNmPurchaseRecord,
@@ -182,8 +182,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
             <Text style={styles.sectionTitle}>{t.sellerIdInfo}</Text>
             {receipt.seller_id_photo_uri ? (
               <View style={styles.sellerIdPhotoBox}>
-                <Image
-                  source={{ uri: receipt.seller_id_photo_uri }}
+                <SignedImage
+                  value={receipt.seller_id_photo_uri}
                   style={styles.sellerIdPhoto}
                   resizeMode="contain"
                 />
@@ -265,8 +265,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
             ) : null}
             {receipt.cat_converter_photo_uri ? (
               <View style={styles.sellerIdPhotoBox}>
-                <Image
-                  source={{ uri: receipt.cat_converter_photo_uri }}
+                <SignedImage
+                  value={receipt.cat_converter_photo_uri}
                   style={styles.sellerIdPhoto}
                   resizeMode="contain"
                 />
@@ -274,8 +274,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
             ) : null}
             {receipt.cat_title_photo_uri ? (
               <View style={styles.sellerIdPhotoBox}>
-                <Image
-                  source={{ uri: receipt.cat_title_photo_uri }}
+                <SignedImage
+                  value={receipt.cat_title_photo_uri}
                   style={styles.sellerIdPhoto}
                   resizeMode="contain"
                 />
@@ -292,8 +292,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
               <>
                 <Text style={styles.customerPhone}>{t.sellerPhoto}</Text>
                 <View style={styles.sellerIdPhotoBox}>
-                  <Image
-                    source={{ uri: receipt.seller_photo_uri }}
+                  <SignedImage
+                    value={receipt.seller_photo_uri}
                     style={styles.sellerIdPhoto}
                     resizeMode="contain"
                   />
@@ -304,8 +304,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
               <>
                 <Text style={styles.customerPhone}>{t.materialPhoto}</Text>
                 <View style={styles.sellerIdPhotoBox}>
-                  <Image
-                    source={{ uri: receipt.material_photo_uri }}
+                  <SignedImage
+                    value={receipt.material_photo_uri}
                     style={styles.sellerIdPhoto}
                     resizeMode="contain"
                   />

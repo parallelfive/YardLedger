@@ -4,6 +4,7 @@ import {
   type CompanySettings,
 } from '../services/companySettings';
 import { escapeHtml } from './validation';
+import { signPrivatePath } from '../services/storage';
 
 interface NmLineItem {
   metal_name: string;
@@ -215,6 +216,13 @@ export async function printNmCatConverterForm(
   });
   const sellerName = escapeHtml(receipt.seller_name ?? receipt.customer_name);
 
+  // Photos are stored as private object paths — sign them for the print.
+  const [catConverterPhoto, catTitlePhoto, sellerIdPhoto] = await Promise.all([
+    signPrivatePath(receipt.cat_converter_photo_uri),
+    signPrivatePath(receipt.cat_title_photo_uri),
+    signPrivatePath(receipt.seller_id_photo_uri),
+  ]);
+
   // Format VIN with spaces for readability
   const vin = (receipt.transport_vin ?? '').toUpperCase();
   const vinBoxes = Array.from({ length: 17 })
@@ -294,18 +302,18 @@ export async function printNmCatConverterForm(
         .join('; ')}</p>
 
       ${
-        receipt.cat_converter_photo_uri
-          ? `<p><strong>Converter Photo:</strong></p><img src="${receipt.cat_converter_photo_uri}" style="max-width:300px;max-height:200px" />`
+        catConverterPhoto
+          ? `<p><strong>Converter Photo:</strong></p><img src="${catConverterPhoto}" style="max-width:300px;max-height:200px" />`
           : ''
       }
       ${
-        receipt.cat_title_photo_uri
-          ? `<p><strong>Title/Registration:</strong></p><img src="${receipt.cat_title_photo_uri}" style="max-width:300px;max-height:200px" />`
+        catTitlePhoto
+          ? `<p><strong>Title/Registration:</strong></p><img src="${catTitlePhoto}" style="max-width:300px;max-height:200px" />`
           : ''
       }
       ${
-        receipt.seller_id_photo_uri
-          ? `<p><strong>Seller ID:</strong></p><img src="${receipt.seller_id_photo_uri}" style="max-width:300px;max-height:200px" />`
+        sellerIdPhoto
+          ? `<p><strong>Seller ID:</strong></p><img src="${sellerIdPhoto}" style="max-width:300px;max-height:200px" />`
           : ''
       }
 

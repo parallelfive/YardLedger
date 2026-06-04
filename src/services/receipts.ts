@@ -56,12 +56,9 @@ async function uploadIdPhoto(
       upsert: true,
     });
   if (error) throw error;
-  // Private bucket → signed URL (getPublicUrl does not authenticate here).
-  const { data: signed, error: signErr } = await supabase.storage
-    .from('customer-ids')
-    .createSignedUrl(filePath, 60 * 60 * 24 * 365);
-  if (signErr || !signed) throw signErr ?? new Error('Failed to sign ID URL');
-  return signed.signedUrl;
+  // Store the object PATH, not a long-lived signed URL — callers sign on
+  // demand (see services/storage.signPrivatePath / components/SignedImage).
+  return filePath;
 }
 
 export async function createReceipt(params: CreateReceiptParams) {
