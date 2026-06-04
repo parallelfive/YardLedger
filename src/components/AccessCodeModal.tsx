@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   verifyButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.lg,
     fontFamily: fonts.sansBold,
   },

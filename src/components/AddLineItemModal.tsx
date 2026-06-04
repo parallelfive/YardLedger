@@ -567,7 +567,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.monoMedium,
   },
   weightModeTextActive: {
-    color: colors.background,
+    color: colors.accentInk,
   },
   tareRow: {
     flexDirection: 'row',
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   addButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.xl,
     fontFamily: fonts.sansBold,
   },

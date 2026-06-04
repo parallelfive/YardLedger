@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   buttonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.xl,
     fontFamily: fonts.sansBold,
   },

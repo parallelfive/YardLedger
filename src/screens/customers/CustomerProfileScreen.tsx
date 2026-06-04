@@ -707,7 +707,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
   },
   editSaveText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.md,
     fontFamily: fonts.sansSemiBold,
   },
@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
   },
   printButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.xl,
     fontFamily: fonts.sansBold,
   },

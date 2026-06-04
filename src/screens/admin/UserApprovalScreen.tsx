@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   adminButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontFamily: fonts.sansBold,
     fontSize: fontSize.sm,
   },
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   generateButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.lg,
     fontFamily: fonts.sansBold,
   },
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
   },
   rolePillTextActive: {
-    color: colors.background,
+    color: colors.accentInk,
   },
   inviteRow: {
     flexDirection: 'row',

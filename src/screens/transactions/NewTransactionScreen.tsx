@@ -938,7 +938,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   customerSearchButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.md,
     fontFamily: fonts.sansSemiBold,
   },
@@ -1072,7 +1072,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   editPriceConfirmText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontFamily: fonts.monoSemiBold,
     fontSize: fontSize.sm,
   },
@@ -1181,7 +1181,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   saveButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.xl,
     fontFamily: fonts.sansBold,
   },
@@ -1250,7 +1250,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
   },
   quickModeButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.lg,
     fontFamily: fonts.sansBold,
   },
@@ -1338,7 +1338,7 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
   },
   checkmark: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.sm,
     fontFamily: fonts.sansBold,
   },

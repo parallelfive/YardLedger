@@ -98,6 +98,6 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansSemiBold,
   },
   pillTextActive: {
-    color: colors.background,
+    color: colors.accentInk,
   },
 });

@@ -463,7 +463,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.sm,
   },
   addButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.sm,
     fontFamily: fonts.sansSemiBold,
   },
@@ -559,7 +559,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   saveButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.xl,
     fontFamily: fonts.sansBold,
   },
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   categoryChipTextSelected: {
-    color: colors.background,
+    color: colors.accentInk,
     fontFamily: fonts.sansSemiBold,
   },
   metalNameRow: {
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     borderColor: colors.warning,
   },
   toggleCheck: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.sm,
     fontFamily: fonts.sansBold,
   },

@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   searchButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.md,
     fontFamily: fonts.sansSemiBold,
   },
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
   },
   fabText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.lg,
     fontFamily: fonts.sansBold,
   },

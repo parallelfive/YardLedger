@@ -723,7 +723,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   printButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.xl,
     fontFamily: fonts.sansBold,
   },

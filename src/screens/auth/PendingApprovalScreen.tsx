@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   checkButtonText: {
-    color: colors.background,
+    color: colors.accentInk,
     fontSize: fontSize.xl,
     fontFamily: fonts.sansBold,
   },
