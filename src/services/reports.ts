@@ -12,6 +12,30 @@ export interface DailySummary {
   topMetals: { name: string; weight: number }[];
 }
 
+// Daily buy-$ totals for the last `days` days (oldest → newest) — feeds the
+// dashboard sparkline.
+export async function fetchRecentBuyTotals(days = 14): Promise<number[]> {
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - (days - 1));
+  const { data, error } = await supabase
+    .from('receipts')
+    .select('subtotal, created_at')
+    .eq('type', 'buy')
+    .gte('created_at', since.toISOString());
+  if (error) throw error;
+  const buckets = new Array(days).fill(0) as number[];
+  const startMs = since.getTime();
+  const dayMs = 86400000;
+  for (const r of data ?? []) {
+    const idx = Math.floor(
+      (new Date(r.created_at as string).getTime() - startMs) / dayMs
+    );
+    if (idx >= 0 && idx < days) buckets[idx] += Number(r.subtotal);
+  }
+  return buckets;
+}
+
 export async function fetchDailySummary(
   startDate: string,
   endDate: string
