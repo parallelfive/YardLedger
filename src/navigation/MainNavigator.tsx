@@ -27,7 +27,7 @@ import { useAppSelector, useAppDispatch, type RootState } from '../store';
 import { signOut } from '../store/authStore';
 import { toggleLanguage } from '../store/settingsStore';
 import { useT } from '../hooks/useT';
-import { colors, fontSize, spacing } from '../constants';
+import { colors, fontSize, spacing, fonts } from '../constants';
 
 const stackScreenOptions = {
   headerStyle: {
@@ -35,7 +35,7 @@ const stackScreenOptions = {
   },
   headerTintColor: colors.textPrimary,
   headerTitleStyle: {
-    fontWeight: '700' as const,
+    fontFamily: fonts.sansBold,
     fontSize: fontSize.xl,
   },
   headerShadowVisible: false,
@@ -317,7 +317,7 @@ export default function MainNavigator() {
         tabBarInactiveTintColor: colors.textTertiary,
         tabBarLabelStyle: {
           fontSize: fontSize.xs,
-          fontWeight: '600',
+          fontFamily: fonts.sansSemiBold,
           letterSpacing: 0.3,
         },
         headerStyle: {
@@ -330,7 +330,7 @@ export default function MainNavigator() {
         },
         headerTintColor: colors.textPrimary,
         headerTitleStyle: {
-          fontWeight: '700',
+          fontFamily: fonts.sansBold,
           fontSize: fontSize.xl,
         },
         headerRight: () => <SettingsButton />,

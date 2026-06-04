@@ -1,6 +1,6 @@
 import { TextInput, StyleSheet } from 'react-native';
 import type { TextInputProps } from 'react-native';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
 
 interface InputProps extends TextInputProps {
   /** Override default placeholder color */
@@ -30,6 +30,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginBottom: spacing.md,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     borderWidth: 1,
     borderColor: colors.border,
   },

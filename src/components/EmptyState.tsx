@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
 
 interface EmptyStateProps {
   title: string;
@@ -46,13 +46,14 @@ const styles = StyleSheet.create({
   title: {
     color: colors.textSecondary,
     fontSize: fontSize.xl,
-    fontWeight: '600',
+    fontFamily: fonts.sansSemiBold,
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
     color: colors.textTertiary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     textAlign: 'center',
     lineHeight: 20,
   },

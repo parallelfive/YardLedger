@@ -1,5 +1,5 @@
 import { Text, StyleSheet } from 'react-native';
-import { colors, fontSize, borderRadius } from '../constants';
+import { colors, borderRadius, fonts } from '../constants';
 
 type BadgeVariant = 'danger' | 'warning' | 'success' | 'accent';
 
@@ -9,9 +9,9 @@ interface BadgeProps {
 }
 
 const badgeColors = {
-  danger: { text: colors.danger, bg: 'rgba(248, 81, 73, 0.15)' },
-  warning: { text: colors.warning, bg: 'rgba(210, 153, 34, 0.15)' },
-  success: { text: colors.success, bg: 'rgba(86, 211, 100, 0.15)' },
+  danger: { text: colors.rust, bg: 'rgba(181, 70, 47, 0.16)' },
+  warning: { text: colors.gold, bg: 'rgba(176, 138, 50, 0.16)' },
+  success: { text: colors.moss, bg: 'rgba(93, 122, 78, 0.16)' },
   accent: { text: colors.accent, bg: colors.accentMuted },
 } as const;
 
@@ -27,10 +27,12 @@ export default function Badge({ label, variant = 'danger' }: BadgeProps) {
 
 const styles = StyleSheet.create({
   badge: {
-    fontSize: fontSize.xs,
-    fontWeight: 'bold',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    fontSize: 11,
+    fontFamily: fonts.sansBold,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: borderRadius.sm,
     overflow: 'hidden',
   },

@@ -5,7 +5,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import type { TouchableOpacityProps } from 'react-native';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
 
 type ButtonVariant = 'primary' | 'danger' | 'outline' | 'success';
 
@@ -90,10 +90,11 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: fontSize.lg,
-    fontWeight: '700',
+    fontFamily: fonts.sansBold,
     letterSpacing: 0.3,
   },
   textSmall: {
     fontSize: fontSize.sm,
+    fontFamily: fonts.sansSemiBold,
   },
 });
