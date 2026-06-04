@@ -908,6 +908,7 @@ const styles = StyleSheet.create({
   hintText: {
     color: colors.textTertiary,
     fontSize: fontSize.xs,
+    fontFamily: fonts.sans,
     marginBottom: spacing.sm,
     marginTop: -spacing.sm,
   },
@@ -970,14 +971,17 @@ const styles = StyleSheet.create({
   customerResultPhone: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   customerResultDl: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   noCustomersText: {
     color: colors.textTertiary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     padding: spacing.md,
     textAlign: 'center',
   },
@@ -1032,6 +1036,7 @@ const styles = StyleSheet.create({
   lineItemDetail: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: 2,
   },
   overridePrice: {
@@ -1053,6 +1058,7 @@ const styles = StyleSheet.create({
   editPriceLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
   editPriceInput: {
     backgroundColor: colors.background,
@@ -1144,6 +1150,7 @@ const styles = StyleSheet.create({
   paymentNote: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   totalLabel: {
@@ -1240,6 +1247,7 @@ const styles = StyleSheet.create({
   successDetail: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   quickModeButton: {
@@ -1278,6 +1286,7 @@ const styles = StyleSheet.create({
   viewReceiptButtonText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
   scanIdButton: {
     flexDirection: 'row',
@@ -1346,6 +1355,7 @@ const styles = StyleSheet.create({
   affirmationText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     flex: 1,
   },
   regulatedBanner: {
@@ -1381,6 +1391,7 @@ const styles = StyleSheet.create({
   restrictedNoteItem: {
     color: colors.warning,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     paddingLeft: spacing.sm,
   },
   rowInputs: {

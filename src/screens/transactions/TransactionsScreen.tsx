@@ -269,11 +269,13 @@ const styles = StyleSheet.create({
   statLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   statSub: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   statDivider: {
@@ -310,6 +312,7 @@ const styles = StyleSheet.create({
   receiptDate: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   itemCount: {

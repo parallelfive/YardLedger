@@ -135,6 +135,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: spacing.xxl,
@@ -184,5 +185,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
 });

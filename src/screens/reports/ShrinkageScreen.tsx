@@ -125,6 +125,7 @@ const styles = StyleSheet.create({
   headerNote: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
@@ -152,6 +153,7 @@ const styles = StyleSheet.create({
   metalCategory: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   discrepancyBadge: {
     alignItems: 'flex-end',
@@ -162,6 +164,7 @@ const styles = StyleSheet.create({
   },
   discrepancyPercent: {
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   details: {
     flexDirection: 'row',
@@ -171,10 +174,12 @@ const styles = StyleSheet.create({
   detailText: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   emptyText: {
     color: colors.textSecondary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     textAlign: 'center',
     marginTop: spacing.xxxl,
   },

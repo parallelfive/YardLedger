@@ -588,6 +588,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   scroll: {
     flex: 1,
@@ -614,6 +615,7 @@ const styles = StyleSheet.create({
   date: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   section: {
@@ -630,10 +632,12 @@ const styles = StyleSheet.create({
   customerName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   customerPhone: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   lineItem: {
@@ -674,11 +678,13 @@ const styles = StyleSheet.create({
   lineItemDetail: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   tareDetail: {
     color: colors.textTertiary,
     fontSize: fontSize.xs,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   originalPrice: {
@@ -710,6 +716,7 @@ const styles = StyleSheet.create({
   totalLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.xl,
+    fontFamily: fonts.sans,
   },
   totalValue: {
     color: colors.accent,

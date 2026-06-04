@@ -155,6 +155,7 @@ const styles = StyleSheet.create({
   linkSub: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   sectionHeader: {
     color: colors.accent,
@@ -198,6 +199,7 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
   metalPrice: {
     color: colors.accent,

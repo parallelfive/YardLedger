@@ -179,5 +179,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
 });

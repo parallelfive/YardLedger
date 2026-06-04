@@ -104,5 +104,6 @@ const styles = StyleSheet.create({
   cardSubtitle: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
 });

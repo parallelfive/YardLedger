@@ -441,10 +441,12 @@ const styles = StyleSheet.create({
   pickerBack: {
     color: colors.accent,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   pickerCancel: {
     color: colors.danger,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   loader: {
     padding: spacing.lg,
@@ -452,6 +454,7 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textSecondary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     textAlign: 'center',
     padding: spacing.lg,
   },
@@ -471,15 +474,18 @@ const styles = StyleSheet.create({
   inventoryDetail: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   chevron: {
     color: colors.textTertiary,
     fontSize: fontSize.xl,
+    fontFamily: fonts.sans,
   },
   inventoryHint: {
     color: colors.warning,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     marginBottom: spacing.md,
     textAlign: 'center',
   },
@@ -492,6 +498,7 @@ const styles = StyleSheet.create({
   previewLine: {
     color: colors.textSecondary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     textAlign: 'center',
   },
   addButton: {
@@ -526,6 +533,7 @@ const styles = StyleSheet.create({
   lineItemDetail: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: 2,
   },
   lineItemProfit: {

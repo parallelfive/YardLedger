@@ -450,6 +450,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: colors.accent,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   title: {
     color: colors.textPrimary,
@@ -465,6 +466,7 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: colors.danger,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   stepIndicator: {
     flexDirection: 'row',
@@ -533,6 +535,7 @@ const styles = StyleSheet.create({
   chevron: {
     color: colors.textTertiary,
     fontSize: fontSize.xl,
+    fontFamily: fonts.sans,
   },
   weightContainer: {
     padding: spacing.lg,
@@ -580,6 +583,7 @@ const styles = StyleSheet.create({
   tareLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginBottom: spacing.xs,
     textAlign: 'center',
   },
@@ -604,6 +608,7 @@ const styles = StyleSheet.create({
   netResultLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   netResultValue: {
     color: colors.accent,
@@ -624,6 +629,7 @@ const styles = StyleSheet.create({
   preview: {
     color: colors.textSecondary,
     fontSize: fontSize.xl,
+    fontFamily: fonts.sans,
     textAlign: 'center',
   },
   addButton: {

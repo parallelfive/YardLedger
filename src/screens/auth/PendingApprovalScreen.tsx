@@ -87,6 +87,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 24,
@@ -115,5 +116,6 @@ const styles = StyleSheet.create({
   signOutButtonText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
 });

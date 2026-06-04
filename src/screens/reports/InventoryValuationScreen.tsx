@@ -157,6 +157,7 @@ const styles = StyleSheet.create({
   summaryLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.xs,
+    fontFamily: fonts.sans,
     marginBottom: spacing.xs,
   },
   summaryValue: {
@@ -189,6 +190,7 @@ const styles = StyleSheet.create({
   metalCategory: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   metalWeight: {
     color: colors.accent,
@@ -201,5 +203,6 @@ const styles = StyleSheet.create({
   detailText: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
 });

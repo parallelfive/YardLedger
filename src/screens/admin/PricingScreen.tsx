@@ -482,6 +482,7 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     flex: 1,
   },
   metalPrice: {
@@ -496,6 +497,7 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textSecondary,
     fontSize: fontSize.xl,
+    fontFamily: fonts.sans,
   },
   modalContainer: {
     flex: 1,
@@ -519,6 +521,7 @@ const styles = StyleSheet.create({
   modalCancel: {
     color: colors.danger,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   modalContent: {
     padding: spacing.lg,
@@ -527,6 +530,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
   textInput: {
     backgroundColor: colors.inputBackground,
@@ -596,6 +600,7 @@ const styles = StyleSheet.create({
   categoryChipText: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   categoryChipTextSelected: {
     color: colors.accentInk,
@@ -645,6 +650,7 @@ const styles = StyleSheet.create({
   restrictedToggleText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
   historySection: {
     marginTop: spacing.md,
@@ -666,9 +672,11 @@ const styles = StyleSheet.create({
   historyDate: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   historyChange: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
 });

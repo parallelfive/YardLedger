@@ -258,6 +258,7 @@ const styles = StyleSheet.create({
   tapPrompt: {
     color: colors.textTertiary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   modalContainer: {
     flex: 1,
@@ -311,6 +312,7 @@ const styles = StyleSheet.create({
   modalHint: {
     color: colors.textTertiary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     textAlign: 'center',
     marginTop: spacing.md,
   },

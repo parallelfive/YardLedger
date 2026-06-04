@@ -442,6 +442,7 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textSecondary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   statsRow: {
     flexDirection: 'row',
@@ -466,6 +467,7 @@ const styles = StyleSheet.create({
   statLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   statDivider: {
@@ -531,6 +533,7 @@ const styles = StyleSheet.create({
   recordDetail: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   restrictedTag: {

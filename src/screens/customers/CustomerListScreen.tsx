@@ -185,11 +185,13 @@ const styles = StyleSheet.create({
   customerPhone: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   customerDl: {
     color: colors.textTertiary,
     fontSize: fontSize.xs,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   idBadge: {

@@ -460,17 +460,20 @@ const styles = StyleSheet.create({
   logoPlaceholderText: {
     color: colors.textTertiary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     textAlign: 'center',
     padding: spacing.md,
   },
   logoHint: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.sm,
   },
   label: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     marginBottom: spacing.xs,
     marginTop: spacing.sm,
   },

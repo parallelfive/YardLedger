@@ -486,6 +486,7 @@ const styles = StyleSheet.create({
   companyPrefix: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: 2,
   },
   sectionHeader: {
@@ -527,6 +528,7 @@ const styles = StyleSheet.create({
   userMeta: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: 2,
   },
   actions: {
@@ -624,6 +626,7 @@ const styles = StyleSheet.create({
   codeHint: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     textAlign: 'center',
   },
   generateButton: {
@@ -683,6 +686,7 @@ const styles = StyleSheet.create({
   inviteRowMeta: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   empty: {
     padding: spacing.xxxl,
@@ -691,5 +695,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textSecondary,
     fontSize: fontSize.xl,
+    fontFamily: fonts.sans,
   },
 });

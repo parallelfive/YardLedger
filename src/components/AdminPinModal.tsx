@@ -131,6 +131,7 @@ const styles = StyleSheet.create({
   subtitle: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     textAlign: 'center',
     marginBottom: spacing.xl,
   },
@@ -148,6 +149,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     textAlign: 'center',
     marginBottom: spacing.md,
   },

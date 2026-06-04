@@ -151,6 +151,7 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: colors.danger,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   loader: {
     marginTop: spacing.xxxl,
@@ -180,6 +181,7 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
     flex: 1,
   },
   metalPrice: {
@@ -194,5 +196,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textSecondary,
     fontSize: fontSize.xl,
+    fontFamily: fonts.sans,
   },
 });

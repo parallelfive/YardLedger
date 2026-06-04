@@ -525,6 +525,7 @@ const styles = StyleSheet.create({
   errorText: {
     color: colors.danger,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   flagBanner: {
     flexDirection: 'row',
@@ -548,6 +549,7 @@ const styles = StyleSheet.create({
   flagBannerReason: {
     color: colors.danger,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   actionButtons: {
@@ -603,6 +605,7 @@ const styles = StyleSheet.create({
   idPlaceholderText: {
     color: colors.textTertiary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
   updateIdButton: {
     marginTop: spacing.sm,
@@ -630,6 +633,7 @@ const styles = StyleSheet.create({
   infoRow: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     marginBottom: spacing.xs,
   },
   infoLabel: {
@@ -659,6 +663,7 @@ const styles = StyleSheet.create({
   statLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.xs,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   statDivider: {
@@ -700,6 +705,7 @@ const styles = StyleSheet.create({
   editCancelText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
   },
   editSaveButton: {
     backgroundColor: colors.accent,
@@ -727,6 +733,7 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textTertiary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sans,
     marginTop: spacing.md,
   },
   receiptCard: {
@@ -757,11 +764,13 @@ const styles = StyleSheet.create({
   receiptDate: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   receiptItems: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
     marginTop: spacing.xs,
   },
   printButton: {

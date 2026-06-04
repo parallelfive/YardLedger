@@ -245,6 +245,7 @@ const styles = StyleSheet.create({
   summaryLabel: {
     color: colors.textSecondary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sans,
   },
   summaryValue: {
     color: colors.success,
@@ -296,6 +297,7 @@ const styles = StyleSheet.create({
   categoryDetail: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
   },
   rowWrap: {
     marginHorizontal: spacing.md,
