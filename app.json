@@ -46,7 +46,8 @@
         {
           "cameraPermission": "YardLedger needs camera access to scan customer IDs."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "extra": {
       "eas": {
