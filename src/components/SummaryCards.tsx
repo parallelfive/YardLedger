@@ -82,23 +82,27 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
     borderRadius: borderRadius.md,
     padding: spacing.lg,
-    alignItems: 'center',
+    alignItems: 'flex-start',
     borderWidth: 1,
     borderColor: colors.borderSubtle,
   },
   statLabel: {
     color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    marginBottom: spacing.xs,
+    fontSize: 11,
+    fontFamily: fonts.sansSemiBold,
+    letterSpacing: 0.7,
+    textTransform: 'uppercase',
+    marginBottom: spacing.sm,
   },
   statValue: {
     color: colors.accent,
     fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
   },
   statSub: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.mono,
     marginTop: spacing.xs,
   },
   section: {
@@ -124,9 +128,11 @@ const styles = StyleSheet.create({
   metalName: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.sansMedium,
   },
   metalWeight: {
     color: colors.textSecondary,
     fontSize: fontSize.lg,
+    fontFamily: fonts.mono,
   },
 });

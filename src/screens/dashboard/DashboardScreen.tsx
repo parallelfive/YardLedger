@@ -182,11 +182,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
   },
   sectionTitle: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontFamily: fonts.sansSemiBold,
+    letterSpacing: 0.9,
+    textTransform: 'uppercase',
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
+    marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
   emptyText: {
@@ -230,10 +232,12 @@ const styles = StyleSheet.create({
   invName: {
     color: colors.textPrimary,
     fontSize: fontSize.md,
+    fontFamily: fonts.sansMedium,
   },
   invWeight: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+    fontFamily: fonts.mono,
   },
   greeting: {
     alignItems: 'center',
