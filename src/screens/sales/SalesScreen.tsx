@@ -161,7 +161,9 @@ export default function SalesScreen({ navigation }: Props) {
                 icon="cube-outline"
                 iconColor={colors.teal}
                 customer={item.metal_name}
-                meta={`${fmtLbs(Number(item.weight))} lb · ${date}`}
+                meta={`${fmtLbs(Number(item.weight))} lb · ${date}${
+                  item.buyer_name ? ` · ${item.buyer_name}` : ''
+                }`}
                 total={fmtMoney(profit)}
                 totalColor={profit < 0 ? colors.rust : colors.moss}
                 sub={`${fmtMoney(Number(item.total_revenue))} rev`}
