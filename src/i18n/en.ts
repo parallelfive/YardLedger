@@ -374,6 +374,15 @@ export default {
   materialDisposed: 'Material marked as disposed.',
   materialOnHold: 'Material is still on a mandatory hold',
   disposed: 'Disposed',
+  reportingStatus: 'State Reporting',
+  reportingStatusDesc: 'Upload status & pending transactions',
+  pendingReports: 'Pending',
+  lastUpload: 'Last Upload',
+  neverUploaded: 'Never',
+  reportDeadlineNote:
+    'NM requires uploading each purchase to the state database by the 2nd business day (NMSA 57-30-8).',
+  reportingHowto:
+    'Export the pending transactions and upload them to LeadsOnline, then confirm to mark them reported. Owners can also configure automated SFTP upload in Company Profile.',
   scanError: 'Scan Error',
   changeRoleTitle: 'Change Role',
   changeRoleMessage: 'Change this user to {role}?',

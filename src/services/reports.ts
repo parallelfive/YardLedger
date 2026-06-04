@@ -590,6 +590,38 @@ export async function markReceiptsReported(
   if (logError) throw logError;
 }
 
+// ---------- Reporting status (for the State Reporting screen) ----------
+export interface ReportingStatus {
+  pending: number;
+  lastUpload: {
+    created_at: string;
+    receipt_count: number;
+    status: string;
+    method: string;
+  } | null;
+}
+
+export async function fetchReportingStatus(): Promise<ReportingStatus> {
+  const { count, error } = await supabase
+    .from('receipts')
+    .select('id', { count: 'exact', head: true })
+    .eq('type', 'buy')
+    .is('reported_at', null);
+  if (error) throw error;
+
+  const { data: log, error: logError } = await supabase
+    .from('compliance_upload_log')
+    .select('created_at, receipt_count, status, method')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (logError) throw logError;
+
+  return {
+    pending: count ?? 0,
+    lastUpload: (log?.[0] as ReportingStatus['lastUpload']) ?? null,
+  };
+}
+
 // ---------- Material still on a mandatory hold ----------
 // Receipts whose hold window has not expired and that have not been disposed —
 // these may not be processed/resold yet (NM 57-30-11 / 57-30-2.4).

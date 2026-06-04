@@ -52,6 +52,11 @@ export default function ReportsListScreen({ navigation }: Props) {
       subtitle: t.onHoldDesc,
       screen: 'OnHold',
     },
+    {
+      title: t.reportingStatus,
+      subtitle: t.reportingStatusDesc,
+      screen: 'ReportingStatus',
+    },
   ];
 
   return (

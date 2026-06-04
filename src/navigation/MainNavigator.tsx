@@ -16,6 +16,7 @@ import ProfitabilityScreen from '../screens/reports/ProfitabilityScreen';
 import ShrinkageScreen from '../screens/reports/ShrinkageScreen';
 import ComplianceReportScreen from '../screens/reports/ComplianceReportScreen';
 import OnHoldScreen from '../screens/reports/OnHoldScreen';
+import ReportingStatusScreen from '../screens/reports/ReportingStatusScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import CustomerListScreen from '../screens/customers/CustomerListScreen';
 import CustomerProfileScreen from '../screens/customers/CustomerProfileScreen';
@@ -76,6 +77,7 @@ export type ReportsStackParamList = {
   Shrinkage: undefined;
   ComplianceReport: undefined;
   OnHold: undefined;
+  ReportingStatus: undefined;
 };
 
 export type AdminStackParamList = {
@@ -265,6 +267,11 @@ function ReportsNavigator() {
         name="OnHold"
         component={OnHoldScreen}
         options={{ title: t.onHoldReport }}
+      />
+      <ReportsStack.Screen
+        name="ReportingStatus"
+        component={ReportingStatusScreen}
+        options={{ title: t.reportingStatus }}
       />
     </ReportsStack.Navigator>
   );

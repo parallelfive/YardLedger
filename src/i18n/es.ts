@@ -376,6 +376,15 @@ export default {
   materialDisposed: 'Material marcado como desechado.',
   materialOnHold: 'El material aún está en retención obligatoria',
   disposed: 'Desechado',
+  reportingStatus: 'Reporte Estatal',
+  reportingStatusDesc: 'Estado de subida y transacciones pendientes',
+  pendingReports: 'Pendientes',
+  lastUpload: 'Última Subida',
+  neverUploaded: 'Nunca',
+  reportDeadlineNote:
+    'NM requiere subir cada compra a la base de datos estatal antes del 2º día hábil (NMSA 57-30-8).',
+  reportingHowto:
+    'Exporta las transacciones pendientes y súbelas a LeadsOnline, luego confirma para marcarlas como reportadas. Los propietarios también pueden configurar la subida automática por SFTP en el Perfil de Empresa.',
   scanError: 'Error de escaneo',
   changeRoleTitle: 'Cambiar Rol',
   changeRoleMessage: '¿Cambiar este usuario a {role}?',
