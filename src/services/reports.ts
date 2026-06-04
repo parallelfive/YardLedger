@@ -439,6 +439,7 @@ export interface ComplianceReceiptRow {
   is_catalytic: boolean | null;
   payment_method: string | null;
   hold_until: string | null;
+  reported_at: string | null;
   subtotal: number;
   line_items: {
     metal_name: string;
