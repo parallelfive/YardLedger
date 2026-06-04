@@ -50,6 +50,25 @@ These exist and work, but the handoff had no matching screen. Left in place:
 - **Admin: user management, metals/pricing CRUD, access codes (admin PINs).**
   Reskinned to Foundry but no dedicated prototype screens.
 
+## Screen rebuilds — design structure, not just reskin
+
+- **New Buy** (`NewTransactionScreen`) — rebuilt to the prototype's tier-aware
+  adaptive **stepper** (`screen-buy.jsx` BuyFlow): weigh materials first, the
+  app derives the required steps from the governing tier. One deliberate
+  deviation: the prototype's **"Proof of ownership" step** for _restricted,
+  non-catalytic_ material (e.g. burnt copper wire) is NOT built — our DB has no
+  proof-of-ownership photo/note columns. Restricted currently follows the same
+  steps as regulated (seller + vehicle). Need: DB columns
+  (`proof_photo_uri`, `proof_note`) + a migration if we want this step.
+  Also: the prototype's keypad-based "Add material" sheet was kept as our
+  existing `AddLineItemModal` (it has scale gross/tare capture the keypad
+  mockup lacks).
+- **Still reskinned-but-not-structurally-rebuilt** (Foundry paint on existing
+  layout, not yet 1:1 to the prototype flow): New Sale (`SaleFlow` in the
+  prototype is a compact single sheet), Inventory/Stock, the individual Report
+  screens, Admin, Settings. Flag which of these you want rebuilt to the
+  prototype structure next.
+
 ## Open questions
 
 - Reports list: which reports are "core" enough to deserve dashboard shortcuts
