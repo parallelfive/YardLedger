@@ -30,7 +30,8 @@ import {
   toneColor,
   type Tone,
 } from '../../components/foundry';
-import { colors, spacing, fontSize, fonts } from '../../constants';
+import { type Palette, spacing, fontSize, fonts } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 function toneFor(category: string | undefined): Tone {
   switch (category) {
@@ -48,6 +49,8 @@ function toneFor(category: string | undefined): Tone {
 
 export default function ProfitabilityScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const isFocused = useIsFocused();
   const [preset, setPreset] = useState<DatePreset>('month');
   const [data, setData] = useState<ProfitabilityReport | null>(null);
@@ -210,118 +213,119 @@ export default function ProfitabilityScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, minWidth: 0 },
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingBottom: spacing.xxxl },
-  loader: { marginTop: spacing.xxxl },
-  hero: {
-    marginHorizontal: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: 18,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  heroEyebrow: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  heroValue: {
-    fontSize: 40,
-    fontFamily: fonts.display,
-    letterSpacing: -1,
-    marginTop: 5,
-  },
-  heroSubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 5,
-  },
-  heroSub: {
-    color: colors.textSecondary,
-    fontSize: 12.5,
-    fontFamily: fonts.mono,
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  metalCard: {
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-  },
-  metalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  metalTitleLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  metalName: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontFamily: fonts.sansSemiBold,
-  },
-  metalCategory: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.mono,
-    marginTop: 1,
-  },
-  metalRight: { alignItems: 'flex-end', gap: 3 },
-  metalProfit: {
-    fontSize: 17,
-    fontFamily: fonts.display,
-    letterSpacing: -0.3,
-  },
-  metalStats: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface2,
-    borderRadius: 12,
-    paddingVertical: spacing.sm,
-  },
-  metalStat: { flex: 1, alignItems: 'center', gap: 2 },
-  metalStatDivider: { width: 1, backgroundColor: colors.borderSubtle },
-  metalStatLabel: {
-    color: colors.textTertiary,
-    fontSize: 9.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  metalStatValue: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontFamily: fonts.monoSemiBold,
-  },
-  metalStatSub: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.mono,
-  },
-  empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    flex: { flex: 1, minWidth: 0 },
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: spacing.xxxl },
+    loader: { marginTop: spacing.xxxl },
+    hero: {
+      marginHorizontal: spacing.lg,
+      padding: spacing.lg,
+      borderRadius: 18,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing.md,
+    },
+    heroEyebrow: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    heroValue: {
+      fontSize: 40,
+      fontFamily: fonts.display,
+      letterSpacing: -1,
+      marginTop: 5,
+    },
+    heroSubRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginTop: 5,
+    },
+    heroSub: {
+      color: colors.textSecondary,
+      fontSize: 12.5,
+      fontFamily: fonts.mono,
+    },
+    statRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    metalCard: {
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderLeftWidth: 3,
+    },
+    metalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: spacing.md,
+    },
+    metalTitleLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+    },
+    metalName: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.sansSemiBold,
+    },
+    metalCategory: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+      marginTop: 1,
+    },
+    metalRight: { alignItems: 'flex-end', gap: 3 },
+    metalProfit: {
+      fontSize: 17,
+      fontFamily: fonts.display,
+      letterSpacing: -0.3,
+    },
+    metalStats: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface2,
+      borderRadius: 12,
+      paddingVertical: spacing.sm,
+    },
+    metalStat: { flex: 1, alignItems: 'center', gap: 2 },
+    metalStatDivider: { width: 1, backgroundColor: colors.borderSubtle },
+    metalStatLabel: {
+      color: colors.textTertiary,
+      fontSize: 9.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    metalStatValue: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.monoSemiBold,
+    },
+    metalStatSub: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+    },
+    empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
+    emptyText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+    },
+  });

@@ -16,7 +16,14 @@ import {
 } from '../services/metals';
 import { useT } from '../hooks/useT';
 import { validateWeight } from '../utils/validation';
-import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../constants';
+import { useTheme, useThemedStyles } from '../theme';
 
 // In-memory recent metals cache (persists for the app session)
 const MAX_RECENT = 5;
@@ -50,6 +57,8 @@ export default function AddLineItemModal({
   onClose,
 }: AddLineItemModalProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [step, setStep] = useState<Step>('category');
   const [categories, setCategories] = useState<MetalCategory[]>([]);
   const [metals, setMetals] = useState<Metal[]>([]);
@@ -429,222 +438,223 @@ export default function AddLineItemModal({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    minWidth: 60,
-  },
-  backButtonText: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-    flex: 1,
-    textAlign: 'center',
-  },
-  closeButton: {
-    minWidth: 60,
-    alignItems: 'flex-end',
-  },
-  closeButtonText: {
-    color: colors.danger,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-  stepIndicator: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-  },
-  stepDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.border,
-  },
-  stepDotActive: {
-    backgroundColor: colors.accent,
-  },
-  loader: {
-    marginTop: spacing.xxxl,
-  },
-  recentSection: {
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
-  },
-  recentTitle: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-    marginBottom: spacing.xs,
-  },
-  recentCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderLeftWidth: 3,
-  },
-  listContent: {
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  optionCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  optionName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansSemiBold,
-  },
-  optionPrice: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.mono,
-    marginTop: spacing.xs,
-  },
-  chevron: {
-    color: colors.textTertiary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sans,
-  },
-  weightContainer: {
-    padding: spacing.lg,
-    gap: spacing.lg,
-  },
-  metalInfo: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-    textAlign: 'center',
-  },
-  weightModeToggle: {
-    flexDirection: 'row',
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  weightModeButton: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-    borderRadius: borderRadius.md - 2,
-  },
-  weightModeButtonActive: {
-    backgroundColor: colors.accent,
-  },
-  weightModeText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.monoMedium,
-  },
-  weightModeTextActive: {
-    color: colors.accentInk,
-  },
-  tareRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: spacing.sm,
-  },
-  tareInputGroup: {
-    flex: 1,
-  },
-  tareLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    marginBottom: spacing.xs,
-    textAlign: 'center',
-  },
-  tareMinus: {
-    color: colors.textTertiary,
-    fontSize: fontSize.xxl,
-    fontFamily: fonts.sansBold,
-    paddingBottom: spacing.md,
-  },
-  netResult: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.card,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderLeftWidth: 3,
-  },
-  netResultLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-  netResultValue: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.monoSemiBold,
-  },
-  weightInput: {
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    fontSize: fontSize.xxl,
-    fontFamily: fonts.mono,
-    textAlign: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  preview: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-  },
-  addButton: {
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    alignItems: 'center',
-    marginTop: spacing.md,
-  },
-  addButtonDisabled: {
-    opacity: 0.4,
-  },
-  addButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xxl,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    backButton: {
+      minWidth: 60,
+    },
+    backButtonText: {
+      color: colors.accent,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+      flex: 1,
+      textAlign: 'center',
+    },
+    closeButton: {
+      minWidth: 60,
+      alignItems: 'flex-end',
+    },
+    closeButtonText: {
+      color: colors.danger,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+    stepIndicator: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      paddingVertical: spacing.md,
+    },
+    stepDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.border,
+    },
+    stepDotActive: {
+      backgroundColor: colors.accent,
+    },
+    loader: {
+      marginTop: spacing.xxxl,
+    },
+    recentSection: {
+      marginBottom: spacing.lg,
+      gap: spacing.sm,
+    },
+    recentTitle: {
+      color: colors.accent,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+      marginBottom: spacing.xs,
+    },
+    recentCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.accent,
+      borderLeftWidth: 3,
+    },
+    listContent: {
+      padding: spacing.lg,
+      gap: spacing.sm,
+    },
+    optionCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    optionName: {
+      color: colors.textPrimary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansSemiBold,
+    },
+    optionPrice: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.mono,
+      marginTop: spacing.xs,
+    },
+    chevron: {
+      color: colors.textTertiary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sans,
+    },
+    weightContainer: {
+      padding: spacing.lg,
+      gap: spacing.lg,
+    },
+    metalInfo: {
+      color: colors.accent,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+      textAlign: 'center',
+    },
+    weightModeToggle: {
+      flexDirection: 'row',
+      backgroundColor: colors.card,
+      borderRadius: borderRadius.md,
+      padding: 3,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    weightModeButton: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      alignItems: 'center',
+      borderRadius: borderRadius.md - 2,
+    },
+    weightModeButtonActive: {
+      backgroundColor: colors.accent,
+    },
+    weightModeText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.monoMedium,
+    },
+    weightModeTextActive: {
+      color: colors.accentInk,
+    },
+    tareRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: spacing.sm,
+    },
+    tareInputGroup: {
+      flex: 1,
+    },
+    tareLabel: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+      marginBottom: spacing.xs,
+      textAlign: 'center',
+    },
+    tareMinus: {
+      color: colors.textTertiary,
+      fontSize: fontSize.xxl,
+      fontFamily: fonts.sansBold,
+      paddingBottom: spacing.md,
+    },
+    netResult: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.card,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.accent,
+      borderLeftWidth: 3,
+    },
+    netResultLabel: {
+      color: colors.textSecondary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+    netResultValue: {
+      color: colors.accent,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.monoSemiBold,
+    },
+    weightInput: {
+      backgroundColor: colors.inputBackground,
+      color: colors.textPrimary,
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      fontSize: fontSize.xxl,
+      fontFamily: fonts.mono,
+      textAlign: 'center',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    preview: {
+      color: colors.textSecondary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+    },
+    addButton: {
+      backgroundColor: colors.accent,
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      alignItems: 'center',
+      marginTop: spacing.md,
+    },
+    addButtonDisabled: {
+      opacity: 0.4,
+    },
+    addButtonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+  });

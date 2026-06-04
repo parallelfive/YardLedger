@@ -16,7 +16,14 @@ import {
 import SignatureScreen, {
   type SignatureViewRef,
 } from 'react-native-signature-canvas';
-import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../constants';
+import { useThemedStyles } from '../theme';
 import { useT } from '../hooks/useT';
 
 /** Returns true if the data URI actually contains image data */
@@ -41,6 +48,7 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
     ref
   ) => {
     const { t } = useT();
+    const styles = useThemedStyles(makeStyles);
     const signatureRef = useRef<SignatureViewRef>(null);
     const latestSignature = useRef<string | null>(null);
     const pendingResolve = useRef<((val: string | null) => void) | null>(null);
@@ -222,100 +230,101 @@ SignaturePad.displayName = 'SignaturePad';
 
 export default SignaturePad;
 
-const styles = StyleSheet.create({
-  container: {
-    marginTop: spacing.lg,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  label: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-  },
-  clearButton: {
-    color: colors.danger,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansSemiBold,
-  },
-  signatureBox: {
-    height: 120,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    overflow: 'hidden',
-    backgroundColor: '#ffffff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  tapPrompt: {
-    color: colors.textTertiary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-  },
-  modalClearText: {
-    color: colors.danger,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-    minWidth: 60,
-  },
-  modalDoneText: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-    minWidth: 60,
-    textAlign: 'right',
-  },
-  modalCanvasContainer: {
-    flex: 1,
-    padding: spacing.lg,
-    justifyContent: 'center',
-  },
-  modalCanvas: {
-    flex: 1,
-    maxHeight: 350,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-    backgroundColor: '#ffffff',
-  },
-  signature: {
-    flex: 1,
-  },
-  modalHint: {
-    color: colors.textTertiary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-    marginTop: spacing.md,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      marginTop: spacing.lg,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.sm,
+    },
+    label: {
+      color: colors.accent,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    clearButton: {
+      color: colors.danger,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
+    },
+    signatureBox: {
+      height: 120,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderStyle: 'dashed',
+      overflow: 'hidden',
+      backgroundColor: '#ffffff',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    previewImage: {
+      width: '100%',
+      height: '100%',
+    },
+    tapPrompt: {
+      color: colors.textTertiary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xxl,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalTitle: {
+      color: colors.textPrimary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    modalClearText: {
+      color: colors.danger,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+      minWidth: 60,
+    },
+    modalDoneText: {
+      color: colors.accent,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+      minWidth: 60,
+      textAlign: 'right',
+    },
+    modalCanvasContainer: {
+      flex: 1,
+      padding: spacing.lg,
+      justifyContent: 'center',
+    },
+    modalCanvas: {
+      flex: 1,
+      maxHeight: 350,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+      backgroundColor: '#ffffff',
+    },
+    signature: {
+      flex: 1,
+    },
+    modalHint: {
+      color: colors.textTertiary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+      marginTop: spacing.md,
+    },
+  });

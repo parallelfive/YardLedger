@@ -33,17 +33,16 @@ import { useAppSelector, useAppDispatch, type RootState } from '../store';
 import { signOut } from '../store/authStore';
 import { toggleLanguage } from '../store/settingsStore';
 import { useT } from '../hooks/useT';
-import { toggleThemeMode } from '../utils';
+import { useTheme, useThemedStyles } from '../theme';
 import {
-  colors,
   fontSize,
   spacing,
   fonts,
   borderRadius,
-  isLightTheme,
+  type Palette,
 } from '../constants';
 
-const stackScreenOptions = {
+const stackOpts = (colors: Palette) => ({
   headerStyle: {
     backgroundColor: colors.surface,
   },
@@ -54,7 +53,7 @@ const stackScreenOptions = {
   },
   headerShadowVisible: false,
   animation: 'slide_from_right' as const,
-};
+});
 
 export type MainTabParamList = {
   Dashboard: undefined;
@@ -115,6 +114,8 @@ function SettingsButton() {
   const { t, language } = useT();
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
+  const { colors, isLight, toggle } = useTheme();
+  const navStyles = useThemedStyles(makeNavStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
   const [visible, setVisible] = useState(false);
@@ -129,12 +130,9 @@ function SettingsButton() {
 
   return (
     <View style={navStyles.headerRight}>
-      <TouchableOpacity
-        style={navStyles.headerIconButton}
-        onPress={() => void toggleThemeMode()}
-      >
+      <TouchableOpacity style={navStyles.headerIconButton} onPress={toggle}>
         <Ionicons
-          name={isLightTheme ? 'sunny-outline' : 'moon-outline'}
+          name={isLight ? 'sunny-outline' : 'moon-outline'}
           size={21}
           color={colors.accent}
         />
@@ -272,8 +270,9 @@ function SettingsButton() {
 
 function TransactionsNavigator() {
   const { t } = useT();
+  const { colors } = useTheme();
   return (
-    <TransactionsStack.Navigator screenOptions={stackScreenOptions}>
+    <TransactionsStack.Navigator screenOptions={stackOpts(colors)}>
       <TransactionsStack.Screen
         name="TransactionsList"
         component={TransactionsScreen}
@@ -307,8 +306,9 @@ function TransactionsNavigator() {
 
 function SalesNavigator() {
   const { t } = useT();
+  const { colors } = useTheme();
   return (
-    <SalesStack.Navigator screenOptions={stackScreenOptions}>
+    <SalesStack.Navigator screenOptions={stackOpts(colors)}>
       <SalesStack.Screen
         name="SalesList"
         component={SalesScreen}
@@ -329,8 +329,9 @@ function SalesNavigator() {
 
 function CustomersNavigator() {
   const { t } = useT();
+  const { colors } = useTheme();
   return (
-    <CustomersStack.Navigator screenOptions={stackScreenOptions}>
+    <CustomersStack.Navigator screenOptions={stackOpts(colors)}>
       <CustomersStack.Screen
         name="CustomerList"
         component={CustomerListScreen}
@@ -347,8 +348,9 @@ function CustomersNavigator() {
 
 function ReportsNavigator() {
   const { t } = useT();
+  const { colors } = useTheme();
   return (
-    <ReportsStack.Navigator screenOptions={stackScreenOptions}>
+    <ReportsStack.Navigator screenOptions={stackOpts(colors)}>
       <ReportsStack.Screen
         name="ReportsList"
         component={ReportsListScreen}
@@ -398,8 +400,9 @@ function ReportsNavigator() {
 
 function AdminNavigator() {
   const { t } = useT();
+  const { colors } = useTheme();
   return (
-    <AdminStack.Navigator screenOptions={stackScreenOptions}>
+    <AdminStack.Navigator screenOptions={stackOpts(colors)}>
       <AdminStack.Screen
         name="Users"
         component={UserApprovalScreen}
@@ -437,6 +440,8 @@ function QuickActions({
   onSale: () => void;
 }) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const navStyles = useThemedStyles(makeNavStyles);
   const Row = ({
     icon,
     tone,
@@ -493,6 +498,8 @@ function QuickActions({
 // raised copper FAB that opens the quick-action sheet.
 function YLTabBar({ state, navigation }: BottomTabBarProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const navStyles = useThemedStyles(makeNavStyles);
   const [quickOpen, setQuickOpen] = useState(false);
   const currentName = state.routes[state.index]?.name;
   const has = (name: string) => state.routes.some((r) => r.name === name);
@@ -567,6 +574,7 @@ function YLTabBar({ state, navigation }: BottomTabBarProps) {
 
 export default function MainNavigator() {
   const { t } = useT();
+  const { colors } = useTheme();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
 
@@ -635,147 +643,148 @@ export default function MainNavigator() {
   );
 }
 
-const navStyles = StyleSheet.create({
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: spacing.sm,
-  },
-  headerIconButton: {
-    padding: spacing.sm,
-  },
-  // Custom tab bar
-  tabBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
-    paddingTop: spacing.sm,
-    paddingBottom: 28,
-    paddingHorizontal: spacing.md,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 3,
-    paddingTop: 2,
-  },
-  tabLabel: {
-    fontSize: 9.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-  },
-  fabSlot: {
-    width: 64,
-    alignItems: 'center',
-  },
-  fab: {
-    width: 52,
-    height: 52,
-    borderRadius: 17,
-    marginTop: -6,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.accent,
-    shadowOpacity: 0.45,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
-  },
-  // Quick actions sheet
-  quickOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'flex-end',
-  },
-  quickSheet: {
-    backgroundColor: colors.card,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  quickHandle: {
-    width: 40,
-    height: 4,
-    borderRadius: 99,
-    backgroundColor: colors.borderStrong,
-    alignSelf: 'center',
-    marginBottom: spacing.lg,
-  },
-  quickTitle: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: spacing.md,
-  },
-  quickRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    marginBottom: spacing.sm,
-  },
-  quickIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickLabel: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  settingsOverlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'flex-start',
-    alignItems: 'flex-end',
-    paddingTop: 100,
-    paddingRight: spacing.lg,
-  },
-  settingsModal: {
-    backgroundColor: colors.card,
-    borderRadius: 12,
-    minWidth: 220,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  settingsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  settingsRowText: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    flex: 1,
-  },
-  settingsRowValue: {
-    color: colors.accent,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  settingsDivider: {
-    height: 1,
-    backgroundColor: colors.border,
-  },
-});
+const makeNavStyles = (colors: Palette) =>
+  StyleSheet.create({
+    headerRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginRight: spacing.sm,
+    },
+    headerIconButton: {
+      padding: spacing.sm,
+    },
+    // Custom tab bar
+    tabBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-around',
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+      paddingTop: spacing.sm,
+      paddingBottom: 28,
+      paddingHorizontal: spacing.md,
+    },
+    tabItem: {
+      flex: 1,
+      alignItems: 'center',
+      gap: 3,
+      paddingTop: 2,
+    },
+    tabLabel: {
+      fontSize: 9.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+    },
+    fabSlot: {
+      width: 64,
+      alignItems: 'center',
+    },
+    fab: {
+      width: 52,
+      height: 52,
+      borderRadius: 17,
+      marginTop: -6,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      shadowColor: colors.accent,
+      shadowOpacity: 0.45,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: 6 },
+      elevation: 6,
+    },
+    // Quick actions sheet
+    quickOverlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'flex-end',
+    },
+    quickSheet: {
+      backgroundColor: colors.card,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      padding: spacing.lg,
+      paddingBottom: spacing.xxxl,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    quickHandle: {
+      width: 40,
+      height: 4,
+      borderRadius: 99,
+      backgroundColor: colors.borderStrong,
+      alignSelf: 'center',
+      marginBottom: spacing.lg,
+    },
+    quickTitle: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: spacing.md,
+    },
+    quickRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      padding: spacing.md,
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      marginBottom: spacing.sm,
+    },
+    quickIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 12,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    quickLabel: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    settingsOverlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'flex-start',
+      alignItems: 'flex-end',
+      paddingTop: 100,
+      paddingRight: spacing.lg,
+    },
+    settingsModal: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      minWidth: 220,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    settingsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
+    settingsRowText: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontWeight: '600',
+      flex: 1,
+    },
+    settingsRowValue: {
+      color: colors.accent,
+      fontSize: fontSize.md,
+      fontWeight: '600',
+    },
+    settingsDivider: {
+      height: 1,
+      backgroundColor: colors.border,
+    },
+  });

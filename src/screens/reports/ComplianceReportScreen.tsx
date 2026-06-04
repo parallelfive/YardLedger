@@ -28,7 +28,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useAppSelector, type RootState } from '../../store';
 import { Tag, SectionLabel, fmtMoney } from '../../components/foundry';
-import { colors, spacing, fontSize, fonts } from '../../constants';
+import { type Palette, spacing, fontSize, fonts } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 interface PurchaseRecordRow {
   date: string;
@@ -51,6 +52,8 @@ interface PurchaseRecordRow {
 
 export default function ComplianceReportScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const isFocused = useIsFocused();
   const [preset, setPreset] = useState<DatePreset>('today');
@@ -460,6 +463,7 @@ function ExportBtn({
   sub: string;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity style={styles.exportBtn} onPress={onPress}>
       <View style={[styles.exportIcon, { backgroundColor: tone + '24' }]}>
@@ -477,146 +481,147 @@ function ExportBtn({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  loader: {
-    marginTop: spacing.xxxl,
-  },
-  empty: {
-    padding: spacing.xxxl,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: 15,
-    marginBottom: spacing.lg,
-  },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    color: colors.textPrimary,
-    fontSize: 26,
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
-  },
-  statLabel: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginTop: 3,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: colors.borderSubtle,
-    alignSelf: 'stretch',
-  },
-  exportGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  exportBtn: {
-    width: '47.5%',
-    flexGrow: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 14,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  exportIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exportTextWrap: { flex: 1, minWidth: 0 },
-  exportLabel: {
-    color: colors.textPrimary,
-    fontSize: 13.5,
-    fontFamily: fonts.sansSemiBold,
-  },
-  exportSub: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.mono,
-    marginTop: 1,
-  },
-  list: { paddingHorizontal: spacing.lg, gap: spacing.sm },
-  recordCard: {
-    backgroundColor: colors.card,
-    padding: spacing.md,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-  },
-  recordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  recordTitleLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-  },
-  recordReceipt: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.mono,
-    marginTop: 2,
-  },
-  recordAmount: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontFamily: fonts.monoSemiBold,
-  },
-  recordSeller: {
-    color: colors.textPrimary,
-    fontSize: 14.5,
-    fontFamily: fonts.sansSemiBold,
-    flexShrink: 1,
-  },
-  recordMeta: {
-    color: colors.textSecondary,
-    fontSize: 10.5,
-    fontFamily: fonts.mono,
-    marginTop: 6,
-    lineHeight: 15,
-  },
-  recordMaterials: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.sans,
-    marginTop: 3,
-    lineHeight: 16,
-  },
-  recordTags: { flexDirection: 'row', gap: spacing.md, marginTop: 8 },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loader: {
+      marginTop: spacing.xxxl,
+    },
+    empty: {
+      padding: spacing.xxxl,
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 15,
+      marginBottom: spacing.lg,
+    },
+    statBox: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statNumber: {
+      color: colors.textPrimary,
+      fontSize: 26,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+    },
+    statLabel: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      marginTop: 3,
+    },
+    statDivider: {
+      width: 1,
+      backgroundColor: colors.borderSubtle,
+      alignSelf: 'stretch',
+    },
+    exportGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    exportBtn: {
+      width: '47.5%',
+      flexGrow: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 14,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    exportIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    exportTextWrap: { flex: 1, minWidth: 0 },
+    exportLabel: {
+      color: colors.textPrimary,
+      fontSize: 13.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    exportSub: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 1,
+    },
+    list: { paddingHorizontal: spacing.lg, gap: spacing.sm },
+    recordCard: {
+      backgroundColor: colors.card,
+      padding: spacing.md,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderLeftWidth: 3,
+    },
+    recordHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    recordTitleLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flex: 1,
+    },
+    recordReceipt: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    recordAmount: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.monoSemiBold,
+    },
+    recordSeller: {
+      color: colors.textPrimary,
+      fontSize: 14.5,
+      fontFamily: fonts.sansSemiBold,
+      flexShrink: 1,
+    },
+    recordMeta: {
+      color: colors.textSecondary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 6,
+      lineHeight: 15,
+    },
+    recordMaterials: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.sans,
+      marginTop: 3,
+      lineHeight: 16,
+    },
+    recordTags: { flexDirection: 'row', gap: spacing.md, marginTop: 8 },
+  });

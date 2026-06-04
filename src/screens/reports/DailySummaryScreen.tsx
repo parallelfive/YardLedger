@@ -19,10 +19,13 @@ import {
 } from '../../services/reports';
 import { Sparkline, SectionLabel, fmtMoney0 } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fonts } from '../../constants';
+import { type Palette, spacing, fonts } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 export default function DailySummaryScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const isFocused = useIsFocused();
   const [preset, setPreset] = useState<DatePreset>('today');
   const [data, setData] = useState<DailySummary | null>(null);
@@ -79,33 +82,34 @@ export default function DailySummaryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  loader: {
-    marginTop: spacing.xxxl,
-  },
-  trendCard: {
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  trendValue: {
-    color: colors.textPrimary,
-    fontSize: 30,
-    fontFamily: fonts.monoSemiBold,
-    marginTop: spacing.xs,
-  },
-  trendSub: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontFamily: fonts.mono,
-    marginBottom: spacing.md,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loader: {
+      marginTop: spacing.xxxl,
+    },
+    trendCard: {
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.lg,
+      padding: spacing.lg,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    trendValue: {
+      color: colors.textPrimary,
+      fontSize: 30,
+      fontFamily: fonts.monoSemiBold,
+      marginTop: spacing.xs,
+    },
+    trendSub: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontFamily: fonts.mono,
+      marginBottom: spacing.md,
+    },
+  });

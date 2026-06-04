@@ -10,7 +10,14 @@ import {
 } from 'react-native';
 import { validateAccessCode } from '../services/accessCodes';
 import { useT } from '../hooks/useT';
-import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../constants';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface AccessCodeModalProps {
   visible: boolean;
@@ -24,6 +31,8 @@ export default function AccessCodeModal({
   onCancel,
 }: AccessCodeModalProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [code, setCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
@@ -104,88 +113,89 @@ export default function AccessCodeModal({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  modal: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    width: '100%',
-    maxWidth: 400,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  title: {
-    color: colors.warning,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-    marginBottom: spacing.lg,
-  },
-  codeInput: {
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    fontSize: fontSize.xxl,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-    letterSpacing: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.sm,
-  },
-  cancelButton: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  verifyButton: {
-    flex: 1,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  verifyButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing.lg,
+    },
+    modal: {
+      backgroundColor: colors.card,
+      borderRadius: borderRadius.lg,
+      padding: spacing.lg,
+      width: '100%',
+      maxWidth: 400,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    title: {
+      color: colors.warning,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+      textAlign: 'center',
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+      marginBottom: spacing.lg,
+    },
+    codeInput: {
+      backgroundColor: colors.inputBackground,
+      color: colors.textPrimary,
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      fontSize: fontSize.xxl,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+      letterSpacing: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing.md,
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+      marginBottom: spacing.md,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginTop: spacing.sm,
+    },
+    cancelButton: {
+      flex: 1,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    verifyButton: {
+      flex: 1,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    verifyButtonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+    },
+  });

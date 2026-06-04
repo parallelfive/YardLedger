@@ -19,17 +19,20 @@ import {
   getDateRange,
 } from '../../components/DateRangeSelector';
 import {
-  colors,
+  type Palette,
   spacing,
   fontSize,
   borderRadius,
   fonts,
 } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 type Props = NativeStackScreenProps<SalesStackParamList, 'SalesList'>;
 
 export default function SalesScreen({ navigation }: Props) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [preset, setPreset] = useState<DatePreset>('month');
   const { start, end } = getDateRange(preset);
   const { sales, loading, error, refresh } = useSales(start, end);
@@ -150,103 +153,104 @@ export default function SalesScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.sm,
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginVertical: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    padding: spacing.lg,
-    borderRadius: 18,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  statLabel: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  statValue: {
-    color: colors.textPrimary,
-    fontSize: 24,
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
-    marginTop: 4,
-  },
-  statSub: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.mono,
-    marginTop: 2,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  rowIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: colors.teal + '24',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowInfo: { flex: 1 },
-  rowBuyer: {
-    color: colors.textPrimary,
-    fontSize: 14.5,
-    fontFamily: fonts.sansSemiBold,
-  },
-  rowMeta: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.mono,
-    marginTop: 2,
-  },
-  rowRight: { alignItems: 'flex-end', gap: 3 },
-  rowTotal: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontFamily: fonts.monoSemiBold,
-  },
-  errorBar: {
-    backgroundColor: colors.danger,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.md,
-  },
-  errorText: {
-    color: colors.white,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sansSemiBold,
-  },
-  empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
-  emptyTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  emptySub: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: {
+      padding: spacing.lg,
+      paddingBottom: spacing.xxxl,
+      gap: spacing.sm,
+    },
+    statRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginVertical: spacing.md,
+    },
+    statCard: {
+      flex: 1,
+      padding: spacing.lg,
+      borderRadius: 18,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    statLabel: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    statValue: {
+      color: colors.textPrimary,
+      fontSize: 24,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+      marginTop: 4,
+    },
+    statSub: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    rowIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      backgroundColor: colors.teal + '24',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowInfo: { flex: 1 },
+    rowBuyer: {
+      color: colors.textPrimary,
+      fontSize: 14.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    rowMeta: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    rowRight: { alignItems: 'flex-end', gap: 3 },
+    rowTotal: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.monoSemiBold,
+    },
+    errorBar: {
+      backgroundColor: colors.danger,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginTop: spacing.md,
+    },
+    errorText: {
+      color: colors.white,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sansSemiBold,
+    },
+    empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
+    emptyTitle: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    emptySub: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+    },
+  });

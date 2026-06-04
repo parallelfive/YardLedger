@@ -31,7 +31,8 @@ import {
   type Tone,
 } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, borderRadius, fonts } from '../../constants';
+import { type Palette, spacing, borderRadius, fonts } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 type Nav = { navigate: (s: string, p?: Record<string, unknown>) => void };
 
@@ -53,6 +54,8 @@ const MIX_TONES: Tone[] = ['copper', 'steel', 'gold', 'moss', 'ink3'];
 
 export default function DashboardScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation() as unknown as Nav;
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [spark, setSpark] = useState<number[]>([]);
@@ -300,142 +303,143 @@ export default function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingTop: spacing.md, paddingBottom: spacing.xxxl },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  hero: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    padding: spacing.xl,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  heroHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  eyebrow: {
-    fontFamily: fonts.mono,
-    fontSize: 11.5,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    color: colors.textTertiary,
-  },
-  heroValue: {
-    fontFamily: fonts.display,
-    fontSize: 46,
-    lineHeight: 48,
-    letterSpacing: -1,
-    color: colors.textPrimary,
-    marginTop: 6,
-  },
-  heroCents: {
-    fontFamily: fonts.mono,
-    fontSize: 22,
-    color: colors.textTertiary,
-  },
-  heroSub: {
-    fontFamily: fonts.mono,
-    fontSize: 12.5,
-    color: colors.textSecondary,
-    marginTop: 3,
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  compliance: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    padding: 14,
-    borderRadius: borderRadius.lg,
-    backgroundColor: 'rgba(181, 70, 47, 0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(181, 70, 47, 0.30)',
-  },
-  complianceIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 9,
-    backgroundColor: 'rgba(181, 70, 47, 0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  complianceTitle: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 13.5,
-    color: colors.textPrimary,
-  },
-  complianceSub: {
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    color: colors.textSecondary,
-    marginTop: 1,
-  },
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.xl,
-  },
-  action: {
-    flex: 1,
-    gap: 8,
-    padding: 15,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  actionPrimary: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  actionLabel: {
-    fontFamily: fonts.sansBold,
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  mixCard: {
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    padding: spacing.lg,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  mixHead: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  mixTitle: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 14.5,
-    color: colors.textPrimary,
-  },
-  mixSub: {
-    fontFamily: fonts.mono,
-    fontSize: 10.5,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    color: colors.textTertiary,
-  },
-  ticketList: { paddingHorizontal: spacing.lg, gap: 8 },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingTop: spacing.md, paddingBottom: spacing.xxxl },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    hero: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      padding: spacing.xl,
+      borderRadius: borderRadius.xl,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    heroHead: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    eyebrow: {
+      fontFamily: fonts.mono,
+      fontSize: 11.5,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+    },
+    heroValue: {
+      fontFamily: fonts.display,
+      fontSize: 46,
+      lineHeight: 48,
+      letterSpacing: -1,
+      color: colors.textPrimary,
+      marginTop: 6,
+    },
+    heroCents: {
+      fontFamily: fonts.mono,
+      fontSize: 22,
+      color: colors.textTertiary,
+    },
+    heroSub: {
+      fontFamily: fonts.mono,
+      fontSize: 12.5,
+      color: colors.textSecondary,
+      marginTop: 3,
+    },
+    statRow: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    compliance: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 13,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      padding: 14,
+      borderRadius: borderRadius.lg,
+      backgroundColor: 'rgba(181, 70, 47, 0.10)',
+      borderWidth: 1,
+      borderColor: 'rgba(181, 70, 47, 0.30)',
+    },
+    complianceIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 9,
+      backgroundColor: 'rgba(181, 70, 47, 0.18)',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    complianceTitle: {
+      fontFamily: fonts.sansSemiBold,
+      fontSize: 13.5,
+      color: colors.textPrimary,
+    },
+    complianceSub: {
+      fontFamily: fonts.mono,
+      fontSize: 11,
+      color: colors.textSecondary,
+      marginTop: 1,
+    },
+    actionsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.xl,
+    },
+    action: {
+      flex: 1,
+      gap: 8,
+      padding: 15,
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    actionPrimary: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    actionLabel: {
+      fontFamily: fonts.sansBold,
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    mixCard: {
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      padding: spacing.lg,
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    mixHead: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      justifyContent: 'space-between',
+      marginBottom: 14,
+    },
+    mixTitle: {
+      fontFamily: fonts.sansSemiBold,
+      fontSize: 14.5,
+      color: colors.textPrimary,
+    },
+    mixSub: {
+      fontFamily: fonts.mono,
+      fontSize: 10.5,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+    },
+    ticketList: { paddingHorizontal: spacing.lg, gap: 8 },
+  });

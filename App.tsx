@@ -16,8 +16,20 @@ import {
   SplineSansMono_600SemiBold,
 } from '@expo-google-fonts/spline-sans-mono';
 import { store } from './src/store';
-import { colors, isLightTheme } from './src/constants/theme';
+import { ThemeProvider, useTheme } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
+
+function ThemedApp() {
+  const { colors, isLight } = useTheme();
+  return (
+    <GestureHandlerRootView
+      style={{ flex: 1, backgroundColor: colors.background }}
+    >
+      <StatusBar style={isLight ? 'dark' : 'light'} />
+      <RootNavigator />
+    </GestureHandlerRootView>
+  );
+}
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
@@ -35,15 +47,14 @@ export default function App() {
   // download (a hang here would look like "the app won't open"). On error the
   // app falls back to the system font.
   if (!fontsLoaded && !fontError) {
-    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+    return <View style={{ flex: 1, backgroundColor: '#15130f' }} />;
   }
 
   return (
     <Provider store={store}>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <StatusBar style={isLightTheme ? 'dark' : 'light'} />
-        <RootNavigator />
-      </GestureHandlerRootView>
+      <ThemeProvider>
+        <ThemedApp />
+      </ThemeProvider>
     </Provider>
   );
 }

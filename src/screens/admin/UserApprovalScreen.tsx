@@ -19,8 +19,9 @@ import type { AdminStackParamList } from '../../navigation/MainNavigator';
 import type { PendingUser, UserRole } from '../../types';
 import { Tag } from '../../components/foundry';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme, useThemedStyles } from '../../theme';
 import {
-  colors,
+  type Palette,
   spacing,
   fontSize,
   borderRadius,
@@ -31,6 +32,8 @@ type Props = NativeStackScreenProps<AdminStackParamList, 'Users'>;
 
 export default function UserApprovalScreen({ navigation }: Props) {
   const { t, language } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const dispatch = useAppDispatch();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const company = useCurrentCompany();
@@ -499,6 +502,8 @@ function LinkRow({
   first?: boolean;
   last?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity
       style={[
@@ -526,279 +531,280 @@ function LinkRow({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
-  },
-  // ── identity ──
-  identity: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  identityLogo: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.textPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  identityMono: {
-    color: colors.background,
-    fontSize: 18,
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
-  },
-  companyName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-  },
-  companyPrefix: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.mono,
-    marginTop: 2,
-  },
-  // ── group title + card ──
-  groupTitle: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.mono,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    paddingHorizontal: spacing.xs,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  card: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-  },
-  // ── invite role picker ──
-  rolePicker: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  rolePill: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    backgroundColor: colors.card,
-  },
-  rolePillActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  rolePillText: {
-    color: colors.textSecondary,
-    fontFamily: fonts.sansSemiBold,
-    fontSize: fontSize.sm,
-  },
-  rolePillTextActive: {
-    color: colors.accentInk,
-  },
-  // ── code display ──
-  codeDisplay: {
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  codeText: {
-    color: colors.textPrimary,
-    fontSize: fontSize.title,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 6,
-  },
-  codeHint: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-  },
-  generateButton: {
-    flexDirection: 'row',
-    gap: 6,
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    marginTop: spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  generateButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-  },
-  // ── invite code rows ──
-  inviteRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
-  },
-  inviteRowFirst: {
-    borderTopWidth: 0,
-    paddingTop: 0,
-  },
-  inviteRowInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    flex: 1,
-  },
-  inviteRowCode: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 2,
-  },
-  // ── link rows ──
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-  },
-  linkRowBorder: {
-    borderTopWidth: 1,
-    borderTopColor: colors.borderSubtle,
-  },
-  linkRowLast: {},
-  linkIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  linkLabel: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  linkValue: {
-    color: colors.accent,
-    fontSize: fontSize.md,
-    fontFamily: fonts.monoMedium,
-  },
-  // ── user cards ──
-  userCard: {
-    backgroundColor: colors.card,
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  userTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  avatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 14,
-    fontFamily: fonts.sansBold,
-  },
-  userInfo: { flex: 1, minWidth: 0 },
-  userEmail: {
-    color: colors.textPrimary,
-    fontSize: 14.5,
-    fontFamily: fonts.sansSemiBold,
-  },
-  userSub: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.mono,
-    marginTop: 1,
-  },
-  userTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-    marginTop: spacing.md,
-  },
-  approveButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.success,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  approveButtonText: {
-    color: colors.white,
-    fontFamily: fonts.sansBold,
-    fontSize: fontSize.sm,
-  },
-  roleActionButton: {
-    backgroundColor: colors.chip,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  roleActionText: {
-    color: colors.textPrimary,
-    fontFamily: fonts.sansSemiBold,
-    fontSize: fontSize.sm,
-  },
-  deactivateButton: {
-    backgroundColor: colors.danger + '14',
-    borderWidth: 1,
-    borderColor: colors.danger + '40',
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  deactivateButtonText: {
-    color: colors.danger,
-    fontFamily: fonts.sansSemiBold,
-    fontSize: fontSize.sm,
-  },
-  empty: {
-    paddingTop: spacing.xxxl,
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: spacing.lg,
+      paddingBottom: spacing.xxxl,
+    },
+    // ── identity ──
+    identity: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    identityLogo: {
+      width: 48,
+      height: 48,
+      borderRadius: 14,
+      backgroundColor: colors.textPrimary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    identityMono: {
+      color: colors.background,
+      fontSize: 18,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+    },
+    companyName: {
+      color: colors.textPrimary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    companyPrefix: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    // ── group title + card ──
+    groupTitle: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+      paddingHorizontal: spacing.xs,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    card: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: spacing.lg,
+    },
+    // ── invite role picker ──
+    rolePicker: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginBottom: spacing.md,
+    },
+    rolePill: {
+      flex: 1,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      backgroundColor: colors.card,
+    },
+    rolePillActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    rolePillText: {
+      color: colors.textSecondary,
+      fontFamily: fonts.sansSemiBold,
+      fontSize: fontSize.sm,
+    },
+    rolePillTextActive: {
+      color: colors.accentInk,
+    },
+    // ── code display ──
+    codeDisplay: {
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    codeText: {
+      color: colors.textPrimary,
+      fontSize: fontSize.title,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 6,
+    },
+    codeHint: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+    },
+    generateButton: {
+      flexDirection: 'row',
+      gap: 6,
+      backgroundColor: colors.accent,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.xl,
+      marginTop: spacing.sm,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    generateButtonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+    },
+    // ── invite code rows ──
+    inviteRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+    },
+    inviteRowFirst: {
+      borderTopWidth: 0,
+      paddingTop: 0,
+    },
+    inviteRowInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      flex: 1,
+    },
+    inviteRowCode: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 2,
+    },
+    // ── link rows ──
+    linkRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+    },
+    linkRowBorder: {
+      borderTopWidth: 1,
+      borderTopColor: colors.borderSubtle,
+    },
+    linkRowLast: {},
+    linkIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    linkLabel: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    linkValue: {
+      color: colors.accent,
+      fontSize: fontSize.md,
+      fontFamily: fonts.monoMedium,
+    },
+    // ── user cards ──
+    userCard: {
+      backgroundColor: colors.card,
+      marginBottom: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    userTopRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    avatar: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: {
+      fontSize: 14,
+      fontFamily: fonts.sansBold,
+    },
+    userInfo: { flex: 1, minWidth: 0 },
+    userEmail: {
+      color: colors.textPrimary,
+      fontSize: 14.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    userSub: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      marginTop: 1,
+    },
+    userTags: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      alignItems: 'center',
+      justifyContent: 'flex-end',
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      flexWrap: 'wrap',
+      marginTop: spacing.md,
+    },
+    approveButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.success,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+    },
+    approveButtonText: {
+      color: colors.white,
+      fontFamily: fonts.sansBold,
+      fontSize: fontSize.sm,
+    },
+    roleActionButton: {
+      backgroundColor: colors.chip,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+    },
+    roleActionText: {
+      color: colors.textPrimary,
+      fontFamily: fonts.sansSemiBold,
+      fontSize: fontSize.sm,
+    },
+    deactivateButton: {
+      backgroundColor: colors.danger + '14',
+      borderWidth: 1,
+      borderColor: colors.danger + '40',
+      borderRadius: borderRadius.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+    },
+    deactivateButtonText: {
+      color: colors.danger,
+      fontFamily: fonts.sansSemiBold,
+      fontSize: fontSize.sm,
+    },
+    empty: {
+      paddingTop: spacing.xxxl,
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    emptyText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+  });

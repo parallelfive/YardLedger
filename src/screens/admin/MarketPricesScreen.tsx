@@ -16,8 +16,9 @@ import {
   fetchMetalsByCategory,
 } from '../../services/metals';
 import { useT } from '../../hooks/useT';
+import { useTheme, useThemedStyles } from '../../theme';
 import {
-  colors,
+  type Palette,
   spacing,
   fontSize,
   borderRadius,
@@ -31,6 +32,8 @@ interface MetalSection {
 
 export default function MarketPricesScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [sections, setSections] = useState<MetalSection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -127,94 +130,95 @@ export default function MarketPricesScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  linkCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  linkContent: {
-    flex: 1,
-  },
-  linkTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  linkSub: {
-    color: colors.textTertiary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-  },
-  sectionHeader: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.lg,
-    marginBottom: spacing.sm,
-  },
-  loader: {
-    marginTop: spacing.xxxl,
-  },
-  catHeader: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.xs,
-  },
-  catTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-  },
-  metalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.xs,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  metalNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flex: 1,
-  },
-  metalName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-  },
-  metalPrice: {
-    color: colors.accent,
-    fontSize: fontSize.md,
-    fontFamily: fonts.monoSemiBold,
-  },
-  restrictedBadge: {
-    backgroundColor: colors.gold + '26',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  restrictedText: {
-    color: colors.warning,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sansBold,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    linkCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    linkContent: {
+      flex: 1,
+    },
+    linkTitle: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    linkSub: {
+      color: colors.textTertiary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+    },
+    sectionHeader: {
+      color: colors.accent,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+      paddingHorizontal: spacing.lg,
+      marginTop: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    loader: {
+      marginTop: spacing.xxxl,
+    },
+    catHeader: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.xs,
+    },
+    catTitle: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+    },
+    metalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.xs,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    metalNameRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      flex: 1,
+    },
+    metalName: {
+      color: colors.textPrimary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+    },
+    metalPrice: {
+      color: colors.accent,
+      fontSize: fontSize.md,
+      fontFamily: fonts.monoSemiBold,
+    },
+    restrictedBadge: {
+      backgroundColor: colors.gold + '26',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: borderRadius.sm,
+    },
+    restrictedText: {
+      color: colors.warning,
+      fontSize: fontSize.xs,
+      fontFamily: fonts.sansBold,
+    },
+  });

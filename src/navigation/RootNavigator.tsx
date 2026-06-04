@@ -8,7 +8,7 @@ import PendingApprovalScreen from '../screens/auth/PendingApprovalScreen';
 import { useAppDispatch, useAppSelector, type RootState } from '../store';
 import { initializeAuth, setSession, fetchProfile } from '../store/authStore';
 import { supabase } from '../config/supabase';
-import { colors } from '../constants';
+import { useTheme } from '../theme';
 
 /** Extract auth tokens from a deep link URL and set the Supabase session.
  * Only the expected auth callback path may set a session — otherwise any
@@ -35,6 +35,7 @@ async function handleAuthDeepLink(url: string) {
 
 export default function RootNavigator() {
   const dispatch = useAppDispatch();
+  const { colors } = useTheme();
   const { session, profile, loading } = useAppSelector(
     (state: RootState) => state.auth
   );

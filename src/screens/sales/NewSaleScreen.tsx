@@ -25,7 +25,8 @@ import {
   fmtLbs,
   type Tone,
 } from '../../components/foundry';
-import { colors, spacing, fontSize, fonts } from '../../constants';
+import { type Palette, spacing, fontSize, fonts } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 // Visual tone from the (DB-managed) category name — heuristic only, restricted
 // always wins. Mirrors InventoryScreen so colours stay consistent.
@@ -57,6 +58,8 @@ type Props = NativeStackScreenProps<SalesStackParamList, 'NewSale'>;
 
 export default function NewSaleScreen({ navigation }: Props) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
 
@@ -319,206 +322,207 @@ export default function NewSaleScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  header: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  eyebrow: {
-    color: colors.accent,
-    fontSize: 10.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 22,
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
-    marginTop: 3,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scroll: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  fieldLabel: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 6,
-  },
-  fieldLabelInline: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  fieldHint: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontFamily: fonts.mono,
-  },
-  input: {
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: 12,
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    fontSize: 15.5,
-    fontFamily: fonts.sans,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  inputMono: {
-    fontFamily: fonts.mono,
-    letterSpacing: 0.5,
-    marginBottom: 0,
-  },
-  loader: { paddingVertical: spacing.lg },
-  emptyPicker: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-  },
-  materialList: {
-    gap: 7,
-    marginBottom: spacing.md,
-  },
-  materialRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 11,
-    paddingHorizontal: 13,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.border,
-  },
-  materialActive: {
-    backgroundColor: colors.teal + '1A',
-    borderColor: colors.teal,
-  },
-  materialName: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontFamily: fonts.sansSemiBold,
-  },
-  materialAvail: {
-    color: colors.textTertiary,
-    fontSize: 12,
-    fontFamily: fonts.mono,
-  },
-  fieldsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: spacing.md,
-  },
-  fieldCol: { flex: 1 },
-  guardBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-    paddingVertical: 11,
-    paddingHorizontal: 13,
-    borderRadius: 12,
-    backgroundColor: colors.rust + '17',
-    borderWidth: 1,
-    borderColor: colors.rust + '42',
-    marginBottom: spacing.md,
-  },
-  guardText: {
-    flex: 1,
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: fonts.sans,
-  },
-  totalCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  totalLabel: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontFamily: fonts.sansBold,
-  },
-  totalValue: {
-    color: colors.teal,
-    fontSize: 24,
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
-  },
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  recordBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 15,
-    borderRadius: 14,
-    backgroundColor: colors.teal,
-  },
-  recordBtnDisabled: {
-    backgroundColor: colors.borderSubtle,
-  },
-  recordText: {
-    color: colors.accentInk,
-    fontSize: 16,
-    fontFamily: fonts.sansBold,
-  },
-  recordTextDisabled: {
-    color: colors.textTertiary,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    flex: { flex: 1, backgroundColor: colors.background },
+    header: {
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    eyebrow: {
+      color: colors.accent,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: 22,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+      marginTop: 3,
+    },
+    closeBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 11,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    scroll: {
+      padding: spacing.lg,
+      paddingBottom: spacing.xl,
+    },
+    fieldLabel: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      marginBottom: 6,
+    },
+    fieldLabelInline: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    labelRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 6,
+    },
+    fieldHint: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.mono,
+    },
+    input: {
+      backgroundColor: colors.inputBackground,
+      color: colors.textPrimary,
+      borderRadius: 12,
+      paddingVertical: 13,
+      paddingHorizontal: 14,
+      fontSize: 15.5,
+      fontFamily: fonts.sans,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing.md,
+    },
+    inputMono: {
+      fontFamily: fonts.mono,
+      letterSpacing: 0.5,
+      marginBottom: 0,
+    },
+    loader: { paddingVertical: spacing.lg },
+    emptyPicker: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    emptyText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+    },
+    materialList: {
+      gap: 7,
+      marginBottom: spacing.md,
+    },
+    materialRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      paddingVertical: 11,
+      paddingHorizontal: 13,
+      borderRadius: 12,
+      backgroundColor: colors.surface,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+    },
+    materialActive: {
+      backgroundColor: colors.teal + '1A',
+      borderColor: colors.teal,
+    },
+    materialName: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.sansSemiBold,
+    },
+    materialAvail: {
+      color: colors.textTertiary,
+      fontSize: 12,
+      fontFamily: fonts.mono,
+    },
+    fieldsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginBottom: spacing.md,
+    },
+    fieldCol: { flex: 1 },
+    guardBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 9,
+      paddingVertical: 11,
+      paddingHorizontal: 13,
+      borderRadius: 12,
+      backgroundColor: colors.rust + '17',
+      borderWidth: 1,
+      borderColor: colors.rust + '42',
+      marginBottom: spacing.md,
+    },
+    guardText: {
+      flex: 1,
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontFamily: fonts.sans,
+    },
+    totalCard: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderRadius: 14,
+      backgroundColor: colors.surface2,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    totalLabel: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.sansBold,
+    },
+    totalValue: {
+      color: colors.teal,
+      fontSize: 24,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+    },
+    footer: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    recordBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 15,
+      borderRadius: 14,
+      backgroundColor: colors.teal,
+    },
+    recordBtnDisabled: {
+      backgroundColor: colors.borderSubtle,
+    },
+    recordText: {
+      color: colors.accentInk,
+      fontSize: 16,
+      fontFamily: fonts.sansBold,
+    },
+    recordTextDisabled: {
+      color: colors.textTertiary,
+    },
+  });

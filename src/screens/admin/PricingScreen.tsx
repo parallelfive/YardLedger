@@ -27,8 +27,9 @@ import {
 import { useAppSelector, type RootState } from '../../store';
 import { useT } from '../../hooks/useT';
 import { MetalDot, fmtMoney, type Tone } from '../../components/foundry';
+import { useTheme, useThemedStyles } from '../../theme';
 import {
-  colors,
+  type Palette,
   spacing,
   fontSize,
   borderRadius,
@@ -75,6 +76,8 @@ function metalTone(category: string | undefined, tier: Tier): Tone {
 
 export default function PricingScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const [sections, setSections] = useState<MetalSection[]>([]);
   const [categories, setCategories] = useState<MetalCategory[]>([]);
@@ -312,7 +315,7 @@ export default function PricingScreen() {
         renderItem={({ item, section }) => {
           const tr = metalTier(item);
           const tone = metalTone(section.title, tr);
-          const c = colorForTier(tr);
+          const c = colorForTier(tr, colors);
           return (
             <TouchableOpacity
               style={styles.metalRow}
@@ -449,7 +452,7 @@ export default function PricingScreen() {
               ) : (
                 <View style={styles.tierList}>
                   {SELECTABLE_TIERS.map((tr) => {
-                    const c = colorForTier(tr);
+                    const c = colorForTier(tr, colors);
                     const sel = tier === tr;
                     return (
                       <TouchableOpacity
@@ -640,7 +643,7 @@ export default function PricingScreen() {
   );
 }
 
-function colorForTier(tier: Tier): string {
+function colorForTier(tier: Tier, colors: Palette): string {
   switch (tier) {
     case 'open':
       return colors.moss;
@@ -651,366 +654,367 @@ function colorForTier(tier: Tier): string {
   }
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
-  },
-  introNote: {
-    color: colors.textTertiary,
-    fontSize: 12,
-    fontFamily: fonts.mono,
-    lineHeight: 18,
-    marginBottom: spacing.md,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-    backgroundColor: colors.background,
-  },
-  sectionTitle: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.mono,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: colors.accent,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 5,
-    borderRadius: borderRadius.pill,
-  },
-  addButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sansSemiBold,
-  },
-  metalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  metalInfo: { flex: 1, minWidth: 0 },
-  metalName: {
-    color: colors.textPrimary,
-    fontSize: 14.5,
-    fontFamily: fonts.sansSemiBold,
-  },
-  metalMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  tierPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: borderRadius.pill,
-  },
-  tierDot: { width: 5, height: 5, borderRadius: 99 },
-  tierPillText: {
-    fontSize: 9.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-  },
-  metalCat: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.mono,
-  },
-  metalRight: { alignItems: 'flex-end' },
-  metalPrice: {
-    color: colors.accent,
-    fontSize: 15,
-    fontFamily: fonts.monoSemiBold,
-  },
-  metalPerLb: {
-    color: colors.textTertiary,
-    fontSize: 9.5,
-    fontFamily: fonts.mono,
-  },
-  empty: {
-    padding: spacing.xxxl,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sans,
-  },
-  // ── modal ──
-  modalContainer: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  modalKicker: {
-    color: colors.accent,
-    fontSize: 10.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  modalTitle: {
-    color: colors.textPrimary,
-    fontSize: 22,
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
-    marginTop: 2,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalScroll: { flex: 1 },
-  modalContent: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
-  },
-  editIdentity: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.lg,
-  },
-  editNameInput: {
-    color: colors.textPrimary,
-    fontSize: 17,
-    fontFamily: fonts.sansBold,
-    padding: 0,
-  },
-  editIdentitySub: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.mono,
-    marginTop: 2,
-  },
-  fieldLabel: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: spacing.sm,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  priceField: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 12,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 13,
-    backgroundColor: colors.surface,
-    borderWidth: 1.5,
-    borderColor: colors.borderStrong,
-  },
-  priceSymbol: {
-    color: colors.textTertiary,
-    fontSize: 22,
-    fontFamily: fonts.display,
-  },
-  priceInput: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 26,
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
-    padding: 0,
-  },
-  deltaCol: { alignItems: 'flex-end' },
-  deltaValue: {
-    fontSize: 14,
-    fontFamily: fonts.monoSemiBold,
-  },
-  deltaWas: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontFamily: fonts.mono,
-    marginTop: 1,
-  },
-  lockBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: 13,
-    paddingHorizontal: spacing.lg,
-    borderRadius: 13,
-    backgroundColor: colors.rust + '14',
-    borderWidth: 1,
-    borderColor: colors.rust + '40',
-  },
-  lockBannerText: {
-    flex: 1,
-    color: colors.textSecondary,
-    fontSize: 12.5,
-    fontFamily: fonts.sans,
-    lineHeight: 17,
-  },
-  tierList: { gap: 7 },
-  tierOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: 12,
-    paddingHorizontal: spacing.md,
-    borderRadius: 13,
-    borderWidth: 1.5,
-  },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 99,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  tierOptionLabel: {
-    fontSize: 14,
-    fontFamily: fonts.sansSemiBold,
-  },
-  tierOptionNote: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.mono,
-    marginTop: 1,
-    lineHeight: 14,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    padding: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.xl,
-  },
-  saveButtonDisabled: {
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-  },
-  removeButton: {
-    borderRadius: 14,
-    padding: spacing.lg,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.danger,
-    marginTop: spacing.lg,
-  },
-  removeButtonText: {
-    color: colors.danger,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  categoryPicker: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  categoryChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-  },
-  categoryChipSelected: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  categoryChipText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-  },
-  categoryChipTextSelected: {
-    color: colors.accentInk,
-    fontFamily: fonts.sansSemiBold,
-  },
-  textInput: {
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  historySection: {
-    marginTop: spacing.lg,
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  historyTitle: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: spacing.sm,
-  },
-  historyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.xs,
-  },
-  historyDate: {
-    color: colors.textTertiary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.mono,
-  },
-  historyChange: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.mono,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: spacing.lg,
+      paddingBottom: spacing.xxxl,
+    },
+    introNote: {
+      color: colors.textTertiary,
+      fontSize: 12,
+      fontFamily: fonts.mono,
+      lineHeight: 18,
+      marginBottom: spacing.md,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.sm,
+      backgroundColor: colors.background,
+    },
+    sectionTitle: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+    },
+    addButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 3,
+      backgroundColor: colors.accent,
+      paddingHorizontal: spacing.md,
+      paddingVertical: 5,
+      borderRadius: borderRadius.pill,
+    },
+    addButtonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.xs,
+      fontFamily: fonts.sansSemiBold,
+    },
+    metalRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      backgroundColor: colors.card,
+      marginBottom: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    metalInfo: { flex: 1, minWidth: 0 },
+    metalName: {
+      color: colors.textPrimary,
+      fontSize: 14.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    metalMetaRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginTop: 4,
+    },
+    tierPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 7,
+      paddingVertical: 2,
+      borderRadius: borderRadius.pill,
+    },
+    tierDot: { width: 5, height: 5, borderRadius: 99 },
+    tierPillText: {
+      fontSize: 9.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+    },
+    metalCat: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+    },
+    metalRight: { alignItems: 'flex-end' },
+    metalPrice: {
+      color: colors.accent,
+      fontSize: 15,
+      fontFamily: fonts.monoSemiBold,
+    },
+    metalPerLb: {
+      color: colors.textTertiary,
+      fontSize: 9.5,
+      fontFamily: fonts.mono,
+    },
+    empty: {
+      padding: spacing.xxxl,
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sans,
+    },
+    // ── modal ──
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xl,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalKicker: {
+      color: colors.accent,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+    },
+    modalTitle: {
+      color: colors.textPrimary,
+      fontSize: 22,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+      marginTop: 2,
+    },
+    closeBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 11,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalScroll: { flex: 1 },
+    modalContent: {
+      padding: spacing.lg,
+      paddingBottom: spacing.xxxl,
+    },
+    editIdentity: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    editNameInput: {
+      color: colors.textPrimary,
+      fontSize: 17,
+      fontFamily: fonts.sansBold,
+      padding: 0,
+    },
+    editIdentitySub: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    fieldLabel: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm,
+    },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+    },
+    priceField: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 12,
+      paddingHorizontal: spacing.lg,
+      borderRadius: 13,
+      backgroundColor: colors.surface,
+      borderWidth: 1.5,
+      borderColor: colors.borderStrong,
+    },
+    priceSymbol: {
+      color: colors.textTertiary,
+      fontSize: 22,
+      fontFamily: fonts.display,
+    },
+    priceInput: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: 26,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+      padding: 0,
+    },
+    deltaCol: { alignItems: 'flex-end' },
+    deltaValue: {
+      fontSize: 14,
+      fontFamily: fonts.monoSemiBold,
+    },
+    deltaWas: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.mono,
+      marginTop: 1,
+    },
+    lockBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingVertical: 13,
+      paddingHorizontal: spacing.lg,
+      borderRadius: 13,
+      backgroundColor: colors.rust + '14',
+      borderWidth: 1,
+      borderColor: colors.rust + '40',
+    },
+    lockBannerText: {
+      flex: 1,
+      color: colors.textSecondary,
+      fontSize: 12.5,
+      fontFamily: fonts.sans,
+      lineHeight: 17,
+    },
+    tierList: { gap: 7 },
+    tierOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingVertical: 12,
+      paddingHorizontal: spacing.md,
+      borderRadius: 13,
+      borderWidth: 1.5,
+    },
+    radio: {
+      width: 22,
+      height: 22,
+      borderRadius: 99,
+      borderWidth: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tierOptionLabel: {
+      fontSize: 14,
+      fontFamily: fonts.sansSemiBold,
+    },
+    tierOptionNote: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 1,
+      lineHeight: 14,
+    },
+    saveButton: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      backgroundColor: colors.accent,
+      borderRadius: 14,
+      padding: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: spacing.xl,
+    },
+    saveButtonDisabled: {
+      opacity: 0.5,
+    },
+    saveButtonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    removeButton: {
+      borderRadius: 14,
+      padding: spacing.lg,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.danger,
+      marginTop: spacing.lg,
+    },
+    removeButtonText: {
+      color: colors.danger,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    categoryPicker: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    categoryChip: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.pill,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+    },
+    categoryChipSelected: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    categoryChipText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+    },
+    categoryChipTextSelected: {
+      color: colors.accentInk,
+      fontFamily: fonts.sansSemiBold,
+    },
+    textInput: {
+      backgroundColor: colors.inputBackground,
+      color: colors.textPrimary,
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    historySection: {
+      marginTop: spacing.lg,
+      paddingTop: spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    historyTitle: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm,
+    },
+    historyRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingVertical: spacing.xs,
+    },
+    historyDate: {
+      color: colors.textTertiary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.mono,
+    },
+    historyChange: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.mono,
+    },
+  });

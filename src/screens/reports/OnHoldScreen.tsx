@@ -6,7 +6,8 @@ import { fetchReceiptsOnHold, type OnHoldRow } from '../../services/reports';
 import { RefreshableList } from '../../components';
 import { Tag, SectionLabel } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
-import { colors, spacing, fonts } from '../../constants';
+import { type Palette, spacing, fonts } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 type Nav = { navigate: (s: string, p?: Record<string, unknown>) => void };
 
@@ -17,6 +18,8 @@ const daysLeft = (holdUntil: string) => {
 
 export default function OnHoldScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation() as unknown as Nav;
   const isFocused = useIsFocused();
   const [rows, setRows] = useState<OnHoldRow[]>([]);
@@ -136,6 +139,7 @@ function Stat({
   label: string;
   color: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.stat}>
       <Text style={[styles.statN, { color }]}>{n}</Text>
@@ -146,73 +150,74 @@ function Stat({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingBottom: spacing.xxxl },
-  triplet: {
-    flexDirection: 'row',
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    marginBottom: spacing.md,
-    borderRadius: 16,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  tripletDivider: { width: 1, backgroundColor: colors.borderSubtle },
-  stat: { flex: 1, paddingVertical: 15, alignItems: 'center' },
-  statN: { fontSize: 26, fontFamily: fonts.display, letterSpacing: -0.5 },
-  statL: {
-    color: colors.textTertiary,
-    fontSize: 9.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginTop: 3,
-    paddingHorizontal: 4,
-  },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-  },
-  icon: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  body: { flex: 1, minWidth: 0 },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  receipt: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontFamily: fonts.monoSemiBold,
-  },
-  detail: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.mono,
-    marginTop: 3,
-  },
-  right: { alignItems: 'flex-end' },
-  days: { fontSize: 22, fontFamily: fonts.display, letterSpacing: -0.5 },
-  daysLabel: {
-    color: colors.textTertiary,
-    fontSize: 9.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginTop: 1,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: spacing.xxxl },
+    triplet: {
+      flexDirection: 'row',
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      marginBottom: spacing.md,
+      borderRadius: 16,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    tripletDivider: { width: 1, backgroundColor: colors.borderSubtle },
+    stat: { flex: 1, paddingVertical: 15, alignItems: 'center' },
+    statN: { fontSize: 26, fontFamily: fonts.display, letterSpacing: -0.5 },
+    statL: {
+      color: colors.textTertiary,
+      fontSize: 9.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      marginTop: 3,
+      paddingHorizontal: 4,
+    },
+    card: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderLeftWidth: 3,
+    },
+    icon: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    body: { flex: 1, minWidth: 0 },
+    titleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    receipt: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.monoSemiBold,
+    },
+    detail: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      marginTop: 3,
+    },
+    right: { alignItems: 'flex-end' },
+    days: { fontSize: 22, fontFamily: fonts.display, letterSpacing: -0.5 },
+    daysLabel: {
+      color: colors.textTertiary,
+      fontSize: 9.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      marginTop: 1,
+    },
+  });

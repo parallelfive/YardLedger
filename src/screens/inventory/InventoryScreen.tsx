@@ -20,12 +20,13 @@ import {
   type Tone,
 } from '../../components/foundry';
 import {
-  colors,
+  type Palette,
   spacing,
   fonts,
   fontSize,
   borderRadius,
 } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 // Visual tone from the (DB-managed) category name — heuristic only, restricted
 // always wins. Metals stay dynamic; this just colours the row accent.
@@ -56,6 +57,8 @@ interface Row {
 
 export default function InventoryScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { inventory, loading, refresh } = useInventory();
   const [cat, setCat] = useState<string>(t.allLabel);
 
@@ -205,116 +208,117 @@ export default function InventoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.sm,
-  },
-  hero: {
-    padding: spacing.lg,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  heroTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  heroEyebrow: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  heroValue: {
-    color: colors.textPrimary,
-    fontSize: 40,
-    fontFamily: fonts.display,
-    letterSpacing: -1,
-    marginTop: 5,
-  },
-  heroSub: {
-    color: colors.textSecondary,
-    fontSize: 12.5,
-    fontFamily: fonts.mono,
-    marginTop: 5,
-  },
-  chipsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  chip: {
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 100,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: {
-    backgroundColor: colors.textPrimary,
-    borderColor: colors.textPrimary,
-  },
-  chipText: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontFamily: fonts.sansSemiBold,
-  },
-  chipTextActive: { color: colors.background },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-  },
-  rowInfo: { flex: 1 },
-  rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  rowName: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontFamily: fonts.sansSemiBold,
-  },
-  rowMeta: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.mono,
-    marginTop: 3,
-  },
-  rowRight: { alignItems: 'flex-end', gap: 2 },
-  rowWeight: {
-    color: colors.textPrimary,
-    fontSize: 17,
-    fontFamily: fonts.display,
-    letterSpacing: -0.3,
-  },
-  rowWeightUnit: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.mono,
-  },
-  empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
-  emptyTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  emptySub: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: {
+      padding: spacing.lg,
+      paddingBottom: spacing.xxxl,
+      gap: spacing.sm,
+    },
+    hero: {
+      padding: spacing.lg,
+      borderRadius: borderRadius.xl,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing.md,
+    },
+    heroTopRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    heroEyebrow: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    heroValue: {
+      color: colors.textPrimary,
+      fontSize: 40,
+      fontFamily: fonts.display,
+      letterSpacing: -1,
+      marginTop: 5,
+    },
+    heroSub: {
+      color: colors.textSecondary,
+      fontSize: 12.5,
+      fontFamily: fonts.mono,
+      marginTop: 5,
+    },
+    chipsRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    chip: {
+      paddingHorizontal: 15,
+      paddingVertical: 8,
+      borderRadius: 100,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    chipActive: {
+      backgroundColor: colors.textPrimary,
+      borderColor: colors.textPrimary,
+    },
+    chipText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontFamily: fonts.sansSemiBold,
+    },
+    chipTextActive: { color: colors.background },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderLeftWidth: 3,
+    },
+    rowInfo: { flex: 1 },
+    rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    rowName: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.sansSemiBold,
+    },
+    rowMeta: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      marginTop: 3,
+    },
+    rowRight: { alignItems: 'flex-end', gap: 2 },
+    rowWeight: {
+      color: colors.textPrimary,
+      fontSize: 17,
+      fontFamily: fonts.display,
+      letterSpacing: -0.3,
+    },
+    rowWeightUnit: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+    },
+    empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
+    emptyTitle: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    emptySub: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+    },
+  });

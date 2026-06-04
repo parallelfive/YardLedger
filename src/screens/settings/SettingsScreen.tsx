@@ -14,14 +14,8 @@ import { useT } from '../../hooks/useT';
 import { useAppDispatch, useAppSelector, type RootState } from '../../store';
 import { signOut } from '../../store/authStore';
 import { setLanguage } from '../../store/settingsStore';
-import { toggleThemeMode } from '../../utils';
-import {
-  isLightTheme,
-  colors,
-  spacing,
-  fonts,
-  borderRadius,
-} from '../../constants';
+import { type Palette, spacing, fonts, borderRadius } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 // ── grouped card (design "Group") ───────────────────────────
 function Group({
@@ -31,6 +25,7 @@ function Group({
   title: string;
   children: React.ReactNode;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.group}>
       <Text style={styles.groupTitle}>{title}</Text>
@@ -59,6 +54,8 @@ function Row({
   onPress?: () => void;
   last?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const body = (
     <>
       {icon ? (
@@ -104,6 +101,7 @@ function Segmented<T extends string>({
   options: { value: T; label: string }[];
   onSelect: (v: T) => void;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.segmented}>
       {options.map((o) => {
@@ -145,6 +143,8 @@ const roleLabel = (
 
 export default function SettingsScreen() {
   const { t, language } = useT();
+  const { colors, isLight, toggle } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
   const nav = navigation as {
@@ -161,9 +161,9 @@ export default function SettingsScreen() {
   const [switching, setSwitching] = useState(false);
   const onTheme = (mode: 'light' | 'dark') => {
     if (switching) return;
-    if ((mode === 'light') === isLightTheme) return;
+    if ((mode === 'light') === isLight) return;
     setSwitching(true);
-    void toggleThemeMode();
+    void toggle();
   };
 
   const close = () => {
@@ -238,7 +238,7 @@ export default function SettingsScreen() {
             last
             right={
               <Segmented
-                value={isLightTheme ? 'light' : 'dark'}
+                value={isLight ? 'light' : 'dark'}
                 options={[
                   { value: 'light', label: t.lightMode },
                   { value: 'dark', label: t.darkMode },
@@ -332,155 +332,157 @@ export default function SettingsScreen() {
 }
 
 function Chev() {
+  const { colors } = useTheme();
   return (
     <Ionicons name="chevron-forward" size={18} color={colors.textTertiary} />
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, minWidth: 0 },
-  container: { flex: 1, backgroundColor: colors.background },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  eyebrow: {
-    fontFamily: fonts.monoSemiBold,
-    fontSize: 10.5,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.accent,
-  },
-  title: {
-    fontFamily: fonts.display,
-    fontSize: 22,
-    letterSpacing: -0.5,
-    color: colors.textPrimary,
-    marginTop: 3,
-  },
-  closeBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxxl },
-  group: { marginBottom: 18 },
-  groupTitle: {
-    fontFamily: fonts.monoSemiBold,
-    fontSize: 10.5,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    color: colors.textTertiary,
-    paddingHorizontal: spacing.xs,
-    paddingBottom: 9,
-  },
-  groupCard: {
-    borderRadius: 16,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.lg,
-  },
-  rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
-  rowIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowLabel: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 14,
-    color: colors.textPrimary,
-  },
-  rowSub: {
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    color: colors.textTertiary,
-    marginTop: 2,
-    lineHeight: 15,
-  },
-  rolePill: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: borderRadius.pill,
-    backgroundColor: colors.accentMuted,
-  },
-  rolePillText: {
-    fontFamily: fonts.monoSemiBold,
-    fontSize: 10,
-    letterSpacing: 0.5,
-    color: colors.accent,
-  },
-  valueMono: {
-    fontFamily: fonts.monoMedium,
-    fontSize: 12.5,
-    color: colors.textSecondary,
-  },
-  segmented: {
-    flexDirection: 'row',
-    backgroundColor: colors.chip,
-    borderRadius: borderRadius.md,
-    padding: 3,
-    gap: 3,
-  },
-  segment: {
-    paddingVertical: 7,
-    paddingHorizontal: 14,
-    borderRadius: borderRadius.sm + 1,
-  },
-  segmentActive: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  segmentText: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 12.5,
-    color: colors.textTertiary,
-  },
-  segmentTextActive: { color: colors.textPrimary },
-  signOutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: 15,
-    borderRadius: 14,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.danger + '3d',
-    marginTop: spacing.xs,
-  },
-  signOutText: {
-    fontFamily: fonts.sansBold,
-    fontSize: 15,
-    color: colors.danger,
-  },
-  footnote: {
-    fontFamily: fonts.mono,
-    fontSize: 10.5,
-    color: colors.textTertiary,
-    textAlign: 'center',
-    marginTop: spacing.lg,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    flex: { flex: 1, minWidth: 0 },
+    container: { flex: 1, backgroundColor: colors.background },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.md,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    eyebrow: {
+      fontFamily: fonts.monoSemiBold,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: colors.accent,
+    },
+    title: {
+      fontFamily: fonts.display,
+      fontSize: 22,
+      letterSpacing: -0.5,
+      color: colors.textPrimary,
+      marginTop: 3,
+    },
+    closeBtn: {
+      width: 36,
+      height: 36,
+      borderRadius: 11,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    content: { padding: spacing.lg, paddingBottom: spacing.xxxl },
+    group: { marginBottom: 18 },
+    groupTitle: {
+      fontFamily: fonts.monoSemiBold,
+      fontSize: 10.5,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+      paddingHorizontal: spacing.xs,
+      paddingBottom: 9,
+    },
+    groupCard: {
+      borderRadius: 16,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingVertical: 14,
+      paddingHorizontal: spacing.lg,
+    },
+    rowBorder: { borderBottomWidth: 1, borderBottomColor: colors.borderSubtle },
+    rowIcon: {
+      width: 34,
+      height: 34,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowLabel: {
+      fontFamily: fonts.sansSemiBold,
+      fontSize: 14,
+      color: colors.textPrimary,
+    },
+    rowSub: {
+      fontFamily: fonts.mono,
+      fontSize: 11,
+      color: colors.textTertiary,
+      marginTop: 2,
+      lineHeight: 15,
+    },
+    rolePill: {
+      paddingHorizontal: 9,
+      paddingVertical: 4,
+      borderRadius: borderRadius.pill,
+      backgroundColor: colors.accentMuted,
+    },
+    rolePillText: {
+      fontFamily: fonts.monoSemiBold,
+      fontSize: 10,
+      letterSpacing: 0.5,
+      color: colors.accent,
+    },
+    valueMono: {
+      fontFamily: fonts.monoMedium,
+      fontSize: 12.5,
+      color: colors.textSecondary,
+    },
+    segmented: {
+      flexDirection: 'row',
+      backgroundColor: colors.chip,
+      borderRadius: borderRadius.md,
+      padding: 3,
+      gap: 3,
+    },
+    segment: {
+      paddingVertical: 7,
+      paddingHorizontal: 14,
+      borderRadius: borderRadius.sm + 1,
+    },
+    segmentActive: {
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    segmentText: {
+      fontFamily: fonts.sansSemiBold,
+      fontSize: 12.5,
+      color: colors.textTertiary,
+    },
+    segmentTextActive: { color: colors.textPrimary },
+    signOutBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      paddingVertical: 15,
+      borderRadius: 14,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.danger + '3d',
+      marginTop: spacing.xs,
+    },
+    signOutText: {
+      fontFamily: fonts.sansBold,
+      fontSize: 15,
+      color: colors.danger,
+    },
+    footnote: {
+      fontFamily: fonts.mono,
+      fontSize: 10.5,
+      color: colors.textTertiary,
+      textAlign: 'center',
+      marginTop: spacing.lg,
+    },
+  });

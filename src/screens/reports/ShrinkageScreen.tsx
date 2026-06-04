@@ -15,7 +15,8 @@ import {
 } from '../../services/reports';
 import { useT } from '../../hooks/useT';
 import { Tag, MetalDot, type Tone } from '../../components/foundry';
-import { colors, spacing, fontSize, fonts } from '../../constants';
+import { type Palette, spacing, fontSize, fonts } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 function toneFor(category: string | undefined): Tone {
   switch (category) {
@@ -33,6 +34,8 @@ function toneFor(category: string | undefined): Tone {
 
 export default function ShrinkageScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [data, setData] = useState<ShrinkageRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -150,6 +153,7 @@ export default function ShrinkageScreen() {
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.stat}>
       <Text style={styles.statLabel}>{label}</Text>
@@ -161,104 +165,105 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, minWidth: 0 },
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingBottom: spacing.xxxl },
-  loader: { marginTop: spacing.xxxl },
-  note: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 13,
-    backgroundColor: colors.surface2,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  noteText: {
-    flex: 1,
-    color: colors.textSecondary,
-    fontSize: 12.5,
-    fontFamily: fonts.sans,
-    lineHeight: 17,
-  },
-  card: {
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: spacing.md,
-  },
-  titleLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
-  },
-  metalName: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontFamily: fonts.sansSemiBold,
-  },
-  metalCategory: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.mono,
-    marginTop: 1,
-  },
-  discrepancyCol: { alignItems: 'flex-end', gap: 3 },
-  discrepancyValue: {
-    fontSize: 17,
-    fontFamily: fonts.display,
-    letterSpacing: -0.3,
-  },
-  discrepancyUnit: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.mono,
-  },
-  stats: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface2,
-    borderRadius: 12,
-    paddingVertical: spacing.sm,
-  },
-  stat: { flex: 1, alignItems: 'center', gap: 2 },
-  statDivider: { width: 1, backgroundColor: colors.borderSubtle },
-  statLabel: {
-    color: colors.textTertiary,
-    fontSize: 9.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  statValue: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontFamily: fonts.monoSemiBold,
-  },
-  statUnit: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontFamily: fonts.mono,
-  },
-  empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    flex: { flex: 1, minWidth: 0 },
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: spacing.xxxl },
+    loader: { marginTop: spacing.xxxl },
+    note: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 13,
+      backgroundColor: colors.surface2,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    noteText: {
+      flex: 1,
+      color: colors.textSecondary,
+      fontSize: 12.5,
+      fontFamily: fonts.sans,
+      lineHeight: 17,
+    },
+    card: {
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderLeftWidth: 3,
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: spacing.md,
+    },
+    titleLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      flex: 1,
+    },
+    metalName: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.sansSemiBold,
+    },
+    metalCategory: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+      marginTop: 1,
+    },
+    discrepancyCol: { alignItems: 'flex-end', gap: 3 },
+    discrepancyValue: {
+      fontSize: 17,
+      fontFamily: fonts.display,
+      letterSpacing: -0.3,
+    },
+    discrepancyUnit: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+    },
+    stats: {
+      flexDirection: 'row',
+      backgroundColor: colors.surface2,
+      borderRadius: 12,
+      paddingVertical: spacing.sm,
+    },
+    stat: { flex: 1, alignItems: 'center', gap: 2 },
+    statDivider: { width: 1, backgroundColor: colors.borderSubtle },
+    statLabel: {
+      color: colors.textTertiary,
+      fontSize: 9.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    },
+    statValue: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.monoSemiBold,
+    },
+    statUnit: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.mono,
+    },
+    empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
+    emptyText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+    },
+  });

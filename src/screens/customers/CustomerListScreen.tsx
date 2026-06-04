@@ -15,8 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tag, SectionLabel } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
 import { useCustomers } from '../../hooks';
+import { useTheme, useThemedStyles } from '../../theme';
 import {
-  colors,
+  type Palette,
   spacing,
   fontSize,
   borderRadius,
@@ -28,6 +29,8 @@ type Props = NativeStackScreenProps<CustomersStackParamList, 'CustomerList'>;
 export default function CustomerListScreen({ navigation }: Props) {
   const { t } = useT();
   const { customers, loading, refresh } = useCustomers();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [search, setSearch] = useState('');
 
   useFocusEffect(
@@ -195,102 +198,103 @@ export default function CustomerListScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxxl,
-    gap: spacing.sm,
-  },
-  hero: {
-    padding: spacing.lg,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  heroEyebrow: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  heroValue: {
-    color: colors.textPrimary,
-    fontSize: 40,
-    fontFamily: fonts.display,
-    letterSpacing: -1,
-    marginTop: 5,
-  },
-  heroSub: {
-    color: colors.textSecondary,
-    fontSize: 12.5,
-    fontFamily: fonts.mono,
-    marginTop: 5,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  searchInput: {
-    flex: 1,
-    color: colors.textPrimary,
-    paddingVertical: spacing.md,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: 15,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-  },
-  rowIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rowInfo: { flex: 1, minWidth: 0 },
-  rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  rowName: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontFamily: fonts.sansSemiBold,
-    flexShrink: 1,
-  },
-  rowMeta: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.mono,
-    marginTop: 3,
-  },
-  rowRight: { alignItems: 'flex-end', gap: 5 },
-  empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
-  emptyTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  emptySub: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: {
+      padding: spacing.lg,
+      paddingBottom: spacing.xxxl,
+      gap: spacing.sm,
+    },
+    hero: {
+      padding: spacing.lg,
+      borderRadius: borderRadius.xl,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing.md,
+    },
+    heroEyebrow: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    heroValue: {
+      color: colors.textPrimary,
+      fontSize: 40,
+      fontFamily: fonts.display,
+      letterSpacing: -1,
+      marginTop: 5,
+    },
+    heroSub: {
+      color: colors.textSecondary,
+      fontSize: 12.5,
+      fontFamily: fonts.mono,
+      marginTop: 5,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.card,
+      borderRadius: borderRadius.lg,
+      paddingHorizontal: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing.md,
+    },
+    searchInput: {
+      flex: 1,
+      color: colors.textPrimary,
+      paddingVertical: spacing.md,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderLeftWidth: 3,
+    },
+    rowIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowInfo: { flex: 1, minWidth: 0 },
+    rowTitleLine: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+    rowName: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.sansSemiBold,
+      flexShrink: 1,
+    },
+    rowMeta: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      marginTop: 3,
+    },
+    rowRight: { alignItems: 'flex-end', gap: 5 },
+    empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
+    emptyTitle: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    emptySub: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+    },
+  });

@@ -14,7 +14,8 @@ import { fetchMetals } from '../services/metals';
 import { addToRecentMetals } from './AddLineItemModal';
 import { useT } from '../hooks/useT';
 import { MetalDot, Tag, fmtMoney, type Tone } from './foundry';
-import { colors, spacing, borderRadius, fonts } from '../constants';
+import { type Palette, spacing, borderRadius, fonts } from '../constants';
+import { useTheme, useThemedStyles } from '../theme';
 
 // Tone heuristic mirrors InventoryScreen — restricted/catalytic always wins.
 function toneFor(metal: Metal): Tone {
@@ -47,6 +48,8 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'];
 
 export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [metals, setMetals] = useState<Metal[]>([]);
   const [loading, setLoading] = useState(true);
   const [metal, setMetal] = useState<Metal | null>(null);
@@ -144,7 +147,7 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
                     <Text
                       style={[
                         styles.pickTier,
-                        tier ? { color: toneTextColor(tone) } : null,
+                        tier ? { color: toneTextColor(tone, colors) } : null,
                       ]}
                     >
                       {tier ?? t.tierOpen}
@@ -178,8 +181,8 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
         {tier ? (
           <Tag
             label={tier}
-            color={toneTextColor(tone)}
-            soft={toneTextColor(tone) + '22'}
+            color={toneTextColor(tone, colors)}
+            soft={toneTextColor(tone, colors) + '22'}
           />
         ) : null}
       </TouchableOpacity>
@@ -303,7 +306,7 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
 }
 
 // Slightly muted variant of the tone for the small tier subtitle.
-function toneTextColor(tone: Tone): string {
+function toneTextColor(tone: Tone, colors: Palette): string {
   switch (tone) {
     case 'rust':
       return colors.rust;
@@ -316,198 +319,199 @@ function toneTextColor(tone: Tone): string {
   }
 }
 
-const styles = StyleSheet.create({
-  eyebrow: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: spacing.md,
-  },
-  loader: { marginTop: spacing.xl },
-  pickList: { maxHeight: 380 },
-  pickListContent: { gap: 7, paddingBottom: spacing.sm },
-  pickRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    paddingHorizontal: 13,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pickInfo: { flex: 1 },
-  pickName: {
-    color: colors.textPrimary,
-    fontSize: 14.5,
-    fontFamily: fonts.sansSemiBold,
-  },
-  pickTier: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.mono,
-    marginTop: 1,
-  },
-  pickPrice: {
-    color: colors.accent,
-    fontSize: 13.5,
-    fontFamily: fonts.monoSemiBold,
-  },
-  pickPriceUnit: { color: colors.textTertiary, fontFamily: fonts.mono },
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    eyebrow: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      marginBottom: spacing.md,
+    },
+    loader: { marginTop: spacing.xl },
+    pickList: { maxHeight: 380 },
+    pickListContent: { gap: 7, paddingBottom: spacing.sm },
+    pickRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingVertical: spacing.md,
+      paddingHorizontal: 13,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    pickInfo: { flex: 1 },
+    pickName: {
+      color: colors.textPrimary,
+      fontSize: 14.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    pickTier: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+      marginTop: 1,
+    },
+    pickPrice: {
+      color: colors.accent,
+      fontSize: 13.5,
+      fontFamily: fonts.monoSemiBold,
+    },
+    pickPriceUnit: { color: colors.textTertiary, fontFamily: fonts.mono },
 
-  backRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: spacing.md,
-  },
-  backName: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontFamily: fonts.sansSemiBold,
-  },
+    backRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      marginBottom: spacing.md,
+    },
+    backName: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontFamily: fonts.sansSemiBold,
+    },
 
-  readout: { alignItems: 'center', paddingVertical: spacing.md },
-  readoutWeight: {
-    color: colors.textPrimary,
-    fontSize: 46,
-    fontFamily: fonts.display,
-    letterSpacing: -1,
-  },
-  readoutUnit: {
-    fontSize: 18,
-    color: colors.textTertiary,
-    fontFamily: fonts.mono,
-  },
-  readoutPrice: {
-    color: colors.accent,
-    fontSize: 14,
-    fontFamily: fonts.monoSemiBold,
-    marginTop: spacing.sm,
-  },
+    readout: { alignItems: 'center', paddingVertical: spacing.md },
+    readoutWeight: {
+      color: colors.textPrimary,
+      fontSize: 46,
+      fontFamily: fonts.display,
+      letterSpacing: -1,
+    },
+    readoutUnit: {
+      fontSize: 18,
+      color: colors.textTertiary,
+      fontFamily: fonts.mono,
+    },
+    readoutPrice: {
+      color: colors.accent,
+      fontSize: 14,
+      fontFamily: fonts.monoSemiBold,
+      marginTop: spacing.sm,
+    },
 
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 13,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    marginBottom: spacing.md,
-  },
-  priceLabel: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontFamily: fonts.mono,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  priceValueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginTop: 1,
-  },
-  priceValue: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontFamily: fonts.monoSemiBold,
-  },
-  priceStrike: {
-    color: colors.textTertiary,
-    fontSize: 12,
-    fontFamily: fonts.mono,
-    textDecorationLine: 'line-through',
-  },
-  overrideButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.chip,
-  },
-  overrideButtonText: {
-    color: colors.textSecondary,
-    fontSize: 12.5,
-    fontFamily: fonts.sansSemiBold,
-  },
-  priceEditLabel: {
-    color: colors.accent,
-    fontSize: 10,
-    fontFamily: fonts.mono,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  priceEditControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  priceInput: {
-    width: 96,
-    textAlign: 'right',
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.inputBackground,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontFamily: fonts.mono,
-  },
-  priceConfirm: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.sm,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+    priceRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      paddingHorizontal: 13,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      marginBottom: spacing.md,
+    },
+    priceLabel: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.mono,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    priceValueRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginTop: 1,
+    },
+    priceValue: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.monoSemiBold,
+    },
+    priceStrike: {
+      color: colors.textTertiary,
+      fontSize: 12,
+      fontFamily: fonts.mono,
+      textDecorationLine: 'line-through',
+    },
+    overrideButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.chip,
+    },
+    overrideButtonText: {
+      color: colors.textSecondary,
+      fontSize: 12.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    priceEditLabel: {
+      color: colors.accent,
+      fontSize: 10,
+      fontFamily: fonts.mono,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    priceEditControls: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    priceInput: {
+      width: 96,
+      textAlign: 'right',
+      paddingVertical: 8,
+      paddingHorizontal: 10,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.inputBackground,
+      borderWidth: 1,
+      borderColor: colors.accent,
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.mono,
+    },
+    priceConfirm: {
+      width: 36,
+      height: 36,
+      borderRadius: borderRadius.sm,
+      backgroundColor: colors.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
 
-  keypad: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  key: {
-    width: '31.5%',
-    paddingVertical: 14,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  keyText: {
-    color: colors.textPrimary,
-    fontSize: 21,
-    fontFamily: fonts.monoSemiBold,
-  },
+    keypad: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    key: {
+      width: '31.5%',
+      paddingVertical: 14,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    keyText: {
+      color: colors.textPrimary,
+      fontSize: 21,
+      fontFamily: fonts.monoSemiBold,
+    },
 
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-    paddingVertical: 15,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.accent,
-  },
-  addButtonDisabled: { backgroundColor: colors.border },
-  addButtonText: {
-    color: colors.accentInk,
-    fontSize: 16,
-    fontFamily: fonts.sansBold,
-  },
-  addButtonTextDisabled: { color: colors.textTertiary },
-});
+    addButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      marginTop: spacing.md,
+      paddingVertical: 15,
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.accent,
+    },
+    addButtonDisabled: { backgroundColor: colors.border },
+    addButtonText: {
+      color: colors.accentInk,
+      fontSize: 16,
+      fontFamily: fonts.sansBold,
+    },
+    addButtonTextDisabled: { color: colors.textTertiary },
+  });

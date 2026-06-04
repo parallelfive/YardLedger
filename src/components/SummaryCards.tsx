@@ -1,7 +1,14 @@
 import { View, Text, StyleSheet } from 'react-native';
 import type { DailySummary } from '../services/reports';
 import { useT } from '../hooks/useT';
-import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../constants';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface SummaryCardsProps {
   data: DailySummary;
@@ -9,6 +16,8 @@ interface SummaryCardsProps {
 
 export default function SummaryCards({ data }: SummaryCardsProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   return (
     <>
@@ -70,69 +79,70 @@ export default function SummaryCards({ data }: SummaryCardsProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    alignItems: 'flex-start',
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  statLabel: {
-    color: colors.textSecondary,
-    fontSize: 11,
-    fontFamily: fonts.sansSemiBold,
-    letterSpacing: 0.7,
-    textTransform: 'uppercase',
-    marginBottom: spacing.sm,
-  },
-  statValue: {
-    color: colors.accent,
-    fontSize: fontSize.xxl,
-    fontFamily: fonts.monoSemiBold,
-  },
-  statSub: {
-    color: colors.textTertiary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.mono,
-    marginTop: spacing.xs,
-  },
-  section: {
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.md,
-  },
-  sectionTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-    marginBottom: spacing.md,
-  },
-  metalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: colors.card,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  metalName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansMedium,
-  },
-  metalWeight: {
-    color: colors.textSecondary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.mono,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    statCard: {
+      flex: 1,
+      backgroundColor: colors.card,
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      alignItems: 'flex-start',
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    statLabel: {
+      color: colors.textSecondary,
+      fontSize: 11,
+      fontFamily: fonts.sansSemiBold,
+      letterSpacing: 0.7,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm,
+    },
+    statValue: {
+      color: colors.accent,
+      fontSize: fontSize.xxl,
+      fontFamily: fonts.monoSemiBold,
+    },
+    statSub: {
+      color: colors.textTertiary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.mono,
+      marginTop: spacing.xs,
+    },
+    section: {
+      paddingHorizontal: spacing.lg,
+      marginTop: spacing.md,
+    },
+    sectionTitle: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+      marginBottom: spacing.md,
+    },
+    metalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    metalName: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansMedium,
+    },
+    metalWeight: {
+      color: colors.textSecondary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.mono,
+    },
+  });

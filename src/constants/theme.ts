@@ -6,7 +6,7 @@ import { File, Paths } from 'expo-file-system';
 // user's saved preference (default: light "Daybook", per the design), read
 // synchronously at module load so the first paint is already correct.
 
-type Palette = {
+export type Palette = {
   background: string;
   surface: string;
   surface2: string;
@@ -117,7 +117,7 @@ export type ThemeMode = 'light' | 'dark';
 // threading a theme context through every screen.
 const THEME_FILE = 'theme.json';
 
-function readThemeMode(): ThemeMode {
+export function readThemeMode(): ThemeMode {
   try {
     const raw = new File(Paths.document, THEME_FILE).textSync();
     const mode = (JSON.parse(raw) as { mode?: string }).mode;
@@ -128,19 +128,25 @@ function readThemeMode(): ThemeMode {
   return 'light'; // Design default is the light "Daybook" palette.
 }
 
-export const themeMode: ThemeMode = readThemeMode();
-export const isLightTheme = themeMode === 'light';
-export const colors: Palette = isLightTheme ? lightColors : darkColors;
-
-// Persist the chosen mode. Callers reload the app afterwards (see toggleTheme
-// in utils) so the new palette is picked up at the next module load.
+// Persist the chosen mode (the ThemeProvider applies it live, no reload).
 export function saveThemeMode(mode: ThemeMode): void {
   try {
-    const file = new File(Paths.document, THEME_FILE);
-    file.write(JSON.stringify({ mode }));
+    new File(Paths.document, THEME_FILE).write(JSON.stringify({ mode }));
   } catch {
-    // Best-effort — if the write fails the app simply keeps the current theme.
+    // Best-effort — if the write fails the app keeps the current theme.
   }
+}
+
+export function paletteFor(mode: ThemeMode): Palette {
+  return mode === 'dark' ? darkColors : lightColors;
+}
+
+// Live palette for NON-hook consumers (e.g. toneColor, receipt HTML builders)
+// that can't call useTheme(). The ThemeProvider keeps this in sync with the
+// active mode via setActivePalette so call-time reads reflect the current theme.
+export let activeColors: Palette = paletteFor(readThemeMode());
+export function setActivePalette(palette: Palette): void {
+  activeColors = palette;
 }
 
 export const spacing = {

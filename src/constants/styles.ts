@@ -1,5 +1,10 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, fontSize, borderRadius } from './theme';
+import {
+  activeColors as colors,
+  spacing,
+  fontSize,
+  borderRadius,
+} from './theme';
 
 export const sharedStyles = StyleSheet.create({
   // Layout

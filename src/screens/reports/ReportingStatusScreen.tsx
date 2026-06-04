@@ -22,10 +22,13 @@ import {
 import { MiniStat, SectionLabel } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
 import { useAppSelector, type RootState } from '../../store';
-import { colors, spacing, borderRadius, fonts } from '../../constants';
+import { type Palette, spacing, borderRadius, fonts } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 export default function ReportingStatusScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const isFocused = useIsFocused();
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const [status, setStatus] = useState<ReportingStatus | null>(null);
@@ -152,51 +155,52 @@ export default function ReportingStatusScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  statRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-  },
-  note: {
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontFamily: fonts.mono,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
-    lineHeight: 19,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.accent,
-    marginHorizontal: spacing.lg,
-    paddingVertical: 16,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.xl,
-  },
-  buttonDisabled: { opacity: 0.5 },
-  buttonText: {
-    color: colors.accentInk,
-    fontSize: 16,
-    fontFamily: fonts.sansBold,
-  },
-  body: {
-    color: colors.textSecondary,
-    fontSize: 14,
-    fontFamily: fonts.sans,
-    paddingHorizontal: spacing.lg,
-    lineHeight: 20,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingTop: spacing.lg, paddingBottom: spacing.xxxl },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    statRow: {
+      flexDirection: 'row',
+      gap: 10,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    note: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontFamily: fonts.mono,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+      lineHeight: 19,
+    },
+    button: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.accent,
+      marginHorizontal: spacing.lg,
+      paddingVertical: 16,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.xl,
+    },
+    buttonDisabled: { opacity: 0.5 },
+    buttonText: {
+      color: colors.accentInk,
+      fontSize: 16,
+      fontFamily: fonts.sansBold,
+    },
+    body: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontFamily: fonts.sans,
+      paddingHorizontal: spacing.lg,
+      lineHeight: 20,
+    },
+  });

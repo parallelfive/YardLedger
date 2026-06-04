@@ -26,12 +26,13 @@ import {
   printNmCatConverterForm,
 } from '../../utils/printNmForms';
 import {
-  colors,
+  type Palette,
   spacing,
   fontSize,
   borderRadius,
   fonts,
 } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 interface ReceiptLineItem {
   id: string;
@@ -98,6 +99,7 @@ function DetailRow({
   value: string;
   last?: boolean;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.detailRow, last ? styles.detailRowLast : null]}>
       <Text style={styles.detailKey}>{label}</Text>
@@ -114,6 +116,7 @@ function Section({
   title: string;
   children: React.ReactNode;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -124,6 +127,8 @@ function Section({
 
 export default function ReceiptDetailScreen({ route, navigation }: Props) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { receiptId, printOnLoad } = route.params;
   const [receipt, setReceipt] = useState<ReceiptDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -619,343 +624,344 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
-  },
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      padding: spacing.lg,
+      paddingBottom: spacing.xl,
+    },
 
-  // Hero block
-  heroBlock: {
-    alignItems: 'center',
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  heroNo: {
-    color: colors.textTertiary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.mono,
-    letterSpacing: 0.5,
-  },
-  heroTotal: {
-    color: colors.accent,
-    fontSize: 40,
-    fontFamily: fonts.display,
-    letterSpacing: -1,
-    marginVertical: spacing.xs,
-  },
-  heroMeta: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.mono,
-  },
+    // Hero block
+    heroBlock: {
+      alignItems: 'center',
+      marginTop: spacing.sm,
+      marginBottom: spacing.xl,
+    },
+    heroNo: {
+      color: colors.textTertiary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.mono,
+      letterSpacing: 0.5,
+    },
+    heroTotal: {
+      color: colors.accent,
+      fontSize: 40,
+      fontFamily: fonts.display,
+      letterSpacing: -1,
+      marginVertical: spacing.xs,
+    },
+    heroMeta: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.mono,
+    },
 
-  // Notices
-  restrictedNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: 'rgba(181, 70, 47, 0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(181, 70, 47, 0.28)',
-    marginBottom: spacing.md,
-  },
-  holdNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  noticeText: {
-    flex: 1,
-    color: colors.textSecondary,
-    fontSize: 12.5,
-    fontFamily: fonts.sans,
-    lineHeight: 17,
-  },
+    // Notices
+    restrictedNotice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: 'rgba(181, 70, 47, 0.10)',
+      borderWidth: 1,
+      borderColor: 'rgba(181, 70, 47, 0.28)',
+      marginBottom: spacing.md,
+    },
+    holdNotice: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: spacing.md,
+    },
+    noticeText: {
+      flex: 1,
+      color: colors.textSecondary,
+      fontSize: 12.5,
+      fontFamily: fonts.sans,
+      lineHeight: 17,
+    },
 
-  // Detail table
-  detailTable: {
-    borderRadius: borderRadius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-    marginBottom: spacing.xl,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: 13,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  detailRowLast: {
-    borderBottomWidth: 0,
-  },
-  detailKey: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-  },
-  detailVal: {
-    color: colors.textPrimary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.monoSemiBold,
-  },
+    // Detail table
+    detailTable: {
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+      overflow: 'hidden',
+      marginBottom: spacing.xl,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: spacing.lg,
+      paddingVertical: 13,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    detailRowLast: {
+      borderBottomWidth: 0,
+    },
+    detailKey: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+    },
+    detailVal: {
+      color: colors.textPrimary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.monoSemiBold,
+    },
 
-  // Sections
-  section: {
-    marginBottom: spacing.xl,
-  },
-  sectionTitle: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.monoSemiBold,
-    marginBottom: spacing.sm,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  customerName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-  customerPhone: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-    marginTop: spacing.xs,
-  },
+    // Sections
+    section: {
+      marginBottom: spacing.xl,
+    },
+    sectionTitle: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.monoSemiBold,
+      marginBottom: spacing.sm,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+    },
+    customerName: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+    customerPhone: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      marginTop: spacing.xs,
+    },
 
-  // Line items
-  lineItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  lineItemLeft: {
-    flex: 1,
-  },
-  lineItemHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  metalName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  overrideBadge: {
-    backgroundColor: 'rgba(181, 70, 47, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  overrideBadgeText: {
-    color: colors.danger,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sansBold,
-  },
-  lineItemDetail: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    marginTop: spacing.xs,
-  },
-  tareDetail: {
-    color: colors.textTertiary,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sans,
-    marginTop: spacing.xs,
-  },
-  originalPrice: {
-    color: colors.textTertiary,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.mono,
-    textDecorationLine: 'line-through',
-    marginTop: 2,
-  },
-  lineItemTotal: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.monoSemiBold,
-    marginLeft: spacing.md,
-  },
+    // Line items
+    lineItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: colors.surface,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    lineItemLeft: {
+      flex: 1,
+    },
+    lineItemHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    metalName: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    overrideBadge: {
+      backgroundColor: 'rgba(181, 70, 47, 0.15)',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: borderRadius.sm,
+    },
+    overrideBadgeText: {
+      color: colors.danger,
+      fontSize: fontSize.xs,
+      fontFamily: fonts.sansBold,
+    },
+    lineItemDetail: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+      marginTop: spacing.xs,
+    },
+    tareDetail: {
+      color: colors.textTertiary,
+      fontSize: fontSize.xs,
+      fontFamily: fonts.sans,
+      marginTop: spacing.xs,
+    },
+    originalPrice: {
+      color: colors.textTertiary,
+      fontSize: fontSize.xs,
+      fontFamily: fonts.mono,
+      textDecorationLine: 'line-through',
+      marginTop: 2,
+    },
+    lineItemTotal: {
+      color: colors.accent,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.monoSemiBold,
+      marginLeft: spacing.md,
+    },
 
-  // Photos & signature
-  photoBox: {
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  photo: {
-    width: '100%',
-    height: 180,
-    backgroundColor: colors.surface,
-  },
-  signatureBox: {
-    backgroundColor: '#ffffff',
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  signatureImage: {
-    width: '100%',
-    height: 120,
-  },
+    // Photos & signature
+    photoBox: {
+      borderRadius: borderRadius.md,
+      overflow: 'hidden',
+      marginBottom: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    photo: {
+      width: '100%',
+      height: 180,
+      backgroundColor: colors.surface,
+    },
+    signatureBox: {
+      backgroundColor: '#ffffff',
+      borderRadius: borderRadius.md,
+      padding: spacing.md,
+      alignItems: 'center',
+    },
+    signatureImage: {
+      width: '100%',
+      height: 120,
+    },
 
-  // Statutory note
-  statutoryNote: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    marginTop: spacing.xs,
-    marginBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
-  },
-  statutoryText: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontFamily: fonts.mono,
-    letterSpacing: 0.3,
-    lineHeight: 14,
-    textAlign: 'center',
-    flexShrink: 1,
-  },
+    // Statutory note
+    statutoryNote: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 5,
+      marginTop: spacing.xs,
+      marginBottom: spacing.xl,
+      paddingHorizontal: spacing.lg,
+    },
+    statutoryText: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.mono,
+      letterSpacing: 0.3,
+      lineHeight: 14,
+      textAlign: 'center',
+      flexShrink: 1,
+    },
 
-  // Secondary actions
-  secondaryRow: {
-    marginBottom: spacing.md,
-  },
-  secondaryButton: {
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.warning,
-    backgroundColor: colors.gold + '1a',
-  },
-  secondaryButtonText: {
-    color: colors.warning,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-  },
-  shareLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  shareLinkText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansSemiBold,
-  },
-  disposeButton: {
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.gold,
-    marginBottom: spacing.md,
-  },
-  disposeButtonText: {
-    color: colors.gold,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansSemiBold,
-  },
-  deleteButton: {
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.danger,
-    marginBottom: spacing.lg,
-  },
-  deleteButtonText: {
-    color: colors.danger,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansSemiBold,
-  },
+    // Secondary actions
+    secondaryRow: {
+      marginBottom: spacing.md,
+    },
+    secondaryButton: {
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.warning,
+      backgroundColor: colors.gold + '1a',
+    },
+    secondaryButtonText: {
+      color: colors.warning,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+    },
+    shareLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      paddingVertical: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    shareLinkText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
+    },
+    disposeButton: {
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.gold,
+      marginBottom: spacing.md,
+    },
+    disposeButtonText: {
+      color: colors.gold,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
+    },
+    deleteButton: {
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      alignItems: 'center',
+      borderWidth: 1,
+      borderColor: colors.danger,
+      marginBottom: spacing.lg,
+    },
+    deleteButtonText: {
+      color: colors.danger,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
+    },
 
-  // Footer
-  footer: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    padding: spacing.lg,
-    paddingBottom: spacing.xl,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  reprintButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    padding: spacing.lg,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-  },
-  reprintButtonText: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  doneButton: {
-    flex: 1,
-    padding: spacing.lg,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.accent,
-  },
-  doneButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-  },
-});
+    // Footer
+    footer: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      padding: spacing.lg,
+      paddingBottom: spacing.xl,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    reprintButton: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: spacing.sm,
+      padding: spacing.lg,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    reprintButtonText: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    doneButton: {
+      flex: 1,
+      padding: spacing.lg,
+      borderRadius: 14,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.accent,
+    },
+    doneButtonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+    },
+  });

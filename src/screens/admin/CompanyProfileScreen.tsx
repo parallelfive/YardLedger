@@ -27,8 +27,9 @@ import {
   saveReportingConfig,
   sendReportNow,
 } from '../../services/reporting';
+import { useTheme, useThemedStyles } from '../../theme';
 import {
-  colors,
+  type Palette,
   spacing,
   fontSize,
   borderRadius,
@@ -37,6 +38,7 @@ import {
 
 // ── grouped card (uppercase title + bordered surface) ─────────
 function AdmGroup({ title, children }: { title: string; children: ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.group}>
       <Text style={styles.groupTitle}>{title}</Text>
@@ -73,6 +75,8 @@ function AdmField({
   maxLength?: number;
   last?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.field, last && styles.fieldLast]}>
       <Text style={styles.fieldLabel}>{label}</Text>
@@ -105,6 +109,8 @@ function AdmSwitch({
   onValueChange: (v: boolean) => void;
   last?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={[styles.switchRow, last && styles.fieldLast]}>
       <Text style={styles.switchLabel}>{label}</Text>
@@ -120,6 +126,8 @@ function AdmSwitch({
 
 export default function CompanyProfileScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const company = useCurrentCompany();
 
@@ -509,161 +517,162 @@ export default function CompanyProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  content: {
-    padding: spacing.lg,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  // ── identity header ──
-  identity: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  logoTile: {
-    width: 58,
-    height: 58,
-    borderRadius: 16,
-    backgroundColor: colors.textPrimary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  logoImage: { width: 58, height: 58 },
-  monogram: {
-    color: colors.background,
-    fontSize: 22,
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
-  },
-  identityName: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontFamily: fonts.sansBold,
-  },
-  identitySub: {
-    color: colors.textTertiary,
-    fontSize: 11,
-    fontFamily: fonts.mono,
-    marginTop: 2,
-  },
-  logoHint: {
-    color: colors.accent,
-    fontSize: 11,
-    fontFamily: fonts.sansMedium,
-    marginTop: 4,
-  },
-  // ── grouped card ──
-  group: { marginBottom: spacing.lg },
-  groupTitle: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    paddingHorizontal: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  groupCard: {
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  field: {
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
-  },
-  fieldLast: { borderBottomWidth: 0 },
-  fieldLabel: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-    marginBottom: 5,
-  },
-  fieldInput: {
-    color: colors.textPrimary,
-    fontSize: 15,
-    fontFamily: fonts.sansMedium,
-    padding: 0,
-  },
-  fieldInputMono: {
-    fontFamily: fonts.mono,
-    letterSpacing: 0.3,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
-  },
-  switchLabel: {
-    flex: 1,
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontFamily: fonts.sansMedium,
-    marginRight: spacing.md,
-  },
-  footnote: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontFamily: fonts.mono,
-    lineHeight: 16,
-    paddingHorizontal: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  saveButton: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    backgroundColor: colors.accent,
-    borderRadius: 14,
-    padding: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.md,
-  },
-  saveButtonDisabled: { opacity: 0.5 },
-  saveButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-  },
-  sendNowButton: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderRadius: 14,
-    padding: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.md,
-  },
-  sendNowButtonText: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-  },
-  bottomSpacer: {
-    height: spacing.xxxl,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: spacing.lg,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    // ── identity header ──
+    identity: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginBottom: spacing.xl,
+    },
+    logoTile: {
+      width: 58,
+      height: 58,
+      borderRadius: 16,
+      backgroundColor: colors.textPrimary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    logoImage: { width: 58, height: 58 },
+    monogram: {
+      color: colors.background,
+      fontSize: 22,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+    },
+    identityName: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontFamily: fonts.sansBold,
+    },
+    identitySub: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    logoHint: {
+      color: colors.accent,
+      fontSize: 11,
+      fontFamily: fonts.sansMedium,
+      marginTop: 4,
+    },
+    // ── grouped card ──
+    group: { marginBottom: spacing.lg },
+    groupTitle: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      paddingHorizontal: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    groupCard: {
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    field: {
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    fieldLast: { borderBottomWidth: 0 },
+    fieldLabel: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      marginBottom: 5,
+    },
+    fieldInput: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.sansMedium,
+      padding: 0,
+    },
+    fieldInputMono: {
+      fontFamily: fonts.mono,
+      letterSpacing: 0.3,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    switchLabel: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.sansMedium,
+      marginRight: spacing.md,
+    },
+    footnote: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.mono,
+      lineHeight: 16,
+      paddingHorizontal: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    saveButton: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      backgroundColor: colors.accent,
+      borderRadius: 14,
+      padding: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: spacing.md,
+    },
+    saveButtonDisabled: { opacity: 0.5 },
+    saveButtonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    sendNowButton: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: colors.accent,
+      borderRadius: 14,
+      padding: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: spacing.md,
+    },
+    sendNowButtonText: {
+      color: colors.accent,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    bottomSpacer: {
+      height: spacing.xxxl,
+    },
+  });

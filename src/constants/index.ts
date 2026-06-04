@@ -1,12 +1,14 @@
 export {
-  colors,
   spacing,
   fontSize,
   borderRadius,
   fonts,
-  isLightTheme,
-  themeMode,
   saveThemeMode,
+  readThemeMode,
+  paletteFor,
+  activeColors,
+  lightColors,
+  darkColors,
   type ThemeMode,
+  type Palette,
 } from './theme';
-export { sharedStyles } from './styles';

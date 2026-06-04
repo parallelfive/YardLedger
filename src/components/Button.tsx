@@ -5,7 +5,14 @@ import {
   StyleSheet,
 } from 'react-native';
 import type { TouchableOpacityProps } from 'react-native';
-import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../constants';
+import { useTheme, useThemedStyles } from '../theme';
 
 type ButtonVariant = 'primary' | 'danger' | 'outline' | 'success';
 
@@ -16,12 +23,13 @@ interface ButtonProps extends TouchableOpacityProps {
   small?: boolean;
 }
 
-const variantStyles = {
-  primary: { bg: colors.accent, text: colors.background },
-  danger: { bg: colors.danger, text: colors.white },
-  outline: { bg: 'transparent', text: colors.textPrimary },
-  success: { bg: colors.success, text: colors.background },
-} as const;
+const makeVariantStyles = (colors: Palette) =>
+  ({
+    primary: { bg: colors.accent, text: colors.background },
+    danger: { bg: colors.danger, text: colors.white },
+    outline: { bg: 'transparent', text: colors.textPrimary },
+    success: { bg: colors.success, text: colors.background },
+  }) as const;
 
 export default function Button({
   title,
@@ -32,7 +40,9 @@ export default function Button({
   style,
   ...props
 }: ButtonProps) {
-  const v = variantStyles[variant];
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const v = makeVariantStyles(colors)[variant];
 
   return (
     <TouchableOpacity
@@ -60,41 +70,42 @@ export default function Button({
   );
 }
 
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: borderRadius.md,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.xl,
-    alignItems: 'center',
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  small: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.sm,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  outline: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    shadowOpacity: 0,
-    elevation: 0,
-  },
-  disabled: {
-    opacity: 0.4,
-  },
-  text: {
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-    letterSpacing: 0.3,
-  },
-  textSmall: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sansSemiBold,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    base: {
+      borderRadius: borderRadius.md,
+      paddingVertical: 14,
+      paddingHorizontal: spacing.xl,
+      alignItems: 'center',
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3,
+      elevation: 3,
+    },
+    small: {
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.sm,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+    outline: {
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowOpacity: 0,
+      elevation: 0,
+    },
+    disabled: {
+      opacity: 0.4,
+    },
+    text: {
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+      letterSpacing: 0.3,
+    },
+    textSmall: {
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sansSemiBold,
+    },
+  });

@@ -16,8 +16,9 @@ import type { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useAppDispatch } from '../../store';
 import { signUp } from '../../store/authStore';
 import { useT } from '../../hooks/useT';
+import { useTheme, useThemedStyles } from '../../theme';
 import {
-  colors,
+  type Palette,
   spacing,
   fontSize,
   borderRadius,
@@ -37,6 +38,8 @@ export default function RegisterScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
 
   const handleRegister = async () => {
     const trimmedEmail = email.trim();
@@ -196,115 +199,116 @@ export default function RegisterScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scroll: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.xxxl,
-  },
-  brand: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  logoWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.accentMuted,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.accentLine,
-  },
-  eyebrow: {
-    fontFamily: fonts.mono,
-    fontSize: 11.5,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    color: colors.textTertiary,
-    marginBottom: spacing.xs,
-  },
-  title: {
-    fontSize: fontSize.xxl,
-    fontFamily: fonts.display,
-    color: colors.textPrimary,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  formCard: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.xl,
-    padding: spacing.lg,
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  field: {
-    marginBottom: spacing.lg,
-  },
-  fieldLabel: {
-    fontFamily: fonts.sansSemiBold,
-    fontSize: 10.5,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: colors.textTertiary,
-    marginBottom: spacing.sm,
-  },
-  input: {
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.lg,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  inputCode: {
-    fontFamily: fonts.monoMedium,
-    letterSpacing: 3,
-  },
-  inputFocused: {
-    borderColor: colors.accent,
-  },
-  button: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.lg,
-    paddingVertical: 16,
-    marginBottom: spacing.lg,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-    letterSpacing: 0.3,
-  },
-  linkWrap: {
-    paddingVertical: spacing.sm,
-  },
-  linkText: {
-    color: colors.textSecondary,
-    textAlign: 'center',
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansMedium,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    scroll: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      paddingHorizontal: spacing.xl,
+      paddingVertical: spacing.xxxl,
+    },
+    brand: {
+      alignItems: 'center',
+      marginBottom: spacing.xl,
+    },
+    logoWrap: {
+      width: 56,
+      height: 56,
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.accentMuted,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.accentLine,
+    },
+    eyebrow: {
+      fontFamily: fonts.mono,
+      fontSize: 11.5,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+      marginBottom: spacing.xs,
+    },
+    title: {
+      fontSize: fontSize.xxl,
+      fontFamily: fonts.display,
+      color: colors.textPrimary,
+      textAlign: 'center',
+      letterSpacing: -0.5,
+    },
+    formCard: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.xl,
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    field: {
+      marginBottom: spacing.lg,
+    },
+    fieldLabel: {
+      fontFamily: fonts.sansSemiBold,
+      fontSize: 10.5,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+      color: colors.textTertiary,
+      marginBottom: spacing.sm,
+    },
+    input: {
+      backgroundColor: colors.inputBackground,
+      color: colors.textPrimary,
+      borderRadius: borderRadius.md,
+      paddingVertical: 14,
+      paddingHorizontal: spacing.lg,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    inputCode: {
+      fontFamily: fonts.monoMedium,
+      letterSpacing: 3,
+    },
+    inputFocused: {
+      borderColor: colors.accent,
+    },
+    button: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: 6,
+      backgroundColor: colors.accent,
+      borderRadius: borderRadius.lg,
+      paddingVertical: 16,
+      marginBottom: spacing.lg,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 1,
+      shadowRadius: 12,
+      elevation: 4,
+    },
+    buttonDisabled: {
+      opacity: 0.6,
+    },
+    buttonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+      letterSpacing: 0.3,
+    },
+    linkWrap: {
+      paddingVertical: spacing.sm,
+    },
+    linkText: {
+      color: colors.textSecondary,
+      textAlign: 'center',
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansMedium,
+    },
+  });

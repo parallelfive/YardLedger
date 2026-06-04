@@ -9,7 +9,14 @@ import {
 } from 'react-native';
 import { useAdminVerification } from '../hooks/useAdminVerification';
 import { useT } from '../hooks/useT';
-import { colors, spacing, fontSize, borderRadius, fonts } from '../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../constants';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface AdminPinModalProps {
   visible: boolean;
@@ -23,6 +30,8 @@ export default function AdminPinModal({
   onCancel,
 }: AdminPinModalProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const { verify, loading, error, reset } = useAdminVerification();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -104,86 +113,87 @@ export default function AdminPinModal({
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: colors.overlay,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl,
-  },
-  modal: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xl,
-    width: '100%',
-    maxWidth: 400,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  title: {
-    color: colors.danger,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-    textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
-  input: {
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  errorText: {
-    color: colors.danger,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-    marginBottom: spacing.md,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.sm,
-  },
-  cancelButton: {
-    flex: 1,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  verifyButton: {
-    flex: 1,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.danger,
-    alignItems: 'center',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  verifyButtonText: {
-    color: colors.white,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: spacing.xl,
+    },
+    modal: {
+      backgroundColor: colors.card,
+      borderRadius: borderRadius.lg,
+      padding: spacing.xl,
+      width: '100%',
+      maxWidth: 400,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    title: {
+      color: colors.danger,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+      textAlign: 'center',
+      marginBottom: spacing.xs,
+    },
+    subtitle: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+      marginBottom: spacing.xl,
+    },
+    input: {
+      backgroundColor: colors.inputBackground,
+      color: colors.textPrimary,
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      marginBottom: spacing.md,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    errorText: {
+      color: colors.danger,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+      marginBottom: spacing.md,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginTop: spacing.sm,
+    },
+    cancelButton: {
+      flex: 1,
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+    },
+    cancelButtonText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    verifyButton: {
+      flex: 1,
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.danger,
+      alignItems: 'center',
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    verifyButtonText: {
+      color: colors.white,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+    },
+  });

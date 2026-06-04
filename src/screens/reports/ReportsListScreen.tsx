@@ -29,12 +29,13 @@ import {
 } from '../../services/reports';
 import { Tag, SectionLabel, fmtMoney, fmtLbs } from '../../components/foundry';
 import {
-  colors,
+  type Palette,
   spacing,
   fontSize,
   borderRadius,
   fonts,
 } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 type Props = NativeStackScreenProps<ReportsStackParamList, 'ReportsList'>;
 
@@ -53,6 +54,8 @@ async function shareCsv(rows: ComplianceReceiptRow[], name: string) {
 
 export default function ReportsListScreen({ navigation }: Props) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const rootNav = useNavigation() as {
     navigate: (name: string, params?: object) => void;
   };
@@ -332,6 +335,7 @@ function Stat({
   label: string;
   color: string;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.stat}>
       <Text style={[styles.statN, { color }]}>{n}</Text>
@@ -355,6 +359,7 @@ function ExportBtn({
   onPress: () => void;
   locked?: boolean;
 }) {
+  const styles = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity
       style={[styles.exportBtn, locked && styles.exportLocked]}
@@ -376,185 +381,186 @@ function ExportBtn({
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1, minWidth: 0 },
-  container: { flex: 1, backgroundColor: colors.background },
-  content: { paddingBottom: spacing.xxxl },
-  triplet: {
-    flexDirection: 'row',
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    borderRadius: 16,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
-  tripletDivider: { width: 1, backgroundColor: colors.borderSubtle },
-  stat: { flex: 1, paddingVertical: 15, alignItems: 'center' },
-  statN: {
-    fontSize: 26,
-    fontFamily: fonts.display,
-    letterSpacing: -0.5,
-  },
-  statL: {
-    color: colors.textTertiary,
-    fontSize: 10,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    marginTop: 3,
-  },
-  deadline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    padding: spacing.md,
-    borderRadius: 13,
-    backgroundColor: colors.rust + '14',
-    borderWidth: 1,
-    borderColor: colors.rust + '3d',
-  },
-  deadlineText: {
-    flex: 1,
-    color: colors.textSecondary,
-    fontSize: 12.5,
-    fontFamily: fonts.sans,
-    lineHeight: 17,
-  },
-  deadlineStrong: { color: colors.textPrimary, fontFamily: fonts.sansBold },
-  exportGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  exportBtn: {
-    width: '47.5%',
-    flexGrow: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    padding: spacing.md,
-    borderRadius: 14,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  exportLocked: { opacity: 0.6 },
-  exportIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  exportLabel: {
-    color: colors.textPrimary,
-    fontSize: 13.5,
-    fontFamily: fonts.sansSemiBold,
-  },
-  exportSub: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.mono,
-    marginTop: 1,
-  },
-  ledger: {
-    marginHorizontal: spacing.lg,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.card,
-    overflow: 'hidden',
-  },
-  ledgerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: colors.surface2,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
-  },
-  ledgerHeaderLabel: {
-    color: colors.textTertiary,
-    fontSize: 9.5,
-    fontFamily: fonts.monoSemiBold,
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  ledgerRow: { padding: spacing.md, borderLeftWidth: 3 },
-  ledgerRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSubtle,
-  },
-  ledgerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  ledgerSellerLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  ledgerSeller: {
-    color: colors.textPrimary,
-    fontSize: 14,
-    fontFamily: fonts.sansSemiBold,
-  },
-  ledgerPaid: {
-    color: colors.textPrimary,
-    fontSize: 14.5,
-    fontFamily: fonts.monoSemiBold,
-  },
-  ledgerNo: {
-    color: colors.textTertiary,
-    fontSize: 10.5,
-    fontFamily: fonts.mono,
-    marginTop: 2,
-  },
-  ledgerMeta: {
-    color: colors.textSecondary,
-    fontSize: 10.5,
-    fontFamily: fonts.mono,
-    marginTop: 6,
-  },
-  ledgerMaterials: {
-    color: colors.textTertiary,
-    fontSize: 11.5,
-    fontFamily: fonts.sans,
-    marginTop: 3,
-    lineHeight: 16,
-  },
-  ledgerTags: { flexDirection: 'row', gap: spacing.md, marginTop: 8 },
-  emptyText: {
-    color: colors.textTertiary,
-    fontSize: 14,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-    marginTop: spacing.xl,
-  },
-  detailGrid: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-  },
-  detailCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-  },
-  detailTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansSemiBold,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    flex: { flex: 1, minWidth: 0 },
+    container: { flex: 1, backgroundColor: colors.background },
+    content: { paddingBottom: spacing.xxxl },
+    triplet: {
+      flexDirection: 'row',
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      borderRadius: 16,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    tripletDivider: { width: 1, backgroundColor: colors.borderSubtle },
+    stat: { flex: 1, paddingVertical: 15, alignItems: 'center' },
+    statN: {
+      fontSize: 26,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+    },
+    statL: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      marginTop: 3,
+    },
+    deadline: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      padding: spacing.md,
+      borderRadius: 13,
+      backgroundColor: colors.rust + '14',
+      borderWidth: 1,
+      borderColor: colors.rust + '3d',
+    },
+    deadlineText: {
+      flex: 1,
+      color: colors.textSecondary,
+      fontSize: 12.5,
+      fontFamily: fonts.sans,
+      lineHeight: 17,
+    },
+    deadlineStrong: { color: colors.textPrimary, fontFamily: fonts.sansBold },
+    exportGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    exportBtn: {
+      width: '47.5%',
+      flexGrow: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 14,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    exportLocked: { opacity: 0.6 },
+    exportIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    exportLabel: {
+      color: colors.textPrimary,
+      fontSize: 13.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    exportSub: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 1,
+    },
+    ledger: {
+      marginHorizontal: spacing.lg,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+      overflow: 'hidden',
+    },
+    ledgerHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+      backgroundColor: colors.surface2,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    ledgerHeaderLabel: {
+      color: colors.textTertiary,
+      fontSize: 9.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    ledgerRow: { padding: spacing.md, borderLeftWidth: 3 },
+    ledgerRowBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    ledgerTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    ledgerSellerLine: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+    ledgerSeller: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.sansSemiBold,
+    },
+    ledgerPaid: {
+      color: colors.textPrimary,
+      fontSize: 14.5,
+      fontFamily: fonts.monoSemiBold,
+    },
+    ledgerNo: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    ledgerMeta: {
+      color: colors.textSecondary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 6,
+    },
+    ledgerMaterials: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.sans,
+      marginTop: 3,
+      lineHeight: 16,
+    },
+    ledgerTags: { flexDirection: 'row', gap: spacing.md, marginTop: 8 },
+    emptyText: {
+      color: colors.textTertiary,
+      fontSize: 14,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+      marginTop: spacing.xl,
+    },
+    detailGrid: {
+      paddingHorizontal: spacing.lg,
+      gap: spacing.sm,
+    },
+    detailCard: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.accent,
+    },
+    detailTitle: {
+      color: colors.textPrimary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
+    },
+  });
