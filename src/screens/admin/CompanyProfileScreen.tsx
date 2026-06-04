@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,11 @@ import {
   updateCompanySettings,
   uploadCompanyLogo,
 } from '../../services/companySettings';
+import {
+  getReportingConfig,
+  saveReportingConfig,
+  sendReportNow,
+} from '../../services/reporting';
 import { colors, spacing, fontSize, borderRadius } from '../../constants';
 
 export default function CompanyProfileScreen() {
@@ -42,11 +47,19 @@ export default function CompanyProfileScreen() {
   const [catHoldDays, setCatHoldDays] = useState('60');
   const [catCheckOnly, setCatCheckOnly] = useState(true);
 
-  useEffect(() => {
-    loadSettings();
-  }, []);
+  // State-reporting (LeadsOnline SFTP) credentials — owner only.
+  const isOwner = profile?.role === 'owner';
+  const [repEnabled, setRepEnabled] = useState(false);
+  const [repHost, setRepHost] = useState('');
+  const [repPort, setRepPort] = useState('22');
+  const [repUsername, setRepUsername] = useState('');
+  const [repPassword, setRepPassword] = useState('');
+  const [repRemoteDir, setRepRemoteDir] = useState('');
+  const [repHasCreds, setRepHasCreds] = useState(false);
+  const [savingReporting, setSavingReporting] = useState(false);
+  const [sendingReport, setSendingReport] = useState(false);
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const data = await fetchCompanySettings();
       if (data) {
@@ -61,10 +74,58 @@ export default function CompanyProfileScreen() {
         setCatHoldDays(String(data.cat_converter_hold_days ?? 60));
         setCatCheckOnly(data.cat_converter_check_only ?? true);
       }
+      if (profile?.role === 'owner') {
+        const rep = await getReportingConfig();
+        if (rep) {
+          setRepEnabled(rep.enabled);
+          setRepHost(rep.sftp_host);
+          setRepPort(String(rep.sftp_port ?? 22));
+          setRepUsername(rep.sftp_username);
+          setRepRemoteDir(rep.remote_dir);
+          setRepHasCreds(rep.has_credentials);
+        }
+      }
     } catch {
       // Will show empty form
     } finally {
       setLoading(false);
+    }
+  }, [profile?.role]);
+
+  useEffect(() => {
+    loadSettings();
+  }, [loadSettings]);
+
+  const handleSaveReporting = async () => {
+    setSavingReporting(true);
+    try {
+      await saveReportingConfig({
+        sftpHost: repHost.trim(),
+        sftpPort: parseInt(repPort, 10) || 22,
+        sftpUsername: repUsername.trim(),
+        sftpPassword: repPassword, // blank keeps the stored one
+        remoteDir: repRemoteDir.trim(),
+        enabled: repEnabled,
+      });
+      setRepPassword('');
+      if (repPassword) setRepHasCreds(true);
+      Alert.alert(t.success, t.reportingSaved);
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    } finally {
+      setSavingReporting(false);
+    }
+  };
+
+  const handleSendNow = async () => {
+    setSendingReport(true);
+    try {
+      await sendReportNow();
+      Alert.alert(t.success, t.reportSent);
+    } catch (err) {
+      Alert.alert(t.error, (err as Error).message);
+    } finally {
+      setSendingReport(false);
     }
   };
 
@@ -245,6 +306,100 @@ export default function CompanyProfileScreen() {
         )}
       </TouchableOpacity>
 
+      {/* State Reporting (owner only) — per-yard LeadsOnline SFTP credentials */}
+      {isOwner && (
+        <>
+          <Text style={styles.sectionTitle}>{t.stateReporting}</Text>
+
+          <View style={styles.switchRow}>
+            <Text style={styles.label}>{t.reportingEnabled}</Text>
+            <Switch value={repEnabled} onValueChange={setRepEnabled} />
+          </View>
+
+          <Text style={styles.label}>{t.sftpHost}</Text>
+          <TextInput
+            style={styles.input}
+            value={repHost}
+            onChangeText={setRepHost}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="sftp.leadsonline.com"
+            placeholderTextColor={colors.textTertiary}
+          />
+
+          <Text style={styles.label}>{t.sftpPort}</Text>
+          <TextInput
+            style={styles.input}
+            value={repPort}
+            onChangeText={setRepPort}
+            keyboardType="number-pad"
+          />
+
+          <Text style={styles.label}>{t.sftpUsername}</Text>
+          <TextInput
+            style={styles.input}
+            value={repUsername}
+            onChangeText={setRepUsername}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <Text style={styles.label}>{t.sftpPassword}</Text>
+          <TextInput
+            style={styles.input}
+            value={repPassword}
+            onChangeText={setRepPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder={repHasCreds ? '•••••••• (unchanged)' : ''}
+            placeholderTextColor={colors.textTertiary}
+          />
+
+          <Text style={styles.label}>{t.sftpRemoteDir}</Text>
+          <TextInput
+            style={styles.input}
+            value={repRemoteDir}
+            onChangeText={setRepRemoteDir}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="/uploads"
+            placeholderTextColor={colors.textTertiary}
+          />
+
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              savingReporting && styles.saveButtonDisabled,
+            ]}
+            onPress={handleSaveReporting}
+            disabled={savingReporting}
+          >
+            {savingReporting ? (
+              <ActivityIndicator color={colors.background} />
+            ) : (
+              <Text style={styles.saveButtonText}>{t.saveReportingConfig}</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              styles.sendNowButton,
+              (sendingReport || !repEnabled) && styles.saveButtonDisabled,
+            ]}
+            onPress={handleSendNow}
+            disabled={sendingReport || !repEnabled}
+          >
+            {sendingReport ? (
+              <ActivityIndicator color={colors.accent} />
+            ) : (
+              <Text style={styles.sendNowButtonText}>{t.sendReportNow}</Text>
+            )}
+          </TouchableOpacity>
+        </>
+      )}
+
       <View style={styles.bottomSpacer} />
     </ScrollView>
   );
@@ -345,6 +500,17 @@ const styles = StyleSheet.create({
   },
   saveButtonText: {
     color: colors.background,
+    fontSize: fontSize.xl,
+    fontWeight: '700',
+  },
+  sendNowButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.accent,
+    marginTop: spacing.md,
+  },
+  sendNowButtonText: {
+    color: colors.accent,
     fontSize: fontSize.xl,
     fontWeight: '700',
   },

@@ -29,5 +29,11 @@ module.exports = {
     ],
     '@typescript-eslint/no-require-imports': 'off',
   },
-  ignorePatterns: ['node_modules/', 'dist/', '.expo/', 'babel.config.js'],
+  ignorePatterns: [
+    'node_modules/',
+    'dist/',
+    '.expo/',
+    'babel.config.js',
+    'supabase/functions/',
+  ],
 };
