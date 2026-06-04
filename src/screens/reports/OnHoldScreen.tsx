@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { fetchReceiptsOnHold, type OnHoldRow } from '../../services/reports';
 import { RefreshableList } from '../../components';
+import { Tag } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
 import {
   colors,
@@ -47,26 +48,41 @@ export default function OnHoldScreen() {
         onRefresh={load}
         emptyTitle={t.noMaterialOnHold}
         emptySubtitle=""
-        renderItem={({ item }) => (
-          <View
-            style={[styles.card, item.is_catalytic && styles.cardCatalytic]}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.receipt}>{item.receipt_number}</Text>
-              <Text style={styles.days}>
-                {daysLeft(item.hold_until)} {t.daysLeft}
-              </Text>
-            </View>
-            <Text style={styles.detail}>
-              {t.holdUntil}: {new Date(item.hold_until).toLocaleDateString()}
-            </Text>
-            {item.is_catalytic && (
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>{t.catalyticConverter}</Text>
+        renderItem={({ item }) => {
+          const days = daysLeft(item.hold_until);
+          const urgent = days <= 7;
+          return (
+            <View
+              style={[styles.card, item.is_catalytic && styles.cardCatalytic]}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={styles.receipt}>{item.receipt_number}</Text>
+                <Tag
+                  label={`${days} ${t.daysLeft}`}
+                  color={urgent ? colors.rust : colors.gold}
+                  soft={
+                    urgent
+                      ? 'rgba(181, 70, 47, 0.14)'
+                      : 'rgba(176, 138, 50, 0.15)'
+                  }
+                />
               </View>
-            )}
-          </View>
-        )}
+              <Text style={styles.detail}>
+                {t.holdUntil}: {new Date(item.hold_until).toLocaleDateString()}
+              </Text>
+              {item.is_catalytic && (
+                <View style={styles.catalyticTag}>
+                  <Tag
+                    label={t.catalyticConverter}
+                    color={colors.rust}
+                    soft="rgba(181, 70, 47, 0.14)"
+                    icon="warning"
+                  />
+                </View>
+              )}
+            </View>
+          );
+        }}
       />
     </View>
   );
@@ -89,7 +105,7 @@ const styles = StyleSheet.create({
     borderLeftColor: colors.accent,
   },
   cardCatalytic: {
-    borderLeftColor: colors.warning,
+    borderLeftColor: colors.rust,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -101,27 +117,14 @@ const styles = StyleSheet.create({
     fontSize: fontSize.lg,
     fontFamily: fonts.sansBold,
   },
-  days: {
-    color: colors.accent,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansBold,
-  },
   detail: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
+    fontFamily: fonts.mono,
     marginTop: spacing.xs,
   },
-  tag: {
+  catalyticTag: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(176, 138, 50, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
     marginTop: spacing.sm,
-  },
-  tagText: {
-    color: colors.warning,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sansBold,
   },
 });
