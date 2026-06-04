@@ -12,7 +12,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useInventory } from '../../hooks/useInventory';
 import {
-  MetalDot,
   Tag,
   DeltaTag,
   toneColor,
@@ -176,7 +175,6 @@ export default function InventoryScreen() {
           const tone = toneFor(r.category, r.restricted);
           return (
             <View style={[styles.row, { borderLeftColor: toneColor(tone) }]}>
-              <MetalDot tone={tone} size={11} />
               <View style={styles.rowInfo}>
                 <View style={styles.rowTitleLine}>
                   <Text style={styles.rowName}>{r.name}</Text>
@@ -193,7 +191,10 @@ export default function InventoryScreen() {
                 </Text>
               </View>
               <View style={styles.rowRight}>
-                <Text style={styles.rowWeight}>{fmtLbs(r.weight)} lb</Text>
+                <Text style={styles.rowWeight}>
+                  {fmtLbs(r.weight)}
+                  <Text style={styles.rowWeightUnit}> lb</Text>
+                </Text>
                 <DeltaTag up={up}>{fmtMoney(Math.abs(spread), 2)}</DeltaTag>
               </View>
             </View>
@@ -296,8 +297,13 @@ const styles = StyleSheet.create({
   rowWeight: {
     color: colors.textPrimary,
     fontSize: 17,
-    fontFamily: fonts.monoSemiBold,
+    fontFamily: fonts.display,
     letterSpacing: -0.3,
+  },
+  rowWeightUnit: {
+    color: colors.textTertiary,
+    fontSize: 11,
+    fontFamily: fonts.mono,
   },
   empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
   emptyTitle: {

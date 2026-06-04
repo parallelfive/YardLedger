@@ -140,14 +140,24 @@ export default function DashboardScreen() {
       ? Math.round((summary.grossProfit / summary.totalSoldRevenue) * 100)
       : 0;
 
+  // Delta vs the trailing 14-day average (matches the design's "% vs avg").
+  const trailing = spark.slice(0, -1);
+  const avg = trailing.length
+    ? trailing.reduce((a, n) => a + n, 0) / trailing.length
+    : 0;
+  const last = spark.length ? spark[spark.length - 1] : 0;
+  const deltaPct = avg > 0 ? Math.round(((last - avg) / avg) * 100) : 0;
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Hero — bought today */}
       <View style={styles.hero}>
         <View style={styles.heroHead}>
-          <Text style={styles.eyebrow}>{t.totalBought}</Text>
-          {spark.length > 1 && spark[spark.length - 1] >= spark[0] ? (
-            <DeltaTag up>{t.today}</DeltaTag>
+          <Text style={styles.eyebrow}>{t.boughtToday}</Text>
+          {deltaPct !== 0 ? (
+            <DeltaTag up={deltaPct > 0}>
+              {`${Math.abs(deltaPct)}% ${t.vsAvg}`}
+            </DeltaTag>
           ) : null}
         </View>
         <Text style={styles.heroValue}>
@@ -166,9 +176,9 @@ export default function DashboardScreen() {
       {/* Mini stats */}
       <View style={styles.statRow}>
         <MiniStat
-          label={t.totalSold}
+          label={t.soldToday}
           value={fmtMoney0(summary?.totalSoldRevenue ?? 0)}
-          sub={`${fmtLbs(summary?.totalSoldWeight ?? 0)} lb`}
+          sub={`${fmtLbs(summary?.totalSoldWeight ?? 0)} ${t.lbOut}`}
           tone="steel"
           icon="cube-outline"
         />
@@ -204,9 +214,7 @@ export default function DashboardScreen() {
             <Text style={styles.complianceTitle}>
               {unreported} {t.awaitingReport}
             </Text>
-            <Text style={styles.complianceSub}>
-              NM Sale of Recycled Metals Act
-            </Text>
+            <Text style={styles.complianceSub}>{t.recycledMetalsAct}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.rust} />
         </TouchableOpacity>
@@ -324,7 +332,8 @@ const styles = StyleSheet.create({
   },
   heroValue: {
     fontFamily: fonts.display,
-    fontSize: 44,
+    fontSize: 46,
+    lineHeight: 48,
     letterSpacing: -1,
     color: colors.textPrimary,
     marginTop: 6,

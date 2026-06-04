@@ -68,6 +68,18 @@ export default function UserApprovalScreen({ navigation }: Props) {
     }
   };
 
+  // Role pill colours: owner = accent, admin = teal, worker = neutral.
+  const roleColor = (role: UserRole): string => {
+    switch (role) {
+      case 'owner':
+        return colors.accent;
+      case 'admin':
+        return colors.teal;
+      case 'worker':
+        return colors.textSecondary;
+    }
+  };
+
   const onGenerateCode = async () => {
     if (!profile) return;
     setGenerating(true);
@@ -159,6 +171,17 @@ export default function UserApprovalScreen({ navigation }: Props) {
     );
   };
 
+  // Initials for the avatar tile (from name, falling back to email).
+  const initials = (item: PendingUser): string => {
+    const src = item.name?.trim() || item.email;
+    const parts = src
+      .replace(/@.*/, '')
+      .split(/[\s._-]+/)
+      .filter(Boolean);
+    const letters = (parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '');
+    return (letters || src.slice(0, 2)).toUpperCase();
+  };
+
   const renderUser = ({
     item,
     isPending,
@@ -178,57 +201,69 @@ export default function UserApprovalScreen({ navigation }: Props) {
       ? availableRoles.filter((r) => r !== (item.role as UserRole))
       : [];
 
+    const rc = roleColor(item.role as UserRole);
+
     return (
       <View style={styles.userCard}>
-        <View style={styles.userInfo}>
-          <Text style={styles.userEmail}>{item.email}</Text>
+        <View style={styles.userTopRow}>
+          <View style={[styles.avatar, { backgroundColor: rc + '22' }]}>
+            <Text style={[styles.avatarText, { color: rc }]}>
+              {initials(item)}
+            </Text>
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={styles.userEmail} numberOfLines={1}>
+              {item.name?.trim() || item.email}
+            </Text>
+            {item.name?.trim() ? (
+              <Text style={styles.userSub} numberOfLines={1}>
+                {item.email}
+              </Text>
+            ) : null}
+          </View>
           <View style={styles.userTags}>
             <Tag
               label={roleLabel(item.role as UserRole)}
-              color={
-                item.role === 'owner' ? colors.accent : colors.textSecondary
-              }
-              soft={item.role === 'owner' ? colors.accentMuted : colors.chip}
+              color={rc}
+              soft={rc + '1f'}
             />
-            {!item.is_active && (
+            {isPending && (
               <Tag
                 label={t.pendingApproval}
                 color={colors.gold}
-                soft="rgba(176, 138, 50, 0.16)"
+                soft={colors.gold + '24'}
               />
             )}
           </View>
         </View>
+
         <View style={styles.actions}>
           {isPending ? (
             <TouchableOpacity
               style={styles.approveButton}
               onPress={() => onApprove(item.id)}
             >
+              <Ionicons name="checkmark" size={15} color={colors.white} />
               <Text style={styles.approveButtonText}>{t.approve}</Text>
             </TouchableOpacity>
           ) : (
-            <>
-              {rolesToShow.map((role) => (
-                <TouchableOpacity
-                  key={role}
-                  style={styles.adminButton}
-                  onPress={() => onChangeRole(item.id, role)}
-                >
-                  <Text style={styles.adminButtonText}>{roleLabel(role)}</Text>
-                </TouchableOpacity>
-              ))}
-              {canManage && (
-                <TouchableOpacity
-                  style={styles.deactivateButton}
-                  onPress={() => onDeactivate(item.id)}
-                >
-                  <Text style={styles.deactivateButtonText}>
-                    {t.deactivate}
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </>
+            rolesToShow.map((role) => (
+              <TouchableOpacity
+                key={role}
+                style={styles.roleActionButton}
+                onPress={() => onChangeRole(item.id, role)}
+              >
+                <Text style={styles.roleActionText}>{roleLabel(role)}</Text>
+              </TouchableOpacity>
+            ))
+          )}
+          {canManage && (
+            <TouchableOpacity
+              style={styles.deactivateButton}
+              onPress={() => onDeactivate(item.id)}
+            >
+              <Text style={styles.deactivateButtonText}>{t.deactivate}</Text>
+            </TouchableOpacity>
           )}
         </View>
       </View>
@@ -239,46 +274,60 @@ export default function UserApprovalScreen({ navigation }: Props) {
     ? ['worker', 'admin', 'owner']
     : ['worker', 'admin'];
 
+  const data = [...pendingUsers, ...activeUsers];
+
   return (
     <FlatList
       style={styles.container}
-      data={[...pendingUsers, ...activeUsers]}
+      contentContainerStyle={styles.content}
+      data={data}
       keyExtractor={(item) => item.id}
       refreshing={loading}
       onRefresh={refresh}
       ListHeaderComponent={
         <>
-          {/* Company Header */}
+          {/* Company identity */}
           {company && (
-            <View style={styles.companyHeader}>
-              <Text style={styles.companyName}>{company.name}</Text>
-              <Text style={styles.companyPrefix}>{company.prefix}</Text>
+            <View style={styles.identity}>
+              <View style={styles.identityLogo}>
+                <Text style={styles.identityMono}>
+                  {(
+                    company.prefix.replace(/[^A-Za-z]/g, '').slice(0, 2) || 'GR'
+                  ).toUpperCase()}
+                </Text>
+              </View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={styles.companyName} numberOfLines={1}>
+                  {company.name}
+                </Text>
+                <Text style={styles.companyPrefix}>{company.prefix}</Text>
+              </View>
             </View>
           )}
 
           {/* Invite User */}
-          <View style={styles.codeSection}>
-            <Text style={styles.codeSectionTitle}>{t.inviteUser}</Text>
+          <Text style={styles.groupTitle}>{t.inviteUser}</Text>
+          <View style={styles.card}>
             <View style={styles.rolePicker}>
-              {invitableRoles.map((role) => (
-                <TouchableOpacity
-                  key={role}
-                  style={[
-                    styles.rolePill,
-                    inviteRole === role && styles.rolePillActive,
-                  ]}
-                  onPress={() => setInviteRole(role)}
-                >
-                  <Text
-                    style={[
-                      styles.rolePillText,
-                      inviteRole === role && styles.rolePillTextActive,
-                    ]}
+              {invitableRoles.map((role) => {
+                const active = inviteRole === role;
+                return (
+                  <TouchableOpacity
+                    key={role}
+                    style={[styles.rolePill, active && styles.rolePillActive]}
+                    onPress={() => setInviteRole(role)}
                   >
-                    {roleLabel(role)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.rolePillText,
+                        active && styles.rolePillTextActive,
+                      ]}
+                    >
+                      {roleLabel(role)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
             {generatedInvite ? (
               <View style={styles.codeDisplay}>
@@ -300,6 +349,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
                 onPress={onGenerateInvite}
                 disabled={generatingInvite}
               >
+                <Ionicons name="add" size={17} color={colors.accentInk} />
                 <Text style={styles.generateButtonText}>
                   {generatingInvite ? t.loading : t.generateInviteCode}
                 </Text>
@@ -308,18 +358,23 @@ export default function UserApprovalScreen({ navigation }: Props) {
           </View>
 
           {/* Unused Invite Codes */}
-          <View style={styles.codeSection}>
-            <Text style={styles.codeSectionTitle}>{t.unusedInviteCodes}</Text>
+          <Text style={styles.groupTitle}>{t.unusedInviteCodes}</Text>
+          <View style={styles.card}>
             {unusedInviteCodes.length === 0 ? (
               <Text style={styles.codeHint}>{t.noUnusedInviteCodes}</Text>
             ) : (
-              unusedInviteCodes.map((c) => (
-                <View key={c.id} style={styles.inviteRow}>
+              unusedInviteCodes.map((c, i) => (
+                <View
+                  key={c.id}
+                  style={[styles.inviteRow, i === 0 && styles.inviteRowFirst]}
+                >
                   <View style={styles.inviteRowInfo}>
                     <Text style={styles.inviteRowCode}>{c.code}</Text>
-                    <Text style={styles.inviteRowMeta}>
-                      {roleLabel(c.role as UserRole)}
-                    </Text>
+                    <Tag
+                      label={roleLabel(c.role as UserRole)}
+                      color={roleColor(c.role as UserRole)}
+                      soft={roleColor(c.role as UserRole) + '1f'}
+                    />
                   </View>
                   <TouchableOpacity
                     onPress={() => onDeleteInviteCode(c.id)}
@@ -327,7 +382,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
                   >
                     <Ionicons
                       name="trash-outline"
-                      size={20}
+                      size={19}
                       color={colors.danger}
                     />
                   </TouchableOpacity>
@@ -337,8 +392,8 @@ export default function UserApprovalScreen({ navigation }: Props) {
           </View>
 
           {/* Access Code (price override) */}
-          <View style={styles.codeSection}>
-            <Text style={styles.codeSectionTitle}>{t.accessCode}</Text>
+          <Text style={styles.groupTitle}>{t.accessCode}</Text>
+          <View style={styles.card}>
             {generatedCode ? (
               <View style={styles.codeDisplay}>
                 <Text style={styles.codeText}>{generatedCode}</Text>
@@ -357,6 +412,11 @@ export default function UserApprovalScreen({ navigation }: Props) {
                 onPress={onGenerateCode}
                 disabled={generating}
               >
+                <Ionicons
+                  name="lock-closed"
+                  size={16}
+                  color={colors.accentInk}
+                />
                 <Text style={styles.generateButtonText}>
                   {generating ? t.loading : t.generateCode}
                 </Text>
@@ -364,92 +424,44 @@ export default function UserApprovalScreen({ navigation }: Props) {
             )}
           </View>
 
-          {/* Pricing Link */}
-          <TouchableOpacity
-            style={styles.pricingButton}
-            onPress={() => navigation.navigate('Pricing')}
-          >
-            <View style={styles.linkRow}>
-              <Ionicons
-                name="pricetags-outline"
-                size={22}
-                color={colors.accent}
-              />
-              <Text style={styles.pricingButtonText}>{t.editPricing}</Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.textTertiary}
+          {/* Manage links */}
+          <Text style={styles.groupTitle}>{t.manageSection}</Text>
+          <View style={styles.card}>
+            <LinkRow
+              icon="pricetag-outline"
+              tint={colors.accent}
+              label={t.editPricing}
+              onPress={() => navigation.navigate('Pricing')}
+              first
             />
-          </TouchableOpacity>
-
-          {/* Company Profile Link */}
-          <TouchableOpacity
-            style={styles.pricingButton}
-            onPress={() => navigation.navigate('CompanyProfile')}
-          >
-            <View style={styles.linkRow}>
-              <Ionicons
-                name="business-outline"
-                size={22}
-                color={colors.accent}
-              />
-              <Text style={styles.pricingButtonText}>{t.companyProfile}</Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.textTertiary}
+            <LinkRow
+              icon="business-outline"
+              tint={colors.accent}
+              label={t.companyProfile}
+              onPress={() => navigation.navigate('CompanyProfile')}
             />
-          </TouchableOpacity>
-
-          {/* Market Prices Link */}
-          <TouchableOpacity
-            style={styles.pricingButton}
-            onPress={() => navigation.navigate('MarketPrices')}
-          >
-            <View style={styles.linkRow}>
-              <Ionicons
-                name="trending-up-outline"
-                size={22}
-                color={colors.teal}
-              />
-              <Text style={styles.pricingButtonText}>{t.marketPrices}</Text>
-            </View>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={colors.textTertiary}
+            <LinkRow
+              icon="trending-up-outline"
+              tint={colors.teal}
+              label={t.marketPrices}
+              onPress={() => navigation.navigate('MarketPrices')}
             />
-          </TouchableOpacity>
+            <LinkRow
+              icon="language-outline"
+              tint={colors.accent}
+              label={t.language}
+              value={language === 'en' ? t.english : t.spanish}
+              onPress={() => dispatch(toggleLanguage())}
+              last
+            />
+          </View>
 
-          {/* Language Toggle */}
-          <TouchableOpacity
-            style={styles.pricingButton}
-            onPress={() => dispatch(toggleLanguage())}
-          >
-            <View style={styles.linkRow}>
-              <Ionicons
-                name="language-outline"
-                size={22}
-                color={colors.accent}
-              />
-              <Text style={styles.pricingButtonText}>{t.language}</Text>
-            </View>
-            <Text style={styles.languageValue}>
-              {language === 'en' ? t.english : t.spanish}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Pending Users Header */}
-          {pendingUsers.length > 0 && (
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                {t.pendingApproval} ({pendingUsers.length})
-              </Text>
-            </View>
-          )}
+          {/* Team header */}
+          <Text style={styles.groupTitle}>
+            {pendingUsers.length > 0
+              ? `${t.pendingApproval} (${pendingUsers.length})`
+              : t.teamSection}
+          </Text>
         </>
       }
       renderItem={({ item }) =>
@@ -457,10 +469,60 @@ export default function UserApprovalScreen({ navigation }: Props) {
       }
       ListEmptyComponent={
         <View style={styles.empty}>
+          <Ionicons
+            name="people-outline"
+            size={40}
+            color={colors.textTertiary}
+          />
           <Text style={styles.emptyText}>{t.noUsersFound}</Text>
         </View>
       }
     />
+  );
+}
+
+// ── settings-style link row inside a card ─────────────────────
+function LinkRow({
+  icon,
+  tint,
+  label,
+  value,
+  onPress,
+  first,
+  last,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tint: string;
+  label: string;
+  value?: string;
+  onPress: () => void;
+  first?: boolean;
+  last?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.linkRow,
+        !first && styles.linkRowBorder,
+        last && styles.linkRowLast,
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.linkIcon, { backgroundColor: tint + '1f' }]}>
+        <Ionicons name={icon} size={18} color={tint} />
+      </View>
+      <Text style={styles.linkLabel}>{label}</Text>
+      {value ? (
+        <Text style={styles.linkValue}>{value}</Text>
+      ) : (
+        <Ionicons
+          name="chevron-forward"
+          size={18}
+          color={colors.textTertiary}
+        />
+      )}
+    </TouchableOpacity>
   );
 }
 
@@ -469,14 +531,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  companyHeader: {
-    margin: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
+  },
+  // ── identity ──
+  identity: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  identityLogo: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: colors.textPrimary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  identityMono: {
+    color: colors.background,
+    fontSize: 18,
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
   },
   companyName: {
     color: colors.textPrimary,
@@ -484,163 +562,30 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansBold,
   },
   companyPrefix: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
+    color: colors.textTertiary,
+    fontSize: 11.5,
+    fontFamily: fonts.mono,
     marginTop: 2,
   },
-  sectionHeader: {
-    padding: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  sectionTitle: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: fonts.sansSemiBold,
-    letterSpacing: 0.9,
+  // ── group title + card ──
+  groupTitle: {
+    color: colors.textTertiary,
+    fontSize: 11.5,
+    fontFamily: fonts.mono,
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
-  },
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xs,
+    marginTop: spacing.lg,
     marginBottom: spacing.sm,
-    padding: spacing.lg,
-    borderRadius: 10,
+  },
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userEmail: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  userTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  userMeta: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    marginTop: 2,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-  },
-  approveButton: {
-    backgroundColor: colors.success,
-    borderRadius: 6,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  approveButtonText: {
-    color: colors.white,
-    fontFamily: fonts.sansBold,
-    fontSize: fontSize.sm,
-  },
-  adminButton: {
-    backgroundColor: colors.accent,
-    borderRadius: 6,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  adminButtonText: {
-    color: colors.accentInk,
-    fontFamily: fonts.sansBold,
-    fontSize: fontSize.sm,
-  },
-  deactivateButton: {
-    backgroundColor: colors.danger,
-    borderRadius: 6,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
-  },
-  deactivateButtonText: {
-    color: colors.white,
-    fontFamily: fonts.sansBold,
-    fontSize: fontSize.sm,
-  },
-  pricingButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.lg,
+    borderColor: colors.border,
     padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
   },
-  pricingButtonText: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansSemiBold,
-  },
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  languageValue: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.monoMedium,
-  },
-  codeSection: {
-    margin: spacing.lg,
-    padding: spacing.lg,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-  },
-  codeSectionTitle: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-    marginBottom: spacing.md,
-  },
-  codeDisplay: {
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  codeText: {
-    color: colors.textPrimary,
-    fontSize: fontSize.title,
-    fontFamily: fonts.sansBold,
-    letterSpacing: 6,
-  },
-  codeHint: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-  },
-  generateButton: {
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xl,
-    marginTop: spacing.sm,
-  },
-  generateButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-  },
+  // ── invite role picker ──
   rolePicker: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -650,10 +595,11 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.pill,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
+    backgroundColor: colors.card,
   },
   rolePillActive: {
     backgroundColor: colors.accent,
@@ -662,39 +608,197 @@ const styles = StyleSheet.create({
   rolePillText: {
     color: colors.textSecondary,
     fontFamily: fonts.sansSemiBold,
+    fontSize: fontSize.sm,
   },
   rolePillTextActive: {
     color: colors.accentInk,
   },
+  // ── code display ──
+  codeDisplay: {
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  codeText: {
+    color: colors.textPrimary,
+    fontSize: fontSize.title,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 6,
+  },
+  codeHint: {
+    color: colors.textSecondary,
+    fontSize: fontSize.sm,
+    fontFamily: fonts.sans,
+    textAlign: 'center',
+  },
+  generateButton: {
+    flexDirection: 'row',
+    gap: 6,
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  generateButtonText: {
+    color: colors.accentInk,
+    fontSize: fontSize.lg,
+    fontFamily: fonts.sansBold,
+  },
+  // ── invite code rows ──
   inviteRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
   },
+  inviteRowFirst: {
+    borderTopWidth: 0,
+    paddingTop: 0,
+  },
   inviteRowInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     flex: 1,
   },
   inviteRowCode: {
     color: colors.textPrimary,
     fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
+    fontFamily: fonts.monoSemiBold,
     letterSpacing: 2,
   },
-  inviteRowMeta: {
-    color: colors.textSecondary,
+  // ── link rows ──
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  linkRowBorder: {
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
+  linkRowLast: {},
+  linkIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkLabel: {
+    flex: 1,
+    color: colors.textPrimary,
+    fontSize: fontSize.lg,
+    fontFamily: fonts.sansSemiBold,
+  },
+  linkValue: {
+    color: colors.accent,
+    fontSize: fontSize.md,
+    fontFamily: fonts.monoMedium,
+  },
+  // ── user cards ──
+  userCard: {
+    backgroundColor: colors.card,
+    marginBottom: spacing.sm,
+    padding: spacing.md,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  userTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  avatar: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 14,
+    fontFamily: fonts.sansBold,
+  },
+  userInfo: { flex: 1, minWidth: 0 },
+  userEmail: {
+    color: colors.textPrimary,
+    fontSize: 14.5,
+    fontFamily: fonts.sansSemiBold,
+  },
+  userSub: {
+    color: colors.textTertiary,
+    fontSize: 11.5,
+    fontFamily: fonts.mono,
+    marginTop: 1,
+  },
+  userTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
+    marginTop: spacing.md,
+  },
+  approveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.success,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+  },
+  approveButtonText: {
+    color: colors.white,
+    fontFamily: fonts.sansBold,
     fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
+  },
+  roleActionButton: {
+    backgroundColor: colors.chip,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  roleActionText: {
+    color: colors.textPrimary,
+    fontFamily: fonts.sansSemiBold,
+    fontSize: fontSize.sm,
+  },
+  deactivateButton: {
+    backgroundColor: colors.danger + '14',
+    borderWidth: 1,
+    borderColor: colors.danger + '40',
+    borderRadius: borderRadius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  deactivateButtonText: {
+    color: colors.danger,
+    fontFamily: fonts.sansSemiBold,
+    fontSize: fontSize.sm,
   },
   empty: {
-    padding: spacing.xxxl,
+    paddingTop: spacing.xxxl,
     alignItems: 'center',
+    gap: spacing.sm,
   },
   emptyText: {
     color: colors.textSecondary,
-    fontSize: fontSize.xl,
+    fontSize: fontSize.lg,
     fontFamily: fonts.sans,
   },
 });

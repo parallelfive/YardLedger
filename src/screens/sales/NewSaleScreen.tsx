@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,11 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { SalesStackParamList } from '../../navigation/MainNavigator';
 import { useT } from '../../hooks/useT';
@@ -16,149 +20,127 @@ import { useAppSelector, type RootState } from '../../store';
 import { fetchInventory } from '../../services/inventory';
 import { createSale } from '../../services/sales';
 import {
-  colors,
-  spacing,
-  fontSize,
-  borderRadius,
-  fonts,
-} from '../../constants';
+  MetalDot,
+  fmtMoney,
+  fmtLbs,
+  type Tone,
+} from '../../components/foundry';
+import { colors, spacing, fontSize, fonts } from '../../constants';
 
-interface InventoryItem {
-  id: string;
-  metal_id: string;
-  metal_name: string;
-  weight: number;
-  avg_cost_per_lb: number;
+// Visual tone from the (DB-managed) category name — heuristic only, restricted
+// always wins. Mirrors InventoryScreen so colours stay consistent.
+function toneFor(category: string | undefined, restricted: boolean): Tone {
+  if (restricted) return 'rust';
+  switch (category) {
+    case 'Copper':
+      return 'copper';
+    case 'Brass':
+      return 'gold';
+    case 'Aluminum':
+    case 'Steel':
+      return 'steel';
+    default:
+      return 'ink3';
+  }
 }
 
-interface SaleLineItem {
+interface InvRow {
+  id: string;
   metalId: string;
   metalName: string;
   weight: number;
-  salePricePerLb: number;
-  costBasisPerLb: number;
-  revenue: number;
-  profit: number;
+  avgCost: number;
+  tone: Tone;
 }
 
 type Props = NativeStackScreenProps<SalesStackParamList, 'NewSale'>;
 
 export default function NewSaleScreen({ navigation }: Props) {
   const { t } = useT();
+  const insets = useSafeAreaInsets();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
 
   const [buyerName, setBuyerName] = useState('');
-  const [lineItems, setLineItems] = useState<SaleLineItem[]>([]);
-  const [saving, setSaving] = useState(false);
-
-  // Add line item state
-  const [showPicker, setShowPicker] = useState(false);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [loadingInventory, setLoadingInventory] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const [inventory, setInventory] = useState<InvRow[]>([]);
+  const [loadingInventory, setLoadingInventory] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saleWeight, setSaleWeight] = useState('');
   const [salePrice, setSalePrice] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const totalRevenue = lineItems.reduce((sum, item) => sum + item.revenue, 0);
-  const totalProfit = lineItems.reduce((sum, item) => sum + item.profit, 0);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const data = await fetchInventory();
+        if (!active) return;
+        const rows: InvRow[] = (data as unknown[])
+          .map((raw) => {
+            const item = raw as Record<string, unknown>;
+            const metals = (
+              Array.isArray(item.metals) ? item.metals[0] : item.metals
+            ) as Record<string, unknown> | undefined;
+            const mc = metals?.metal_categories as
+              | { name?: string }
+              | { name?: string }[]
+              | undefined;
+            const category = (Array.isArray(mc) ? mc[0]?.name : mc?.name) as
+              | string
+              | undefined;
+            const restricted = Boolean(metals?.is_restricted);
+            return {
+              id: String(item.id),
+              metalId: String(item.metal_id),
+              metalName: String(item.metal_name ?? metals?.name ?? ''),
+              weight: Number(item.weight),
+              avgCost: Number(item.avg_cost_per_lb),
+              tone: toneFor(category, restricted),
+            };
+          })
+          .filter((r) => r.weight > 0);
+        setInventory(rows);
+      } catch {
+        if (active) setInventory([]);
+      } finally {
+        if (active) setLoadingInventory(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const openPicker = async () => {
-    setLoadingInventory(true);
-    setShowPicker(true);
-    try {
-      const data = await fetchInventory();
-      // Only show items with stock > 0
-      setInventory(
-        (data ?? []).filter((item: InventoryItem) => Number(item.weight) > 0)
-      );
-    } catch {
-      // Will show empty
-    } finally {
-      setLoadingInventory(false);
-    }
-  };
+  const selected = useMemo(
+    () => inventory.find((r) => r.id === selectedId) ?? null,
+    [inventory, selectedId]
+  );
 
-  const selectInventoryItem = (item: InventoryItem) => {
-    setSelectedItem(item);
-    setSaleWeight('');
-    setSalePrice('');
-  };
+  const weight = parseFloat(saleWeight) || 0;
+  const price = parseFloat(salePrice) || 0;
+  const total = weight * price;
+  const onHand = selected ? selected.weight : 0;
+  const oversell = !!selected && weight > onHand;
+  const canRecord =
+    !!selected && !!buyerName.trim() && weight > 0 && price > 0 && !oversell;
 
-  const addLineItem = () => {
-    if (!selectedItem) return;
-    const weight = parseFloat(saleWeight);
-    const price = parseFloat(salePrice);
-    if (!weight || weight <= 0 || isNaN(weight)) {
-      Alert.alert(t.error, t.enterValidWeight);
-      return;
-    }
-    // Check cumulative weight for this metal across all line items
-    const alreadySelling = lineItems
-      .filter((li) => li.metalId === selectedItem.metal_id)
-      .reduce((sum, li) => sum + li.weight, 0);
-    if (weight + alreadySelling > Number(selectedItem.weight)) {
-      Alert.alert(t.error, t.exceedsInventory);
-      return;
-    }
-    if (!price || price <= 0 || isNaN(price)) {
-      Alert.alert(t.error, t.enterValidPrice);
-      return;
-    }
-
-    const costBasis = Number(selectedItem.avg_cost_per_lb);
-    const revenue = weight * price;
-    const profit = weight * (price - costBasis);
-
-    setLineItems((prev) => [
-      ...prev,
-      {
-        metalId: selectedItem.metal_id,
-        metalName: selectedItem.metal_name,
-        weight,
-        salePricePerLb: price,
-        costBasisPerLb: costBasis,
-        revenue,
-        profit,
-      },
-    ]);
-
-    setSelectedItem(null);
-    setSaleWeight('');
-    setSalePrice('');
-    setShowPicker(false);
-  };
-
-  const removeLineItem = (index: number) => {
-    setLineItems((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  const cancelPicker = () => {
-    setShowPicker(false);
-    setSelectedItem(null);
-    setSaleWeight('');
-    setSalePrice('');
+  const selectMetal = (row: InvRow) => {
+    setSelectedId(row.id);
+    setSalePrice(row.avgCost.toFixed(2));
   };
 
   const handleSave = async () => {
-    if (lineItems.length === 0) {
-      Alert.alert(t.error, t.addAtLeastOneItem);
-      return;
-    }
-    if (!profile) return;
-
+    if (!selected || !canRecord || !profile) return;
     setSaving(true);
     try {
-      for (const item of lineItems) {
-        await createSale({
-          metalId: item.metalId,
-          metalName: item.metalName,
-          weight: item.weight,
-          salePricePerLb: item.salePricePerLb,
-          costBasisPerLb: item.costBasisPerLb,
-          buyerName: buyerName || undefined,
-          workerId: profile.id,
-        });
-      }
+      await createSale({
+        metalId: selected.metalId,
+        metalName: selected.metalName,
+        weight,
+        salePricePerLb: price,
+        costBasisPerLb: selected.avgCost,
+        buyerName: buyerName.trim() || undefined,
+        workerId: profile.id,
+      });
       Alert.alert(t.success, t.saleSaved, [
         { text: t.ok, onPress: () => navigation.navigate('SalesList') },
       ]);
@@ -170,447 +152,373 @@ export default function NewSaleScreen({ navigation }: Props) {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.sectionTitle}>{t.buyerInfo}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t.buyerName}
-        placeholderTextColor={colors.textTertiary}
-        value={buyerName}
-        onChangeText={setBuyerName}
-      />
+    <KeyboardAvoidingView
+      style={styles.flex}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={styles.flex}>
+        {/* Header */}
+        <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+          <View style={styles.headerRow}>
+            <View>
+              <Text style={styles.eyebrow}>{t.newLabel}</Text>
+              <Text style={styles.title}>{t.newSaleTitle}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.closeBtn}
+              onPress={() => navigation.goBack()}
+              accessibilityLabel={t.close}
+            >
+              <Ionicons name="close" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </View>
 
-      {/* Add Line Item */}
-      {!showPicker ? (
-        <TouchableOpacity style={styles.addLineItemButton} onPress={openPicker}>
-          <Text style={styles.addLineItemButtonText}>{t.addLineItem}</Text>
-        </TouchableOpacity>
-      ) : (
-        <View style={styles.pickerContainer}>
-          {!selectedItem ? (
-            <>
-              <View style={styles.pickerHeader}>
-                <Text style={styles.pickerTitle}>{t.selectFromInventory}</Text>
-                <TouchableOpacity onPress={cancelPicker}>
-                  <Text style={styles.pickerCancel}>{t.cancel}</Text>
-                </TouchableOpacity>
-              </View>
-              {loadingInventory ? (
-                <ActivityIndicator
-                  color={colors.accent}
-                  style={styles.loader}
-                />
-              ) : inventory.length === 0 ? (
-                <Text style={styles.emptyText}>{t.noInventory}</Text>
-              ) : (
-                inventory.map((item) => (
-                  <TouchableOpacity
-                    key={item.id}
-                    style={styles.inventoryRow}
-                    onPress={() => selectInventoryItem(item)}
-                  >
-                    <View>
-                      <Text style={styles.inventoryName}>
-                        {item.metal_name}
-                      </Text>
-                      <Text style={styles.inventoryDetail}>
-                        {Number(item.weight).toFixed(2)} lbs @ $
-                        {Number(item.avg_cost_per_lb).toFixed(4)}
-                        {t.perLb} {t.avgCost}
-                      </Text>
-                    </View>
-                    <Text style={styles.chevron}>{'>'}</Text>
-                  </TouchableOpacity>
-                ))
-              )}
-            </>
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Buyer */}
+          <Text style={styles.fieldLabel}>{t.buyerProcessor}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder={t.buyerProcessorHint}
+            placeholderTextColor={colors.textTertiary}
+            value={buyerName}
+            onChangeText={setBuyerName}
+          />
+
+          {/* Material picker */}
+          <Text style={styles.fieldLabel}>{t.materialLabel}</Text>
+          {loadingInventory ? (
+            <ActivityIndicator color={colors.accent} style={styles.loader} />
+          ) : inventory.length === 0 ? (
+            <View style={styles.emptyPicker}>
+              <Text style={styles.emptyText}>{t.noInventory}</Text>
+            </View>
           ) : (
-            <>
-              <View style={styles.pickerHeader}>
-                <TouchableOpacity onPress={() => setSelectedItem(null)}>
-                  <Text style={styles.pickerBack}>{t.back}</Text>
-                </TouchableOpacity>
-                <Text style={styles.pickerTitle}>
-                  {selectedItem.metal_name}
-                </Text>
-                <TouchableOpacity onPress={cancelPicker}>
-                  <Text style={styles.pickerCancel}>{t.cancel}</Text>
-                </TouchableOpacity>
+            <View style={styles.materialList}>
+              {inventory.map((row) => {
+                const active = row.id === selectedId;
+                return (
+                  <TouchableOpacity
+                    key={row.id}
+                    style={[
+                      styles.materialRow,
+                      active && styles.materialActive,
+                    ]}
+                    onPress={() => selectMetal(row)}
+                    activeOpacity={0.7}
+                  >
+                    <MetalDot tone={row.tone} size={10} />
+                    <Text style={styles.materialName} numberOfLines={1}>
+                      {row.metalName}
+                    </Text>
+                    <Text style={styles.materialAvail}>
+                      {fmtLbs(row.weight)} {t.lbAvail}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Weight + Price */}
+          <View style={styles.fieldsRow}>
+            <View style={styles.fieldCol}>
+              <View style={styles.labelRow}>
+                <Text style={styles.fieldLabelInline}>{t.weightLb}</Text>
+                {selected ? (
+                  <Text style={styles.fieldHint}>
+                    {fmtLbs(onHand)} {t.onHandShort}
+                  </Text>
+                ) : null}
               </View>
-              <Text style={styles.inventoryHint}>
-                {t.inStock}: {Number(selectedItem.weight).toFixed(2)} lbs
-              </Text>
               <TextInput
-                style={styles.input}
-                placeholder={t.weightLbs}
+                style={[styles.input, styles.inputMono]}
+                placeholder="0"
                 placeholderTextColor={colors.textTertiary}
                 value={saleWeight}
                 onChangeText={setSaleWeight}
                 keyboardType="decimal-pad"
-                autoFocus
+                editable={!!selected}
               />
+            </View>
+            <View style={styles.fieldCol}>
+              <Text style={styles.fieldLabelInline}>{t.priceLbShort}</Text>
               <TextInput
-                style={styles.input}
-                placeholder={t.salePricePerLb}
+                style={[styles.input, styles.inputMono]}
+                placeholder="0.00"
                 placeholderTextColor={colors.textTertiary}
                 value={salePrice}
                 onChangeText={setSalePrice}
                 keyboardType="decimal-pad"
+                editable={!!selected}
               />
-              {saleWeight &&
-                salePrice &&
-                parseFloat(saleWeight) > 0 &&
-                parseFloat(salePrice) > 0 && (
-                  <View style={styles.previewCard}>
-                    <Text style={styles.previewLine}>
-                      {t.revenue}: $
-                      {(parseFloat(saleWeight) * parseFloat(salePrice)).toFixed(
-                        2
-                      )}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.previewLine,
-                        {
-                          color:
-                            parseFloat(salePrice) >
-                            Number(selectedItem.avg_cost_per_lb)
-                              ? colors.success
-                              : colors.danger,
-                        },
-                      ]}
-                    >
-                      {t.profit}: $
-                      {(
-                        parseFloat(saleWeight) *
-                        (parseFloat(salePrice) -
-                          Number(selectedItem.avg_cost_per_lb))
-                      ).toFixed(2)}
-                    </Text>
-                  </View>
-                )}
-              <TouchableOpacity style={styles.addButton} onPress={addLineItem}>
-                <Text style={styles.addButtonText}>{t.addItem}</Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </View>
-      )}
+            </View>
+          </View>
 
-      {/* Line Items */}
-      {lineItems.length > 0 && (
-        <>
-          <Text style={styles.sectionTitle}>{t.lineItems}</Text>
-          {lineItems.map((item, index) => (
-            <View key={index} style={styles.lineItemRow}>
-              <View style={styles.lineItemInfo}>
-                <Text style={styles.lineItemName}>{item.metalName}</Text>
-                <Text style={styles.lineItemDetail}>
-                  {Number(item.weight).toFixed(2)} lbs @ $
-                  {Number(item.salePricePerLb).toFixed(4)}
-                  {t.perLb}
-                </Text>
+          {/* Oversell guard */}
+          {oversell && (
+            <View style={styles.guardBanner}>
+              <Ionicons
+                name="alert-circle-outline"
+                size={16}
+                color={colors.rust}
+              />
+              <Text style={styles.guardText}>
+                {t.cannotSell} {fmtLbs(weight)} {t.lbWord} {t.onlyWord}{' '}
+                {fmtLbs(onHand)} {t.lbOnHand}
+              </Text>
+            </View>
+          )}
+
+          {/* Sale total */}
+          <View style={styles.totalCard}>
+            <Text style={styles.totalLabel}>{t.saleTotalLabel}</Text>
+            <Text style={styles.totalValue}>{fmtMoney(total)}</Text>
+          </View>
+        </ScrollView>
+
+        {/* Footer */}
+        <View
+          style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}
+        >
+          <TouchableOpacity
+            style={[styles.recordBtn, !canRecord && styles.recordBtnDisabled]}
+            onPress={handleSave}
+            disabled={!canRecord || saving}
+            activeOpacity={0.85}
+          >
+            {saving ? (
+              <ActivityIndicator color={colors.accentInk} />
+            ) : (
+              <>
+                <Ionicons
+                  name="cube-outline"
+                  size={18}
+                  color={canRecord ? colors.accentInk : colors.textTertiary}
+                />
                 <Text
                   style={[
-                    styles.lineItemProfit,
-                    item.profit < 0 && styles.lineItemProfitNegative,
+                    styles.recordText,
+                    !canRecord && styles.recordTextDisabled,
                   ]}
                 >
-                  {t.profit}: ${item.profit.toFixed(2)}
+                  {oversell
+                    ? t.exceedsOnHand
+                    : `${t.record} ${fmtMoney(total)} ${t.saleWord}`}
                 </Text>
-              </View>
-              <Text style={styles.lineItemRevenue}>
-                ${item.revenue.toFixed(2)}
-              </Text>
-              <TouchableOpacity
-                onPress={() => removeLineItem(index)}
-                style={styles.removeButton}
-              >
-                <Text style={styles.removeButtonText}>X</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-        </>
-      )}
-
-      {/* Totals */}
-      {lineItems.length > 0 && (
-        <View style={styles.totalsCard}>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{t.revenue}:</Text>
-            <Text style={styles.totalValue}>${totalRevenue.toFixed(2)}</Text>
-          </View>
-          <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>{t.profit}:</Text>
-            <Text
-              style={[
-                styles.totalProfit,
-                totalProfit < 0 && styles.totalProfitNegative,
-              ]}
-            >
-              ${totalProfit.toFixed(2)}
-            </Text>
-          </View>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
-      )}
-
-      {/* Save */}
-      <TouchableOpacity
-        style={[
-          styles.saveButton,
-          (lineItems.length === 0 || saving) && styles.saveButtonDisabled,
-        ]}
-        onPress={handleSave}
-        disabled={lineItems.length === 0 || saving}
-      >
-        {saving ? (
-          <ActivityIndicator color={colors.background} />
-        ) : (
-          <Text style={styles.saveButtonText}>{t.saveSale}</Text>
-        )}
-      </TouchableOpacity>
-
-      <View style={styles.bottomSpacer} />
-    </ScrollView>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.lg,
+  flex: { flex: 1, backgroundColor: colors.background },
+  header: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  sectionTitle: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: fonts.sansSemiBold,
-    marginBottom: spacing.md,
-    marginTop: spacing.lg,
-    letterSpacing: 0.9,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  eyebrow: {
+    color: colors.accent,
+    fontSize: 10.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 1,
     textTransform: 'uppercase',
+  },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 22,
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
+    marginTop: 3,
+  },
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scroll: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  fieldLabel: {
+    color: colors.textTertiary,
+    fontSize: 10.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  fieldLabelInline: {
+    color: colors.textTertiary,
+    fontSize: 10.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  labelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  fieldHint: {
+    color: colors.textTertiary,
+    fontSize: 10,
+    fontFamily: fonts.mono,
   },
   input: {
     backgroundColor: colors.inputBackground,
     color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    fontSize: fontSize.lg,
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    fontSize: 15.5,
     fontFamily: fonts.sans,
     borderWidth: 1,
     borderColor: colors.border,
-  },
-  addLineItemButton: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    alignItems: 'center',
-    marginTop: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    borderStyle: 'dashed',
-  },
-  addLineItemButtonText: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
-  },
-  pickerContainer: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    marginTop: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: spacing.md,
   },
-  pickerTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-    flex: 1,
-    textAlign: 'center',
+  inputMono: {
+    fontFamily: fonts.mono,
+    letterSpacing: 0.5,
+    marginBottom: 0,
   },
-  pickerBack: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-  pickerCancel: {
-    color: colors.danger,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-  },
-  loader: {
+  loader: { paddingVertical: spacing.lg },
+  emptyPicker: {
+    backgroundColor: colors.surface,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
     padding: spacing.lg,
+    marginBottom: spacing.md,
   },
   emptyText: {
     color: colors.textSecondary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-    padding: spacing.lg,
-  },
-  inventoryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  inventoryName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansSemiBold,
-  },
-  inventoryDetail: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    marginTop: spacing.xs,
-  },
-  chevron: {
-    color: colors.textTertiary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sans,
-  },
-  inventoryHint: {
-    color: colors.warning,
     fontSize: fontSize.md,
     fontFamily: fonts.sans,
-    marginBottom: spacing.md,
     textAlign: 'center',
   },
-  previewCard: {
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
+  materialList: {
+    gap: 7,
     marginBottom: spacing.md,
   },
-  previewLine: {
-    color: colors.textSecondary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-    textAlign: 'center',
-  },
-  addButton: {
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sansBold,
-  },
-  lineItemRow: {
+  materialRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    gap: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
+    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.border,
   },
-  lineItemInfo: {
+  materialActive: {
+    backgroundColor: colors.teal + '1A',
+    borderColor: colors.teal,
+  },
+  materialName: {
     flex: 1,
-  },
-  lineItemName: {
     color: colors.textPrimary,
-    fontSize: fontSize.lg,
+    fontSize: 14,
     fontFamily: fonts.sansSemiBold,
   },
-  lineItemDetail: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
-    marginTop: 2,
-  },
-  lineItemProfit: {
-    color: colors.success,
-    fontSize: fontSize.sm,
+  materialAvail: {
+    color: colors.textTertiary,
+    fontSize: 12,
     fontFamily: fonts.mono,
-    marginTop: 2,
   },
-  lineItemProfitNegative: {
-    color: colors.danger,
-  },
-  lineItemRevenue: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.monoSemiBold,
-    marginRight: spacing.md,
-  },
-  removeButton: {
-    padding: spacing.sm,
-  },
-  removeButtonText: {
-    color: colors.danger,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansBold,
-  },
-  totalsCard: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    marginTop: spacing.lg,
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-  },
-  totalRow: {
+  fieldsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 10,
+    marginBottom: spacing.md,
   },
-  totalLabel: {
+  fieldCol: { flex: 1 },
+  guardBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    paddingVertical: 11,
+    paddingHorizontal: 13,
+    borderRadius: 12,
+    backgroundColor: colors.rust + '17',
+    borderWidth: 1,
+    borderColor: colors.rust + '42',
+    marginBottom: spacing.md,
+  },
+  guardText: {
+    flex: 1,
     color: colors.textSecondary,
     fontSize: 12,
-    fontFamily: fonts.sansSemiBold,
-    letterSpacing: 0.9,
-    textTransform: 'uppercase',
+    fontFamily: fonts.sans,
   },
-  totalValue: {
-    color: colors.accent,
-    fontSize: 28,
-    fontFamily: fonts.monoSemiBold,
-  },
-  totalProfit: {
-    color: colors.moss,
-    fontSize: 28,
-    fontFamily: fonts.monoSemiBold,
-  },
-  totalProfitNegative: {
-    color: colors.danger,
-  },
-  saveButton: {
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
+  totalCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: spacing.xl,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: colors.surface2,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  saveButtonDisabled: {
-    opacity: 0.4,
-  },
-  saveButtonText: {
-    color: colors.accentInk,
-    fontSize: fontSize.xl,
+  totalLabel: {
+    color: colors.textPrimary,
+    fontSize: 14,
     fontFamily: fonts.sansBold,
   },
-  bottomSpacer: {
-    height: spacing.xxxl,
+  totalValue: {
+    color: colors.teal,
+    fontSize: 24,
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
+  },
+  footer: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  recordBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 15,
+    borderRadius: 14,
+    backgroundColor: colors.teal,
+  },
+  recordBtnDisabled: {
+    backgroundColor: colors.borderSubtle,
+  },
+  recordText: {
+    color: colors.accentInk,
+    fontSize: 16,
+    fontFamily: fonts.sansBold,
+  },
+  recordTextDisabled: {
+    color: colors.textTertiary,
   },
 });

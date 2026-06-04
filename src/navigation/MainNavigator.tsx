@@ -22,6 +22,7 @@ import ComplianceReportScreen from '../screens/reports/ComplianceReportScreen';
 import OnHoldScreen from '../screens/reports/OnHoldScreen';
 import ReportingStatusScreen from '../screens/reports/ReportingStatusScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
+import SettingsScreen from '../screens/settings/SettingsScreen';
 import CustomerListScreen from '../screens/customers/CustomerListScreen';
 import CustomerProfileScreen from '../screens/customers/CustomerProfileScreen';
 import MarketPricesScreen from '../screens/admin/MarketPricesScreen';
@@ -69,6 +70,7 @@ export type TransactionsStackParamList = {
   TransactionsList: undefined;
   NewTransaction: undefined;
   ReceiptDetail: { receiptId: string; printOnLoad?: boolean };
+  Settings: undefined;
 };
 
 export type SalesStackParamList = {
@@ -159,6 +161,22 @@ function SettingsButton() {
           onPress={() => setVisible(false)}
         >
           <View style={navStyles.settingsModal}>
+            <TouchableOpacity
+              style={navStyles.settingsRow}
+              onPress={() =>
+                go(() =>
+                  nav.navigate('TransactionsTab', { screen: 'Settings' })
+                )
+              }
+            >
+              <Ionicons
+                name="settings-outline"
+                size={22}
+                color={colors.accent}
+              />
+              <Text style={navStyles.settingsRowText}>{t.settings}</Text>
+            </TouchableOpacity>
+            <View style={navStyles.settingsDivider} />
             <TouchableOpacity
               style={navStyles.settingsRow}
               onPress={() => go(() => nav.navigate('CustomersTab'))}
@@ -267,12 +285,21 @@ function TransactionsNavigator() {
       <TransactionsStack.Screen
         name="NewTransaction"
         component={NewTransactionScreen}
-        options={{ title: t.newBuy, animation: 'slide_from_bottom' }}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
       />
       <TransactionsStack.Screen
         name="ReceiptDetail"
         component={ReceiptDetailScreen}
         options={{ title: t.receiptDetail }}
+      />
+      <TransactionsStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ headerShown: false, presentation: 'modal' }}
       />
     </TransactionsStack.Navigator>
   );
@@ -290,7 +317,11 @@ function SalesNavigator() {
       <SalesStack.Screen
         name="NewSale"
         component={NewSaleScreen}
-        options={{ title: t.newSale, animation: 'slide_from_bottom' }}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
       />
     </SalesStack.Navigator>
   );

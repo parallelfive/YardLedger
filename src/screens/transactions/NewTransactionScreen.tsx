@@ -9,17 +9,16 @@ import {
   Modal,
   Alert,
   Image,
+  Pressable,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  AccessCodeModal,
-  SignaturePad,
-  AddLineItemModal,
-} from '../../components';
+import { AccessCodeModal, SignaturePad } from '../../components';
+import AddMaterialKeypad from '../../components/AddMaterialKeypad';
 import type { SignaturePadHandle } from '../../components/SignaturePad';
 import {
   MetalDot,
@@ -32,6 +31,7 @@ import {
 import { useT } from '../../hooks/useT';
 import { useNewTransaction } from '../../hooks/useNewTransaction';
 import { useIdScanner } from '../../hooks/useIdScanner';
+import type { Metal } from '../../types';
 import {
   searchCustomers,
   updateCustomerIdPhoto,
@@ -62,13 +62,14 @@ type StepName = 'materials' | 'seller' | 'vehicle' | 'converter' | 'review';
 
 export default function NewTransactionScreen({ navigation }: Props) {
   const { t } = useT();
+  const insets = useSafeAreaInsets();
   const signaturePadRef = useRef<SignaturePadHandle>(null);
   const tx = useNewTransaction(signaturePadRef);
   const { scanning: scanningId, scanAndRecognize } = useIdScanner();
 
   const [step, setStep] = useState(0);
   const [printAfterSave, setPrintAfterSave] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddSheet, setShowAddSheet] = useState(false);
   const [savedReceipt, setSavedReceipt] = useState<SavedReceipt | null>(null);
   const [customerResults, setCustomers] = useState<Customer[]>([]);
   const [searchingCustomers, setSearchingCustomers] = useState(false);
@@ -76,6 +77,12 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const [selectedCustomerId, setSelectedCustomerId] = useState<
     string | undefined
   >();
+  // Override coming from the AddMaterial keypad — applied through the existing
+  // AccessCodeModal flow once the new line item lands in state.
+  const [pendingOverride, setPendingOverride] = useState<{
+    index: number;
+    price: number;
+  } | null>(null);
 
   // Governing tier (strictest material wins) — drives which steps appear.
   const tier: Tier | null =
@@ -101,6 +108,16 @@ export default function NewTransactionScreen({ navigation }: Props) {
   useEffect(() => {
     if (step > steps.length - 1) setStep(steps.length - 1);
   }, [steps.length, step]);
+
+  // Stage the keypad override: once the new line item exists and the hook's
+  // override price matches, route it through requestOverride (opens the
+  // AccessCodeModal). approveOverride then writes it back, tracked per line.
+  useEffect(() => {
+    if (!pendingOverride) return;
+    if (tx.overridePrice !== String(pendingOverride.price)) return;
+    tx.requestOverride(pendingOverride.index);
+    setPendingOverride(null);
+  }, [pendingOverride, tx]);
 
   const tierMeta = (tr: Tier | null) => {
     switch (tr) {
@@ -173,6 +190,21 @@ export default function NewTransactionScreen({ navigation }: Props) {
     [tx, t.flagWarning, t.flagCustomer, t.ok]
   );
 
+  // Add a line item from the keypad sheet, staging any authorized override.
+  const handleAddMaterial = useCallback(
+    (metal: Metal, weight: number, overridePrice: number | null) => {
+      const newIndex = tx.lineItems.length;
+      tx.addLineItem(metal, weight);
+      setShowAddSheet(false);
+      if (overridePrice != null) {
+        tx.startPriceEdit(newIndex);
+        tx.setOverridePrice(String(overridePrice));
+        setPendingOverride({ index: newIndex, price: overridePrice });
+      }
+    },
+    [tx]
+  );
+
   const handleSaveSuccess = useCallback(
     async (
       receiptId: string,
@@ -225,6 +257,31 @@ export default function NewTransactionScreen({ navigation }: Props) {
     });
   }, [savedReceipt, navigation, printAfterSave, tx]);
 
+  const handleClose = useCallback(() => {
+    if (tx.lineItems.length > 0) {
+      Alert.alert(t.discardBuyTitle, t.discardBuyMessage, [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: t.discard,
+          style: 'destructive',
+          onPress: () => {
+            tx.resetForm();
+            navigation.goBack();
+          },
+        },
+      ]);
+    } else {
+      navigation.goBack();
+    }
+  }, [
+    tx,
+    navigation,
+    t.discardBuyTitle,
+    t.discardBuyMessage,
+    t.cancel,
+    t.discard,
+  ]);
+
   // NM 57-30-5(C) — fresh date/time-stamped camera shot.
   const capturePhoto = useCallback(
     async (setUri: (uri: string) => void) => {
@@ -276,6 +333,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
   const current = steps[Math.min(step, steps.length - 1)];
   const isLast = step === steps.length - 1;
+  const isStepped = steps.length > 2;
   const meta = tierMeta(tier);
   const payMethodLabel = tx.hasCatalyticConverter
     ? t.paymentCheck
@@ -285,30 +343,55 @@ export default function NewTransactionScreen({ navigation }: Props) {
         ? t.paymentCheck
         : t.paymentOther;
 
+  const stepTitle =
+    current === 'materials'
+      ? t.materialsTitle
+      : current === 'seller'
+        ? t.sellerIdInfo
+        : current === 'vehicle'
+          ? t.vehicleInfo
+          : current === 'converter'
+            ? t.catConverterSection
+            : t.reviewTitle;
+
   return (
     <View style={styles.flex}>
-      {/* Tier + step progress header */}
-      <View style={styles.progressHeader}>
-        <View style={styles.progressTopRow}>
-          <Text style={styles.stepEyebrow}>
-            {steps.length > 2
-              ? t.stepXofN
-                  .replace('{step}', String(step + 1))
-                  .replace('{total}', String(steps.length))
-              : t.newBuy}
-          </Text>
+      {/* ── Overlay header: eyebrow + title + close + progress ── */}
+      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+        <View style={styles.headerTopRow}>
+          <View style={styles.flex}>
+            <Text style={styles.headerEyebrow}>
+              {isStepped
+                ? t.stepXofN
+                    .replace('{step}', String(step + 1))
+                    .replace('{total}', String(steps.length))
+                : t.newBuyTitle}
+            </Text>
+            <Text style={styles.headerTitle}>{stepTitle}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={handleClose}
+            hitSlop={8}
+          >
+            <Ionicons name="close" size={18} color={colors.textSecondary} />
+          </TouchableOpacity>
         </View>
-        <View style={styles.progressDots}>
-          {steps.map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.progressDot,
-                { backgroundColor: i <= step ? colors.accent : colors.border },
-              ]}
-            />
-          ))}
-        </View>
+        {isStepped && (
+          <View style={styles.progressBar}>
+            {steps.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.progressSeg,
+                  {
+                    backgroundColor: i <= step ? colors.accent : colors.border,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        )}
       </View>
 
       <ScrollView
@@ -390,7 +473,9 @@ export default function NewTransactionScreen({ navigation }: Props) {
                           style={styles.editPriceConfirm}
                           onPress={() => tx.requestOverride(index)}
                         >
-                          <Text style={styles.editPriceConfirmText}>OK</Text>
+                          <Text style={styles.editPriceConfirmText}>
+                            {t.ok}
+                          </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.editPriceCancel}
@@ -442,10 +527,10 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
             <TouchableOpacity
               style={styles.addLineItemButton}
-              onPress={() => setShowAddModal(true)}
+              onPress={() => setShowAddSheet(true)}
             >
               <Ionicons name="add" size={19} color={colors.accent} />
-              <Text style={styles.addLineItemButtonText}>{t.addLineItem}</Text>
+              <Text style={styles.addLineItemButtonText}>{t.addMaterial}</Text>
             </TouchableOpacity>
 
             {tx.lineItems.length > 0 && (
@@ -881,7 +966,12 @@ export default function NewTransactionScreen({ navigation }: Props) {
       </ScrollView>
 
       {/* ── Footer: Back + Continue/Pay ───────────────────────── */}
-      <View style={styles.footer}>
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
+        ]}
+      >
         {step > 0 && (
           <TouchableOpacity
             style={styles.backButton}
@@ -967,6 +1057,40 @@ export default function NewTransactionScreen({ navigation }: Props) {
         )}
       </View>
 
+      {/* ── Add material sheet (pick + keypad) ────────────────── */}
+      <Modal
+        visible={showAddSheet}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAddSheet(false)}
+      >
+        <View style={styles.sheetOverlay}>
+          <Pressable
+            style={styles.sheetBackdrop}
+            onPress={() => setShowAddSheet(false)}
+          />
+          <View
+            style={[
+              styles.sheet,
+              { paddingBottom: Math.max(insets.bottom, spacing.lg) },
+            ]}
+          >
+            <View style={styles.sheetGrabber} />
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>{t.addMaterial}</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setShowAddSheet(false)}
+                hitSlop={8}
+              >
+                <Ionicons name="close" size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+            <AddMaterialKeypad onAdd={handleAddMaterial} />
+          </View>
+        </View>
+      </Modal>
+
       {/* Quick-mode success modal */}
       <Modal
         visible={!!savedReceipt}
@@ -1023,15 +1147,6 @@ export default function NewTransactionScreen({ navigation }: Props) {
         onSuccess={tx.approveOverride}
         onCancel={tx.cancelOverride}
       />
-
-      <AddLineItemModal
-        visible={showAddModal}
-        onAdd={(metal, weight, weightData) => {
-          tx.addLineItem(metal, weight, weightData);
-          setShowAddModal(false);
-        }}
-        onClose={() => setShowAddModal(false)}
-      />
     </View>
   );
 }
@@ -1069,25 +1184,41 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xxxl },
 
-  // Progress header
-  progressHeader: {
+  // Overlay header
+  header: {
     backgroundColor: colors.background,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSubtle,
   },
-  progressTopRow: { flexDirection: 'row', alignItems: 'center' },
-  stepEyebrow: {
+  headerTopRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  headerEyebrow: {
     color: colors.accent,
     fontSize: 11,
     fontFamily: fonts.monoSemiBold,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  progressDots: { flexDirection: 'row', gap: 5, marginTop: spacing.sm },
-  progressDot: { flex: 1, height: 4, borderRadius: 99 },
+  headerTitle: {
+    color: colors.textPrimary,
+    fontSize: 22,
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
+    marginTop: 3,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressBar: { flexDirection: 'row', gap: 5, marginTop: spacing.md },
+  progressSeg: { flex: 1, height: 4, borderRadius: 99 },
 
   // Compliance banner
   banner: {
@@ -1602,16 +1733,15 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    paddingBottom: spacing.xl,
     borderTopWidth: 1,
     borderTopColor: colors.borderSubtle,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
   },
   backButton: {
     paddingHorizontal: spacing.lg,
     paddingVertical: 15,
     borderRadius: borderRadius.md,
-    backgroundColor: colors.card,
+    backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -1627,7 +1757,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     paddingVertical: 15,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
     backgroundColor: colors.accent,
   },
   continueButtonText: {
@@ -1643,7 +1773,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xs,
     paddingVertical: 15,
-    borderRadius: borderRadius.md,
+    borderRadius: borderRadius.lg,
   },
   payButtonPrimary: { backgroundColor: colors.accent },
   payButtonOutline: {
@@ -1668,6 +1798,41 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     textAlign: 'center',
     marginTop: 6,
+  },
+
+  // Add material sheet
+  sheetOverlay: { flex: 1, justifyContent: 'flex-end' },
+  sheetBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.overlay,
+  },
+  sheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: borderRadius.xl,
+    borderTopRightRadius: borderRadius.xl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+    maxHeight: '90%',
+  },
+  sheetGrabber: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 99,
+    backgroundColor: colors.borderStrong,
+    marginBottom: spacing.md,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+  },
+  sheetTitle: {
+    color: colors.textPrimary,
+    fontSize: 20,
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
   },
 
   // Success modal

@@ -9,8 +9,10 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import type { Metal, MetalCategory } from '../../types';
 import {
   fetchMetalCategories,
@@ -24,6 +26,7 @@ import {
 } from '../../services/metals';
 import { useAppSelector, type RootState } from '../../store';
 import { useT } from '../../hooks/useT';
+import { MetalDot, fmtMoney, type Tone } from '../../components/foundry';
 import {
   colors,
   spacing,
@@ -39,6 +42,36 @@ interface MetalSection {
 }
 
 type ModalMode = 'edit' | 'add' | null;
+type Tier = 'open' | 'regulated' | 'restricted' | 'catalytic';
+
+// The three selectable compliance tiers (catalytic is intrinsic & locked).
+const SELECTABLE_TIERS: Tier[] = ['open', 'regulated', 'restricted'];
+
+// Derive the governing tier from the metal's compliance booleans (strictest
+// wins). Catalytic is locked to the strictest tier by statute.
+function metalTier(
+  m: Pick<Metal, 'is_regulated' | 'is_restricted' | 'is_catalytic'>
+): Tier {
+  if (m.is_catalytic) return 'catalytic';
+  if (m.is_restricted) return 'restricted';
+  if (m.is_regulated) return 'regulated';
+  return 'open';
+}
+
+function metalTone(category: string | undefined, tier: Tier): Tone {
+  if (tier === 'restricted' || tier === 'catalytic') return 'rust';
+  switch (category) {
+    case 'Copper':
+      return 'copper';
+    case 'Brass':
+      return 'gold';
+    case 'Aluminum':
+    case 'Steel':
+      return 'steel';
+    default:
+      return 'ink3';
+  }
+}
 
 export default function PricingScreen() {
   const { t } = useT();
@@ -50,9 +83,10 @@ export default function PricingScreen() {
   // Modal state
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [editingMetal, setEditingMetal] = useState<Metal | null>(null);
+  const [editingCategory, setEditingCategory] = useState<string | undefined>();
   const [newPrice, setNewPrice] = useState('');
   const [newName, setNewName] = useState('');
-  const [isRestricted, setIsRestricted] = useState(false);
+  const [tier, setTier] = useState<Tier>('open');
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [saving, setSaving] = useState(false);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryEntry[]>([]);
@@ -82,11 +116,12 @@ export default function PricingScreen() {
   );
 
   // --- Edit existing metal ---
-  const openEdit = async (metal: Metal) => {
+  const openEdit = async (metal: Metal, categoryName: string) => {
     setEditingMetal(metal);
+    setEditingCategory(categoryName);
     setNewPrice(metal.price_per_lb.toString());
     setNewName(metal.name);
-    setIsRestricted(metal.is_restricted);
+    setTier(metalTier(metal));
     setModalMode('edit');
     try {
       const history = await fetchPriceHistory(metal.id);
@@ -107,9 +142,10 @@ export default function PricingScreen() {
   const closeModal = () => {
     setModalMode(null);
     setEditingMetal(null);
+    setEditingCategory(undefined);
     setNewPrice('');
     setNewName('');
-    setIsRestricted(false);
+    setTier('open');
     setSelectedCategoryId('');
     setPriceHistory([]);
   };
@@ -131,7 +167,8 @@ export default function PricingScreen() {
 
     const priceChanged = price !== editingMetal.price_per_lb;
     const nameChanged = trimmedName !== editingMetal.name;
-    const restrictedChanged = isRestricted !== editingMetal.is_restricted;
+    const nextRestricted = tier === 'restricted';
+    const restrictedChanged = nextRestricted !== editingMetal.is_restricted;
 
     if (!priceChanged && !nameChanged && !restrictedChanged) {
       closeModal();
@@ -147,7 +184,7 @@ export default function PricingScreen() {
       } = {};
       if (nameChanged) updates.name = trimmedName;
       if (priceChanged) updates.price_per_lb = price;
-      if (restrictedChanged) updates.is_restricted = isRestricted;
+      if (restrictedChanged) updates.is_restricted = nextRestricted;
       await updateMetal(editingMetal.id, updates, profile.id);
       if (priceChanged) {
         await logPriceChange(
@@ -219,6 +256,36 @@ export default function PricingScreen() {
     ]);
   };
 
+  const tierLabel = (tr: Tier): string => {
+    switch (tr) {
+      case 'open':
+        return t.tierOpen;
+      case 'regulated':
+        return t.tierRegulated;
+      case 'restricted':
+        return t.tierRestricted;
+      case 'catalytic':
+        return t.tierCatalytic;
+    }
+  };
+
+  const tierNote = (tr: Tier): string => {
+    switch (tr) {
+      case 'open':
+        return t.tierOpenNote;
+      case 'regulated':
+        return t.tierRegulatedNote;
+      case 'restricted':
+        return t.tierRestrictedNote;
+      case 'catalytic':
+        return t.tierCatalyticNote;
+    }
+  };
+
+  const editPrice = parseFloat(newPrice) || 0;
+  const editDelta = editingMetal ? editPrice - editingMetal.price_per_lb : 0;
+  const editCatalytic = editingMetal?.is_catalytic ?? false;
+
   return (
     <View style={styles.container}>
       <SectionList
@@ -226,6 +293,10 @@ export default function PricingScreen() {
         keyExtractor={(item) => item.id}
         refreshing={loading}
         onRefresh={loadData}
+        contentContainerStyle={styles.content}
+        ListHeaderComponent={
+          <Text style={styles.introNote}>{t.materialsManagerIntro}</Text>
+        }
         renderSectionHeader={({ section }) => (
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>{section.title}</Text>
@@ -233,29 +304,50 @@ export default function PricingScreen() {
               style={styles.addButton}
               onPress={() => openAdd(section.categoryId)}
             >
+              <Ionicons name="add" size={14} color={colors.accentInk} />
               <Text style={styles.addButtonText}>{t.addMetal}</Text>
             </TouchableOpacity>
           </View>
         )}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.metalRow}
-            onPress={() => openEdit(item)}
-          >
-            <View style={styles.metalNameRow}>
-              <Text style={styles.metalName}>{item.name}</Text>
-              {item.is_restricted && (
-                <View style={styles.restrictedBadge}>
-                  <Text style={styles.restrictedBadgeText}>R</Text>
+        renderItem={({ item, section }) => {
+          const tr = metalTier(item);
+          const tone = metalTone(section.title, tr);
+          const c = colorForTier(tr);
+          return (
+            <TouchableOpacity
+              style={styles.metalRow}
+              onPress={() => openEdit(item, section.title)}
+              activeOpacity={0.7}
+            >
+              <MetalDot tone={tone} size={11} />
+              <View style={styles.metalInfo}>
+                <Text style={styles.metalName}>{item.name}</Text>
+                <View style={styles.metalMetaRow}>
+                  <View
+                    style={[styles.tierPill, { backgroundColor: c + '20' }]}
+                  >
+                    <View style={[styles.tierDot, { backgroundColor: c }]} />
+                    <Text style={[styles.tierPillText, { color: c }]}>
+                      {tierLabel(tr)}
+                    </Text>
+                  </View>
+                  <Text style={styles.metalCat}>{section.title}</Text>
                 </View>
-              )}
-            </View>
-            <Text style={styles.metalPrice}>
-              ${Number(item.price_per_lb).toFixed(4)}
-              {t.perLb}
-            </Text>
-          </TouchableOpacity>
-        )}
+              </View>
+              <View style={styles.metalRight}>
+                <Text style={styles.metalPrice}>
+                  {fmtMoney(Number(item.price_per_lb), 2)}
+                </Text>
+                <Text style={styles.metalPerLb}>{t.perLb}</Text>
+              </View>
+              <Ionicons
+                name="chevron-forward"
+                size={17}
+                color={colors.textTertiary}
+              />
+            </TouchableOpacity>
+          );
+        }}
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
@@ -274,30 +366,135 @@ export default function PricingScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t.editMetal}</Text>
-            <TouchableOpacity onPress={closeModal}>
-              <Text style={styles.modalCancel}>{t.cancel}</Text>
+            <View>
+              <Text style={styles.modalKicker}>{t.catalogKicker}</Text>
+              <Text style={styles.modalTitle}>{t.editMetal}</Text>
+            </View>
+            <TouchableOpacity style={styles.closeBtn} onPress={closeModal}>
+              <Ionicons name="close" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
           {editingMetal && (
-            <View style={styles.modalContent}>
-              <Text style={styles.fieldLabel}>{t.metalName}</Text>
-              <TextInput
-                style={styles.textInput}
-                value={newName}
-                onChangeText={setNewName}
-                placeholder={t.metalNamePlaceholder}
-                placeholderTextColor={colors.textSecondary}
-              />
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalContent}
+            >
+              {/* identity */}
+              <View style={styles.editIdentity}>
+                <MetalDot
+                  tone={metalTone(editingCategory, metalTier(editingMetal))}
+                  size={13}
+                />
+                <View style={{ flex: 1 }}>
+                  <TextInput
+                    style={styles.editNameInput}
+                    value={newName}
+                    onChangeText={setNewName}
+                    placeholder={t.metalNamePlaceholder}
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                  {editingCategory ? (
+                    <Text style={styles.editIdentitySub}>
+                      {editingCategory}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
 
-              <Text style={styles.fieldLabel}>{t.pricePerLb}</Text>
-              <TextInput
-                style={styles.priceInput}
-                value={newPrice}
-                onChangeText={setNewPrice}
-                keyboardType="decimal-pad"
-              />
+              {/* price */}
+              <Text style={styles.fieldLabel}>{t.defaultPricePerLb}</Text>
+              <View style={styles.priceRow}>
+                <View style={styles.priceField}>
+                  <Text style={styles.priceSymbol}>$</Text>
+                  <TextInput
+                    style={styles.priceInput}
+                    value={newPrice}
+                    onChangeText={setNewPrice}
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+                {editDelta !== 0 && (
+                  <View style={styles.deltaCol}>
+                    <Text
+                      style={[
+                        styles.deltaValue,
+                        {
+                          color: editDelta > 0 ? colors.moss : colors.rust,
+                        },
+                      ]}
+                    >
+                      {editDelta > 0 ? '+' : ''}
+                      {fmtMoney(editDelta, 2)}
+                    </Text>
+                    <Text style={styles.deltaWas}>
+                      {t.wasLabel}{' '}
+                      {fmtMoney(Number(editingMetal.price_per_lb), 2)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* compliance tier */}
+              <Text style={[styles.fieldLabel, { marginTop: spacing.lg }]}>
+                {t.complianceTier}
+              </Text>
+              {editCatalytic ? (
+                <View style={styles.lockBanner}>
+                  <Ionicons name="lock-closed" size={17} color={colors.rust} />
+                  <Text style={styles.lockBannerText}>
+                    {t.catalyticLockedNote}
+                  </Text>
+                </View>
+              ) : (
+                <View style={styles.tierList}>
+                  {SELECTABLE_TIERS.map((tr) => {
+                    const c = colorForTier(tr);
+                    const sel = tier === tr;
+                    return (
+                      <TouchableOpacity
+                        key={tr}
+                        style={[
+                          styles.tierOption,
+                          {
+                            borderColor: sel ? c : colors.border,
+                            backgroundColor: sel ? c + '18' : colors.surface,
+                          },
+                        ]}
+                        onPress={() => setTier(tr)}
+                        activeOpacity={0.7}
+                      >
+                        <View
+                          style={[
+                            styles.radio,
+                            {
+                              borderColor: sel ? c : colors.borderStrong,
+                              backgroundColor: sel ? c : 'transparent',
+                            },
+                          ]}
+                        >
+                          {sel && (
+                            <Ionicons name="checkmark" size={13} color="#fff" />
+                          )}
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text
+                            style={[
+                              styles.tierOptionLabel,
+                              { color: sel ? c : colors.textPrimary },
+                            ]}
+                          >
+                            {tierLabel(tr)}
+                          </Text>
+                          <Text style={styles.tierOptionNote}>
+                            {tierNote(tr)}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
 
               <TouchableOpacity
                 style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -305,27 +502,17 @@ export default function PricingScreen() {
                 disabled={saving}
               >
                 {saving ? (
-                  <ActivityIndicator color={colors.background} />
+                  <ActivityIndicator color={colors.accentInk} />
                 ) : (
-                  <Text style={styles.saveButtonText}>{t.save}</Text>
+                  <>
+                    <Ionicons
+                      name="checkmark"
+                      size={18}
+                      color={colors.accentInk}
+                    />
+                    <Text style={styles.saveButtonText}>{t.save}</Text>
+                  </>
                 )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.restrictedToggle}
-                onPress={() => setIsRestricted(!isRestricted)}
-              >
-                <View
-                  style={[
-                    styles.toggleBox,
-                    isRestricted && styles.toggleBoxChecked,
-                  ]}
-                >
-                  {isRestricted && <Text style={styles.toggleCheck}>✓</Text>}
-                </View>
-                <Text style={styles.restrictedToggleText}>
-                  {t.restrictedMaterial}
-                </Text>
               </TouchableOpacity>
 
               {priceHistory.length > 0 && (
@@ -337,8 +524,8 @@ export default function PricingScreen() {
                         {new Date(h.created_at).toLocaleDateString()}
                       </Text>
                       <Text style={styles.historyChange}>
-                        ${Number(h.old_price).toFixed(4)} → $
-                        {Number(h.new_price).toFixed(4)}
+                        {fmtMoney(Number(h.old_price), 2)} →{' '}
+                        {fmtMoney(Number(h.new_price), 2)}
                       </Text>
                     </View>
                   ))}
@@ -352,7 +539,7 @@ export default function PricingScreen() {
               >
                 <Text style={styles.removeButtonText}>{t.removeMetal}</Text>
               </TouchableOpacity>
-            </View>
+            </ScrollView>
           )}
         </View>
       </Modal>
@@ -366,57 +553,71 @@ export default function PricingScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t.newMetal}</Text>
-            <TouchableOpacity onPress={closeModal}>
-              <Text style={styles.modalCancel}>{t.cancel}</Text>
+            <View>
+              <Text style={styles.modalKicker}>{t.catalogKicker}</Text>
+              <Text style={styles.modalTitle}>{t.newMetal}</Text>
+            </View>
+            <TouchableOpacity style={styles.closeBtn} onPress={closeModal}>
+              <Ionicons name="close" size={18} color={colors.textSecondary} />
             </TouchableOpacity>
           </View>
 
-          <View style={styles.modalContent}>
+          <ScrollView
+            style={styles.modalScroll}
+            contentContainerStyle={styles.modalContent}
+          >
             <Text style={styles.fieldLabel}>{t.selectCategoryForMetal}</Text>
             <View style={styles.categoryPicker}>
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.categoryChip,
-                    cat.id === selectedCategoryId &&
-                      styles.categoryChipSelected,
-                  ]}
-                  onPress={() => setSelectedCategoryId(cat.id)}
-                >
-                  <Text
+              {categories.map((cat) => {
+                const sel = cat.id === selectedCategoryId;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
                     style={[
-                      styles.categoryChipText,
-                      cat.id === selectedCategoryId &&
-                        styles.categoryChipTextSelected,
+                      styles.categoryChip,
+                      sel && styles.categoryChipSelected,
                     ]}
+                    onPress={() => setSelectedCategoryId(cat.id)}
                   >
-                    {cat.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        sel && styles.categoryChipTextSelected,
+                      ]}
+                    >
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
-            <Text style={styles.fieldLabel}>{t.metalName}</Text>
+            <Text style={[styles.fieldLabel, { marginTop: spacing.lg }]}>
+              {t.metalName}
+            </Text>
             <TextInput
               style={styles.textInput}
               value={newName}
               onChangeText={setNewName}
               placeholder={t.metalNamePlaceholder}
-              placeholderTextColor={colors.textSecondary}
+              placeholderTextColor={colors.textTertiary}
               autoFocus
             />
 
-            <Text style={styles.fieldLabel}>{t.initialPrice}</Text>
-            <TextInput
-              style={styles.priceInput}
-              value={newPrice}
-              onChangeText={setNewPrice}
-              keyboardType="decimal-pad"
-              placeholder="0.0000"
-              placeholderTextColor={colors.textSecondary}
-            />
+            <Text style={[styles.fieldLabel, { marginTop: spacing.lg }]}>
+              {t.initialPrice}
+            </Text>
+            <View style={styles.priceField}>
+              <Text style={styles.priceSymbol}>$</Text>
+              <TextInput
+                style={styles.priceInput}
+                value={newPrice}
+                onChangeText={setNewPrice}
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                placeholderTextColor={colors.textTertiary}
+              />
+            </View>
 
             <TouchableOpacity
               style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -424,16 +625,30 @@ export default function PricingScreen() {
               disabled={saving}
             >
               {saving ? (
-                <ActivityIndicator color={colors.background} />
+                <ActivityIndicator color={colors.accentInk} />
               ) : (
-                <Text style={styles.saveButtonText}>{t.addMetal}</Text>
+                <>
+                  <Ionicons name="add" size={18} color={colors.accentInk} />
+                  <Text style={styles.saveButtonText}>{t.addMetal}</Text>
+                </>
               )}
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
     </View>
   );
+}
+
+function colorForTier(tier: Tier): string {
+  switch (tier) {
+    case 'open':
+      return colors.moss;
+    case 'regulated':
+      return colors.gold;
+    default:
+      return colors.rust;
+  }
 }
 
 const styles = StyleSheet.create({
@@ -441,54 +656,99 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
+  content: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
+  },
+  introNote: {
+    color: colors.textTertiary,
+    fontSize: 12,
+    fontFamily: fonts.mono,
+    lineHeight: 18,
+    marginBottom: spacing.md,
+  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
+    backgroundColor: colors.background,
   },
   sectionTitle: {
-    color: colors.textSecondary,
-    fontSize: 12,
-    fontFamily: fonts.sansSemiBold,
-    letterSpacing: 0.9,
+    color: colors.textTertiary,
+    fontSize: 11.5,
+    fontFamily: fonts.mono,
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
   addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     backgroundColor: colors.accent,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
+    paddingVertical: 5,
+    borderRadius: borderRadius.pill,
   },
   addButtonText: {
     color: colors.accentInk,
-    fontSize: fontSize.sm,
+    fontSize: fontSize.xs,
     fontFamily: fonts.sansSemiBold,
   },
   metalRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.md,
     backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
     marginBottom: spacing.sm,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
+    borderColor: colors.border,
   },
+  metalInfo: { flex: 1, minWidth: 0 },
   metalName: {
     color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-    flex: 1,
+    fontSize: 14.5,
+    fontFamily: fonts.sansSemiBold,
   },
+  metalMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  tierPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: borderRadius.pill,
+  },
+  tierDot: { width: 5, height: 5, borderRadius: 99 },
+  tierPillText: {
+    fontSize: 9.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+  },
+  metalCat: {
+    color: colors.textTertiary,
+    fontSize: 10.5,
+    fontFamily: fonts.mono,
+  },
+  metalRight: { alignItems: 'flex-end' },
   metalPrice: {
     color: colors.accent,
-    fontSize: fontSize.lg,
+    fontSize: 15,
     fontFamily: fonts.monoSemiBold,
+  },
+  metalPerLb: {
+    color: colors.textTertiary,
+    fontSize: 9.5,
+    fontFamily: fonts.mono,
   },
   empty: {
     padding: spacing.xxxl,
@@ -499,6 +759,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.xl,
     fontFamily: fonts.sans,
   },
+  // ── modal ──
   modalContainer: {
     flex: 1,
     backgroundColor: colors.background,
@@ -508,60 +769,166 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
+    paddingTop: spacing.xl,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  modalKicker: {
+    color: colors.accent,
+    fontSize: 10.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
   modalTitle: {
     color: colors.textPrimary,
-    fontSize: fontSize.xl,
-    fontFamily: fonts.sansBold,
+    fontSize: 22,
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
+    marginTop: 2,
   },
-  modalCancel: {
-    color: colors.danger,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  modalScroll: { flex: 1 },
   modalContent: {
     padding: spacing.lg,
+    paddingBottom: spacing.xxxl,
+  },
+  editIdentity: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  editNameInput: {
+    color: colors.textPrimary,
+    fontSize: 17,
+    fontFamily: fonts.sansBold,
+    padding: 0,
+  },
+  editIdentitySub: {
+    color: colors.textTertiary,
+    fontSize: 11,
+    fontFamily: fonts.mono,
+    marginTop: 2,
   },
   fieldLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sans,
+    color: colors.textTertiary,
+    fontSize: 10.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: spacing.sm,
   },
-  textInput: {
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    fontSize: fontSize.lg,
-    fontFamily: fonts.sans,
-    borderWidth: 1,
-    borderColor: colors.border,
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  priceField: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 13,
+    backgroundColor: colors.surface,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+  },
+  priceSymbol: {
+    color: colors.textTertiary,
+    fontSize: 22,
+    fontFamily: fonts.display,
   },
   priceInput: {
-    backgroundColor: colors.inputBackground,
+    flex: 1,
     color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    fontSize: fontSize.xxl,
+    fontSize: 26,
+    fontFamily: fonts.display,
+    letterSpacing: -0.5,
+    padding: 0,
+  },
+  deltaCol: { alignItems: 'flex-end' },
+  deltaValue: {
+    fontSize: 14,
+    fontFamily: fonts.monoSemiBold,
+  },
+  deltaWas: {
+    color: colors.textTertiary,
+    fontSize: 10,
     fontFamily: fonts.mono,
-    textAlign: 'center',
+    marginTop: 1,
+  },
+  lockBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: 13,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 13,
+    backgroundColor: colors.rust + '14',
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.rust + '40',
+  },
+  lockBannerText: {
+    flex: 1,
+    color: colors.textSecondary,
+    fontSize: 12.5,
+    fontFamily: fonts.sans,
+    lineHeight: 17,
+  },
+  tierList: { gap: 7 },
+  tierOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: 12,
+    paddingHorizontal: spacing.md,
+    borderRadius: 13,
+    borderWidth: 1.5,
+  },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 99,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tierOptionLabel: {
+    fontSize: 14,
+    fontFamily: fonts.sansSemiBold,
+  },
+  tierOptionNote: {
+    color: colors.textTertiary,
+    fontSize: 10.5,
+    fontFamily: fonts.mono,
+    marginTop: 1,
+    lineHeight: 14,
   },
   saveButton: {
+    flexDirection: 'row',
+    gap: spacing.sm,
     backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
+    borderRadius: 14,
     padding: spacing.lg,
     alignItems: 'center',
-    marginTop: spacing.md,
+    justifyContent: 'center',
+    marginTop: spacing.xl,
   },
   saveButtonDisabled: {
-    opacity: 0.4,
+    opacity: 0.5,
   },
   saveButtonText: {
     color: colors.accentInk,
@@ -569,11 +936,12 @@ const styles = StyleSheet.create({
     fontFamily: fonts.sansBold,
   },
   removeButton: {
-    borderRadius: borderRadius.md,
+    borderRadius: 14,
     padding: spacing.lg,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.danger,
+    marginTop: spacing.lg,
   },
   removeButtonText: {
     color: colors.danger,
@@ -606,62 +974,28 @@ const styles = StyleSheet.create({
     color: colors.accentInk,
     fontFamily: fonts.sansSemiBold,
   },
-  metalNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    flex: 1,
-  },
-  restrictedBadge: {
-    backgroundColor: 'rgba(176, 138, 50, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: borderRadius.sm,
-  },
-  restrictedBadgeText: {
-    color: colors.warning,
-    fontSize: fontSize.xs,
-    fontFamily: fonts.sansBold,
-  },
-  restrictedToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
-  },
-  toggleBox: {
-    width: 24,
-    height: 24,
-    borderRadius: borderRadius.sm,
-    borderWidth: 2,
-    borderColor: colors.border,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  toggleBoxChecked: {
-    backgroundColor: colors.warning,
-    borderColor: colors.warning,
-  },
-  toggleCheck: {
-    color: colors.accentInk,
-    fontSize: fontSize.sm,
-    fontFamily: fonts.sansBold,
-  },
-  restrictedToggleText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
+  textInput: {
+    backgroundColor: colors.inputBackground,
+    color: colors.textPrimary,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
+    fontSize: fontSize.lg,
     fontFamily: fonts.sans,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   historySection: {
-    marginTop: spacing.md,
-    paddingTop: spacing.md,
+    marginTop: spacing.lg,
+    paddingTop: spacing.lg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   historyTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.md,
-    fontFamily: fonts.sansBold,
+    color: colors.textTertiary,
+    fontSize: 10.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     marginBottom: spacing.sm,
   },
   historyRow: {
@@ -672,11 +1006,11 @@ const styles = StyleSheet.create({
   historyDate: {
     color: colors.textTertiary,
     fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
+    fontFamily: fonts.mono,
   },
   historyChange: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
-    fontFamily: fonts.sans,
+    fontFamily: fonts.mono,
   },
 });

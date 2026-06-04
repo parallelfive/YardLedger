@@ -228,6 +228,10 @@ export default function ReportsListScreen({ navigation }: Props) {
         <Text style={styles.emptyText}>{t.noTransactions}</Text>
       ) : (
         <View style={styles.ledger}>
+          <View style={styles.ledgerHeader}>
+            <Text style={styles.ledgerHeaderLabel}>{t.receiptSeller}</Text>
+            <Text style={styles.ledgerHeaderLabel}>{t.paidLabel}</Text>
+          </View>
           {rows.map((r, i) => {
             const restricted = isRestricted(r);
             const reported = !!r.reported_at;
@@ -467,6 +471,22 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.card,
     overflow: 'hidden',
+  },
+  ledgerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: colors.surface2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderSubtle,
+  },
+  ledgerHeaderLabel: {
+    color: colors.textTertiary,
+    fontSize: 9.5,
+    fontFamily: fonts.monoSemiBold,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
   ledgerRow: { padding: spacing.md, borderLeftWidth: 3 },
   ledgerRowBorder: {

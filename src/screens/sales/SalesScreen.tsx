@@ -93,7 +93,9 @@ export default function SalesScreen({ navigation }: Props) {
                 >
                   {fmtMoney0(profit)}
                 </Text>
-                <Text style={styles.statSub}>{margin}% margin</Text>
+                <Text style={styles.statSub}>
+                  {margin}% {t.margin.toLowerCase()}
+                </Text>
               </View>
             </View>
 
