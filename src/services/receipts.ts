@@ -186,6 +186,17 @@ export async function deleteReceipt(receiptId: string) {
   if (error) throw error;
 }
 
+// Mark a receipt's material as disposed/processed. The enforce_receipt_hold
+// trigger rejects this if the mandatory hold window has not yet elapsed, so
+// the hold is enforced server-side (NM 57-30-11 / 57-30-2.4).
+export async function markReceiptDisposed(receiptId: string) {
+  const { error } = await supabase
+    .from('receipts')
+    .update({ disposed_at: new Date().toISOString() })
+    .eq('id', receiptId);
+  if (error) throw error;
+}
+
 export async function fetchReceipts(
   workerId?: string,
   startDate?: string,

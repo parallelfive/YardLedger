@@ -12,7 +12,11 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useT } from '../../hooks/useT';
-import { fetchReceiptById, deleteReceipt } from '../../services/receipts';
+import {
+  fetchReceiptById,
+  deleteReceipt,
+  markReceiptDisposed,
+} from '../../services/receipts';
 import { AccessCodeModal } from '../../components';
 import { printReceipt, shareReceipt } from '../../utils/printReceipt';
 import {
@@ -81,6 +85,7 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
   const [receipt, setReceipt] = useState<ReceiptDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteAuth, setShowDeleteAuth] = useState(false);
+  const [showDisposeAuth, setShowDisposeAuth] = useState(false);
 
   const handlePrint = useCallback(
     async (data?: ReceiptDetail) => {
@@ -451,6 +456,30 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
         </View>
       ) : null}
 
+      {/* Mark material disposed (only once the mandatory hold has elapsed) */}
+      {receipt.hold_until && !receipt.disposed_at && (
+        <View style={styles.nmFormRow}>
+          <TouchableOpacity
+            style={styles.nmFormButton}
+            onPress={() => {
+              const heldUntil = receipt.hold_until
+                ? new Date(receipt.hold_until)
+                : null;
+              if (heldUntil && heldUntil > new Date()) {
+                Alert.alert(
+                  t.materialOnHold,
+                  `${t.holdUntil}: ${heldUntil.toLocaleDateString()}`
+                );
+                return;
+              }
+              setShowDisposeAuth(true);
+            }}
+          >
+            <Text style={styles.nmFormButtonText}>{t.markDisposed}</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* Delete */}
       <View style={styles.deleteRow}>
         <TouchableOpacity
@@ -483,6 +512,22 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
           }
         }}
         onCancel={() => setShowDeleteAuth(false)}
+      />
+
+      <AccessCodeModal
+        visible={showDisposeAuth}
+        onSuccess={async () => {
+          setShowDisposeAuth(false);
+          try {
+            await markReceiptDisposed(receiptId);
+            Alert.alert(t.success, t.materialDisposed);
+            const updated = await fetchReceiptById(receiptId);
+            setReceipt(updated as ReceiptDetail);
+          } catch (err) {
+            Alert.alert(t.error, (err as Error).message);
+          }
+        }}
+        onCancel={() => setShowDisposeAuth(false)}
       />
     </View>
   );
