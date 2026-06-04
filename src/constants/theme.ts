@@ -1,23 +1,40 @@
+// Foundry "Nightshift" palette (warm industrial). Existing token keys are
+// preserved so every screen adopts the new look; new tokens (copper/moss/
+// rust/gold/chip…) are added for the reskinned components.
 export const colors = {
-  background: '#0d1117',
-  surface: '#161b22',
-  card: '#1c2128',
-  cardHover: '#242b35',
-  accent: '#d4a039',
-  accentMuted: 'rgba(212, 160, 57, 0.15)',
-  teal: '#3fb8a9',
-  danger: '#f85149',
-  warning: '#d29922',
-  success: '#56d364',
+  background: '#15130f',
+  surface: '#201d17',
+  surface2: '#1b1813',
+  card: '#201d17',
+  cardHover: '#262219',
+  raised: '#262219',
+  // Copper accent
+  accent: '#b3592f',
+  accentInk: '#ffffff',
+  accentMuted: 'rgba(179, 89, 47, 0.14)',
+  accentLine: 'rgba(179, 89, 47, 0.32)',
+  copper: '#b3592f',
+  // Semantic / domain tones
+  teal: '#3f7d82', // sold / out
+  moss: '#5d7a4e', // profit / positive
+  rust: '#b5462f', // restricted / flag
+  gold: '#b08a32', // hold / warning
+  danger: '#b5462f',
+  warning: '#b08a32',
+  success: '#5d7a4e',
   white: '#ffffff',
-  textPrimary: '#e6edf3',
-  textSecondary: '#8b949e',
-  textTertiary: '#484f58',
-  border: '#30363d',
-  borderSubtle: '#21262d',
-  inputBackground: '#0d1117',
-  overlay: 'rgba(1, 4, 9, 0.8)',
-  shadow: 'rgba(0, 0, 0, 0.4)',
+  // Ink
+  textPrimary: '#f1ebdd',
+  textSecondary: '#a89e8c',
+  textTertiary: '#6f6657',
+  // Lines & fills
+  border: '#3c372c',
+  borderSubtle: '#322d24',
+  borderStrong: '#4a4435',
+  chip: '#2b261d',
+  inputBackground: '#1b1813',
+  overlay: 'rgba(0, 0, 0, 0.62)',
+  shadow: 'rgba(0, 0, 0, 0.45)',
 } as const;
 
 export const spacing = {
@@ -46,4 +63,17 @@ export const borderRadius = {
   lg: 16,
   xl: 20,
   pill: 100,
+} as const;
+
+// Foundry type system. Archivo for UI, Spline Sans Mono for numerals
+// (weights, prices, receipt #s). Loaded in App.tsx via @expo-google-fonts.
+export const fonts = {
+  sans: 'Archivo_400Regular',
+  sansMedium: 'Archivo_500Medium',
+  sansSemiBold: 'Archivo_600SemiBold',
+  sansBold: 'Archivo_700Bold',
+  display: 'Archivo_800ExtraBold',
+  mono: 'SplineSansMono_400Regular',
+  monoMedium: 'SplineSansMono_500Medium',
+  monoSemiBold: 'SplineSansMono_600SemiBold',
 } as const;
