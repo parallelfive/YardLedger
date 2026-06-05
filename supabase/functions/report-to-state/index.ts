@@ -26,7 +26,6 @@ interface ReportingConfig {
   sftp_host: string;
   sftp_port: number;
   sftp_username: string;
-  sftp_password: string;
   remote_dir: string;
   enabled: boolean;
 }
@@ -123,6 +122,7 @@ function buildCsv(rows: any[], registrationNumber: string): string {
 
 async function uploadViaSftp(
   cfg: ReportingConfig,
+  password: string,
   fileName: string,
   contents: string
 ): Promise<void> {
@@ -132,7 +132,7 @@ async function uploadViaSftp(
       host: cfg.sftp_host,
       port: cfg.sftp_port || 22,
       username: cfg.sftp_username,
-      password: cfg.sftp_password,
+      password,
     });
     const dir = cfg.remote_dir?.replace(/\/$/, '') ?? '';
     await sftp.put(Buffer.from(contents, 'utf8'), `${dir}/${fileName}`);
@@ -161,6 +161,16 @@ async function reportCompany(admin: any, companyId: string) {
     .maybeSingle();
   const registration = settings?.nmrld_registration_number ?? '';
 
+  // The SFTP password is encrypted at rest in Vault; fetch the decrypted value
+  // via the service_role-only RPC (never stored/returned in plaintext elsewhere).
+  // Fetch BEFORE claiming rows so a missing credential skips without stamping.
+  const { data: sftpPassword } = await admin.rpc('get_reporting_secret', {
+    p_company_id: companyId,
+  });
+  if (!sftpPassword) {
+    return { companyId, status: 'skipped', reason: 'no SFTP credentials set' };
+  }
+
   // Atomically CLAIM the unreported buys by stamping reported_at as part of the
   // same UPDATE that returns them. A concurrent invocation (cron racing a
   // manual "Send now") running the identical update matches zero already-claimed
@@ -186,6 +196,7 @@ async function reportCompany(admin: any, companyId: string) {
   try {
     await uploadViaSftp(
       cfg as ReportingConfig,
+      sftpPassword as string,
       fileName,
       buildCsv(rows, registration)
     );
