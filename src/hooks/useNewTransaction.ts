@@ -15,6 +15,11 @@ export function useNewTransaction(
 ) {
   const { t } = useT();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
+  // Attribute the buy to the staffer on shift (PIN'd in), not the device's
+  // session user. Falls back to the session profile when no PIN is in use.
+  const activeIdentity = useAppSelector(
+    (state: RootState) => state.auth.activeIdentity
+  );
 
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -271,7 +276,7 @@ export function useNewTransaction(
         type: 'buy',
         subtotal: receiptTotal,
         signatureUri: signatureData,
-        workerId: profile.id,
+        workerId: activeIdentity?.user_id ?? profile.id,
         notes: '',
         vehiclePlate,
         vehicleYear,

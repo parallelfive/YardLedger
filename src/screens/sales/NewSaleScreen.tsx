@@ -62,6 +62,10 @@ export default function NewSaleScreen({ navigation }: Props) {
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
+  // Attribute the sale to the staffer on shift (PIN'd in), not the device user.
+  const activeIdentity = useAppSelector(
+    (state: RootState) => state.auth.activeIdentity
+  );
 
   const [buyerName, setBuyerName] = useState('');
   const [inventory, setInventory] = useState<InvRow[]>([]);
@@ -142,7 +146,7 @@ export default function NewSaleScreen({ navigation }: Props) {
         salePricePerLb: price,
         costBasisPerLb: selected.avgCost,
         buyerName: buyerName.trim() || undefined,
-        workerId: profile.id,
+        workerId: activeIdentity?.user_id ?? profile.id,
       });
       Alert.alert(t.success, t.saleSaved, [
         { text: t.ok, onPress: () => navigation.navigate('SalesList') },
