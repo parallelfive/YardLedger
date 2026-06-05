@@ -30,7 +30,7 @@ import UserApprovalScreen from '../screens/admin/UserApprovalScreen';
 import PricingScreen from '../screens/admin/PricingScreen';
 import CompanyProfileScreen from '../screens/admin/CompanyProfileScreen';
 import { useAppSelector, useAppDispatch, type RootState } from '../store';
-import { signOut } from '../store/authStore';
+import { signOut, lockTerminal } from '../store/authStore';
 import { toggleLanguage } from '../store/settingsStore';
 import { useT } from '../hooks/useT';
 import { useTheme, useThemedStyles } from '../theme';
@@ -244,6 +244,18 @@ function SettingsButton() {
               <Text style={navStyles.settingsRowValue}>
                 {language === 'en' ? t.english : t.spanish}
               </Text>
+            </TouchableOpacity>
+            <View style={navStyles.settingsDivider} />
+            <TouchableOpacity
+              style={navStyles.settingsRow}
+              onPress={() => go(() => dispatch(lockTerminal()))}
+            >
+              <Ionicons
+                name="lock-closed-outline"
+                size={22}
+                color={colors.accent}
+              />
+              <Text style={navStyles.settingsRowText}>{t.lockTerminal}</Text>
             </TouchableOpacity>
             <View style={navStyles.settingsDivider} />
             <TouchableOpacity

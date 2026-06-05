@@ -9,6 +9,8 @@ import * as Linking from 'expo-linking';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 import PendingApprovalScreen from '../screens/auth/PendingApprovalScreen';
+import PasscodeGate from './PasscodeGate';
+import AutoLock from './AutoLock';
 import { useAppDispatch, useAppSelector, type RootState } from '../store';
 import { initializeAuth, setSession, fetchProfile } from '../store/authStore';
 import { supabase } from '../config/supabase';
@@ -40,7 +42,7 @@ async function handleAuthDeepLink(url: string) {
 export default function RootNavigator() {
   const dispatch = useAppDispatch();
   const { colors, isLight } = useTheme();
-  const { session, profile, loading } = useAppSelector(
+  const { session, profile, loading, activeIdentity } = useAppSelector(
     (state: RootState) => state.auth
   );
 
@@ -117,10 +119,17 @@ export default function RootNavigator() {
     return <PendingApprovalScreen />;
   }
 
-  // Logged in and approved
+  // Device has a company session but the terminal is locked → passcode pad.
+  if (!activeIdentity) {
+    return <PasscodeGate />;
+  }
+
+  // Logged in, approved, and a staff identity is attributed for the shift.
   return (
-    <NavigationContainer theme={navTheme}>
-      <MainNavigator />
-    </NavigationContainer>
+    <AutoLock>
+      <NavigationContainer theme={navTheme}>
+        <MainNavigator />
+      </NavigationContainer>
+    </AutoLock>
   );
 }

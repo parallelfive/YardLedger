@@ -28,6 +28,8 @@ interface Props {
   busy?: boolean;
   error?: string | null;
   onSubmit: (pin: string, role: TareRole) => void;
+  /** Escape hatch — sign the device out back to the email/invite login. */
+  onSignOut?: () => void;
 }
 
 const ROLES: { key: TareRole; label: string }[] = [
@@ -43,6 +45,7 @@ export default function PasscodeLoginScreen({
   busy,
   error,
   onSubmit,
+  onSignOut,
 }: Props) {
   const { t } = useT();
   const { colors } = useTheme();
@@ -222,6 +225,20 @@ export default function PasscodeLoginScreen({
             )}
           </TouchableOpacity>
         </View>
+        {onSignOut ? (
+          <TouchableOpacity
+            style={styles.signOut}
+            onPress={onSignOut}
+            disabled={busy}
+          >
+            <Ionicons
+              name="log-out-outline"
+              size={14}
+              color={colors.textTertiary}
+            />
+            <Text style={styles.signOutText}>{t.signOutDevice}</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </View>
   );
@@ -364,5 +381,19 @@ const makeStyles = (colors: Palette) =>
       fontSize: 27,
       fontFamily: fonts.display,
       color: colors.textPrimary,
+    },
+    signOut: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 6,
+      marginTop: 16,
+      paddingVertical: 6,
+    },
+    signOutText: {
+      fontSize: 11.5,
+      color: colors.textTertiary,
+      fontFamily: fonts.mono,
+      letterSpacing: 0.3,
     },
   });

@@ -3,12 +3,20 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
 import type { Company, UserProfile } from '../types';
+import type { PinIdentity } from '../services/pin';
 
 interface AuthState {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
   company: Company | null;
+  // The staff member attributed for the current shift. The device holds the
+  // Supabase session (company scope); this is whoever last signed in / PIN'd in.
+  // Null = the terminal is locked → show the passcode pad.
+  activeIdentity: PinIdentity | null;
+  // How the identity was set. Auto-lock only engages once someone has PIN'd in,
+  // so a freshly email-signed-in user (no PIN yet) is never locked out.
+  activeIdentitySource: 'session' | 'pin' | null;
   loading: boolean;
   error: string | null;
 }
@@ -18,9 +26,18 @@ const initialState: AuthState = {
   user: null,
   profile: null,
   company: null,
+  activeIdentity: null,
+  activeIdentitySource: null,
   loading: true,
   error: null,
 };
+
+const identityFromProfile = (
+  profile: UserProfile | null
+): PinIdentity | null =>
+  profile
+    ? { user_id: profile.id, name: profile.name, role: profile.role }
+    : null;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapProfileAndCompany(row: any): {
@@ -148,6 +165,16 @@ const authSlice = createSlice({
     clearError(state) {
       state.error = null;
     },
+    // A staff member PIN'd in — attribute the shift to them (enables auto-lock).
+    setActiveIdentity(state, action: PayloadAction<PinIdentity>) {
+      state.activeIdentity = action.payload;
+      state.activeIdentitySource = 'pin';
+    },
+    // Lock the terminal back to the passcode pad (manual or auto-lock idle).
+    lockTerminal(state) {
+      state.activeIdentity = null;
+      state.activeIdentitySource = null;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -156,6 +183,8 @@ const authSlice = createSlice({
         state.user = action.payload.session?.user ?? null;
         state.profile = action.payload.profile;
         state.company = action.payload.company;
+        state.activeIdentity = identityFromProfile(action.payload.profile);
+        state.activeIdentitySource = state.activeIdentity ? 'session' : null;
         state.loading = false;
       })
       .addCase(initializeAuth.rejected, (state) => {
@@ -164,6 +193,10 @@ const authSlice = createSlice({
       .addCase(fetchProfile.fulfilled, (state, action) => {
         state.profile = action.payload.profile;
         state.company = action.payload.company;
+        if (!state.activeIdentity) {
+          state.activeIdentity = identityFromProfile(action.payload.profile);
+          state.activeIdentitySource = state.activeIdentity ? 'session' : null;
+        }
       })
       .addCase(signIn.pending, (state) => {
         state.error = null;
@@ -173,6 +206,8 @@ const authSlice = createSlice({
         state.user = action.payload.session?.user ?? null;
         state.profile = action.payload.profile;
         state.company = action.payload.company;
+        state.activeIdentity = identityFromProfile(action.payload.profile);
+        state.activeIdentitySource = state.activeIdentity ? 'session' : null;
       })
       .addCase(signIn.rejected, (state, action) => {
         state.error = action.error.message ?? 'Sign in failed';
@@ -182,9 +217,12 @@ const authSlice = createSlice({
         state.user = null;
         state.profile = null;
         state.company = null;
+        state.activeIdentity = null;
+        state.activeIdentitySource = null;
       });
   },
 });
 
-export const { setSession, clearError } = authSlice.actions;
+export const { setSession, clearError, setActiveIdentity, lockTerminal } =
+  authSlice.actions;
 export default authSlice.reducer;
