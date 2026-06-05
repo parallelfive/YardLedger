@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
 import { useAppDispatch, useAppSelector, type RootState } from '../../store';
 import { signOut } from '../../store/authStore';
 import { setLanguage } from '../../store/settingsStore';
@@ -156,7 +157,7 @@ export default function SettingsScreen() {
 
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const company = useAppSelector((s: RootState) => s.auth.company);
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const { isAdmin } = useRole();
 
   const [pinOpen, setPinOpen] = useState(false);
 

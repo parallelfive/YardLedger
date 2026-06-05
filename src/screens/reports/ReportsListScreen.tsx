@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
 import { useAppSelector, type RootState } from '../../store';
 import DateRangeSelector, {
   type DatePreset,
@@ -70,7 +71,7 @@ export default function ReportsListScreen({ navigation }: Props) {
     navigate: (name: string, params?: object) => void;
   };
   const profile = useAppSelector((s: RootState) => s.auth.profile);
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const { isAdmin } = useRole();
 
   const [preset, setPreset] = useState<DatePreset>('month');
   const [rows, setRows] = useState<ComplianceReceiptRow[]>([]);

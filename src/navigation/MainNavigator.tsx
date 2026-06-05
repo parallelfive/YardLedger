@@ -29,10 +29,11 @@ import MarketPricesScreen from '../screens/admin/MarketPricesScreen';
 import UserApprovalScreen from '../screens/admin/UserApprovalScreen';
 import PricingScreen from '../screens/admin/PricingScreen';
 import CompanyProfileScreen from '../screens/admin/CompanyProfileScreen';
-import { useAppSelector, useAppDispatch, type RootState } from '../store';
+import { useAppDispatch } from '../store';
 import { signOut, lockTerminal } from '../store/authStore';
 import { toggleLanguage } from '../store/settingsStore';
 import { useT } from '../hooks/useT';
+import { useRole } from '../hooks';
 import { useTheme, useThemedStyles } from '../theme';
 import {
   fontSize,
@@ -116,8 +117,7 @@ function SettingsButton() {
   const navigation = useNavigation();
   const { colors, isLight, toggle } = useTheme();
   const navStyles = useThemedStyles(makeNavStyles);
-  const profile = useAppSelector((state: RootState) => state.auth.profile);
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const { isAdmin } = useRole();
   const [visible, setVisible] = useState(false);
 
   const go = (target: () => void) => {
@@ -587,8 +587,7 @@ function YLTabBar({ state, navigation }: BottomTabBarProps) {
 export default function MainNavigator() {
   const { t } = useT();
   const { colors } = useTheme();
-  const profile = useAppSelector((state: RootState) => state.auth.profile);
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const { isAdmin } = useRole();
 
   return (
     <Tab.Navigator

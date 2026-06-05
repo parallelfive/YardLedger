@@ -15,6 +15,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
 import { useAppSelector, type RootState } from '../../store';
 import { useCurrentCompany } from '../../hooks/useCurrentCompany';
 import {
@@ -149,7 +150,7 @@ export default function CompanyProfileScreen() {
   const [catCheckOnly, setCatCheckOnly] = useState(true);
 
   // State-reporting (LeadsOnline SFTP) credentials — owner only.
-  const isOwner = profile?.role === 'owner';
+  const { isOwner } = useRole();
   const [repEnabled, setRepEnabled] = useState(false);
   const [repHost, setRepHost] = useState('');
   const [repPort, setRepPort] = useState('22');
@@ -175,7 +176,7 @@ export default function CompanyProfileScreen() {
         setCatHoldDays(String(data.cat_converter_hold_days ?? 60));
         setCatCheckOnly(data.cat_converter_check_only ?? true);
       }
-      if (profile?.role === 'owner') {
+      if (isOwner) {
         const rep = await getReportingConfig();
         if (rep) {
           setRepEnabled(rep.enabled);
@@ -191,7 +192,7 @@ export default function CompanyProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.role]);
+  }, [isOwner]);
 
   useEffect(() => {
     loadSettings();

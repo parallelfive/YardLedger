@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
 import { useUserApproval } from '../../hooks/useUserApproval';
 import { useInviteCodes } from '../../hooks/useInviteCodes';
 import { useCurrentCompany } from '../../hooks/useCurrentCompany';
@@ -58,7 +59,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
   const [generatedInvite, setGeneratedInvite] = useState<string | null>(null);
   const [generatingInvite, setGeneratingInvite] = useState(false);
 
-  const callerIsOwner = profile?.role === 'owner';
+  const { isOwner: callerIsOwner } = useRole();
 
   const roleLabel = (role: UserRole): string => {
     switch (role) {
