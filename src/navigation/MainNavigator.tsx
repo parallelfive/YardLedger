@@ -613,7 +613,7 @@ export default function MainNavigator() {
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
-        options={{ title: t.tabHome }}
+        options={{ title: t.tabHome, headerShown: false }}
       />
       <Tab.Screen
         name="Inventory"

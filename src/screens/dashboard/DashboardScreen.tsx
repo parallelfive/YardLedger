@@ -8,7 +8,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { TareMark, Wordmark } from '../../components';
+import { useAppSelector, type RootState } from '../../store';
 import {
   fetchDailySummary,
   fetchInventoryValuation,
@@ -54,9 +57,13 @@ const MIX_TONES: Tone[] = ['copper', 'steel', 'gold', 'moss', 'ink3'];
 
 export default function DashboardScreen() {
   const { t } = useT();
-  const { colors } = useTheme();
+  const { colors, isLight, toggle } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const insets = useSafeAreaInsets();
   const navigation = useNavigation() as unknown as Nav;
+  const company = useAppSelector((s: RootState) => s.auth.company);
+  const today = new Date();
+  const dateStr = `${today.toLocaleDateString('en-US', { weekday: 'short' })} · ${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [spark, setSpark] = useState<number[]>([]);
   const [onHand, setOnHand] = useState({ value: 0, count: 0 });
@@ -156,7 +163,58 @@ export default function DashboardScreen() {
   const deltaPct = avg > 0 ? Math.round(((last - avg) / avg) * 100) : 0;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+    >
+      {/* Tare brand header */}
+      <View style={styles.tareHeader}>
+        <View style={styles.brandLockup}>
+          <TareMark size={30} radius={9} />
+          <Wordmark size={22} tight={-0.5} color={colors.textPrimary} />
+        </View>
+        <View style={styles.headerRight}>
+          {company ? (
+            <View style={styles.companyChip}>
+              <View style={styles.companyAvatar}>
+                <Text style={styles.companyAvatarText}>
+                  {(company.prefix || company.name).slice(0, 2).toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.companyName} numberOfLines={1}>
+                {company.name}
+              </Text>
+            </View>
+          ) : null}
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => void toggle()}
+          >
+            <Ionicons
+              name={isLight ? 'sunny-outline' : 'moon-outline'}
+              size={19}
+              color={colors.accent}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() =>
+              navigation.navigate('TransactionsTab', { screen: 'Settings' })
+            }
+          >
+            <Ionicons
+              name="cog-outline"
+              size={20}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.dayBookRow}>
+        <Text style={styles.dayBook}>{t.dayBook}</Text>
+        <Text style={styles.dayBookDate}>{dateStr}</Text>
+      </View>
+
       {/* Hero — bought today */}
       <View style={styles.hero}>
         <View style={styles.heroHead}>
@@ -311,6 +369,76 @@ const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     content: { paddingTop: spacing.md, paddingBottom: spacing.xxxl },
+    tareHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    companyChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      maxWidth: 150,
+      paddingVertical: 6,
+      paddingLeft: 7,
+      paddingRight: 11,
+      borderRadius: 99,
+      backgroundColor: colors.chip,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    companyAvatar: {
+      width: 22,
+      height: 22,
+      borderRadius: 7,
+      backgroundColor: colors.textPrimary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    companyAvatarText: {
+      color: colors.background,
+      fontSize: 10,
+      fontFamily: fonts.display,
+    },
+    companyName: {
+      flexShrink: 1,
+      fontSize: 12.5,
+      fontFamily: fonts.sansSemiBold,
+      color: colors.textSecondary,
+    },
+    iconBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    dayBookRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    dayBook: {
+      fontSize: 30,
+      fontFamily: fonts.display,
+      letterSpacing: -0.8,
+      color: colors.textPrimary,
+    },
+    dayBookDate: {
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      color: colors.textTertiary,
+      paddingBottom: 5,
+    },
     centered: {
       flex: 1,
       justifyContent: 'center',
