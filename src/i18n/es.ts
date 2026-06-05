@@ -11,7 +11,7 @@ export default {
 
   // Auth - Login
   appName: 'YardLedger',
-  appTagline: 'Gestión de Metales de Desecho',
+  appTagline: 'Llega al neto verdadero',
   email: 'Correo Electrónico',
   password: 'Contraseña',
   signIn: 'Iniciar Sesión',

@@ -11,7 +11,7 @@ export default {
 
   // Auth - Login
   appName: 'YardLedger',
-  appTagline: 'Scrap Metal Management',
+  appTagline: 'Get to the true net',
   email: 'Email',
   password: 'Password',
   signIn: 'Sign In',
