@@ -14,3 +14,4 @@ export { default as DateRangeSelector } from './DateRangeSelector';
 export { default as SummaryCards } from './SummaryCards';
 export { default as SignedImage } from './SignedImage';
 export { TareMark, Wordmark } from './brand';
+export { default as SetPinModal } from './SetPinModal';

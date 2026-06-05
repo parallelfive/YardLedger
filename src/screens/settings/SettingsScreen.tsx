@@ -16,6 +16,7 @@ import { signOut } from '../../store/authStore';
 import { setLanguage } from '../../store/settingsStore';
 import { type Palette, spacing, fonts, borderRadius } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
+import { SetPinModal } from '../../components';
 
 // ── grouped card (design "Group") ───────────────────────────
 function Group({
@@ -157,6 +158,8 @@ export default function SettingsScreen() {
   const company = useAppSelector((s: RootState) => s.auth.company);
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
 
+  const [pinOpen, setPinOpen] = useState(false);
+
   // Theme toggle reloads the app (see utils/themeMode); guard double-taps.
   const [switching, setSwitching] = useState(false);
   const onTheme = (mode: 'light' | 'dark') => {
@@ -217,6 +220,14 @@ export default function SettingsScreen() {
                 </View>
               ) : undefined
             }
+            last={false}
+          />
+          <Row
+            label={t.setShiftPin}
+            sub={t.setShiftPinDesc}
+            icon="keypad-outline"
+            iconColor={colors.accent}
+            onPress={() => setPinOpen(true)}
             last={!company}
           />
           {company ? (
@@ -325,8 +336,10 @@ export default function SettingsScreen() {
           <Text style={styles.signOutText}>{t.signOut}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.footnote}>YardLedger · {appVersion}</Text>
+        <Text style={styles.footnote}>tare · {appVersion}</Text>
       </ScrollView>
+
+      <SetPinModal visible={pinOpen} onClose={() => setPinOpen(false)} />
     </View>
   );
 }
