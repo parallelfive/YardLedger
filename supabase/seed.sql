@@ -12,3 +12,18 @@
 --   insert into public.customers (name, phone, company_id) values
 --     ('Test Customer', '555-0000',
 --      (select id from public.companies where prefix = 'LEGAC-2026'));
+
+-- ── Dev bootstrap (LOCAL only) ───────────────────────────────────────────────
+-- A company + an owner invite code so you can register on the local stack.
+-- Inserting the company fires the auto-seed triggers (company_settings + the
+-- per-company metal catalog), so a fresh local DB is immediately usable.
+-- Register in the app with invite code: GORILLA1
+insert into public.companies (name, prefix)
+select 'Gorilla Recycling (local)', 'GR-2026'
+where not exists (select 1 from public.companies where prefix = 'GR-2026');
+
+insert into public.invite_codes (code, company_id, role, created_by)
+select 'GORILLA1', c.id, 'owner', null
+from public.companies c
+where c.prefix = 'GR-2026'
+  and not exists (select 1 from public.invite_codes where code = 'GORILLA1');

@@ -14,7 +14,14 @@ import {
   fetchMetalsByCategory,
 } from '../services/metals';
 import { useT } from '../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../constants';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface MetalSection {
   title: string;
@@ -31,6 +38,8 @@ export default function PriceSheetModal({
   onClose,
 }: PriceSheetModalProps) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const [sections, setSections] = useState<MetalSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -124,75 +133,79 @@ export default function PriceSheetModal({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-  },
-  closeButton: {
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-  },
-  closeButtonText: {
-    color: colors.danger,
-    fontSize: fontSize.lg,
-  },
-  loader: {
-    marginTop: spacing.xxxl,
-  },
-  sectionHeader: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  sectionTitle: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-  },
-  metalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  metalName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    flex: 1,
-  },
-  metalPrice: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-  },
-  empty: {
-    padding: spacing.xxxl,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xl,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.xxl,
+      paddingBottom: spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    title: {
+      color: colors.textPrimary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    closeButton: {
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.sm,
+    },
+    closeButtonText: {
+      color: colors.danger,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+    loader: {
+      marginTop: spacing.xxxl,
+    },
+    sectionHeader: {
+      paddingHorizontal: spacing.lg,
+      paddingTop: spacing.lg,
+      paddingBottom: spacing.sm,
+    },
+    sectionTitle: {
+      color: colors.accent,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    metalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+      padding: spacing.lg,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    metalName: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+      flex: 1,
+    },
+    metalPrice: {
+      color: colors.accent,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.monoSemiBold,
+    },
+    empty: {
+      padding: spacing.xxxl,
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sans,
+    },
+  });

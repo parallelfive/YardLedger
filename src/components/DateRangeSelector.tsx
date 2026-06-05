@@ -1,6 +1,13 @@
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { useT } from '../hooks/useT';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../constants';
+import { useThemedStyles } from '../theme';
 
 export type DatePreset = 'today' | 'week' | 'month';
 
@@ -44,6 +51,7 @@ export default function DateRangeSelector({
   onSelect,
 }: DateRangeSelectorProps) {
   const { t } = useT();
+  const styles = useThemedStyles(makeStyles);
 
   const presets: { key: DatePreset; label: string }[] = [
     { key: 'today', label: t.today },
@@ -73,31 +81,32 @@ export default function DateRangeSelector({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-  },
-  pill: {
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    borderRadius: borderRadius.pill,
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pillActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
-  },
-  pillText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  pillTextActive: {
-    color: colors.background,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.md,
+    },
+    pill: {
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      borderRadius: borderRadius.pill,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    pillActive: {
+      backgroundColor: colors.accent,
+      borderColor: colors.accent,
+    },
+    pillText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
+    },
+    pillTextActive: {
+      color: colors.accentInk,
+    },
+  });

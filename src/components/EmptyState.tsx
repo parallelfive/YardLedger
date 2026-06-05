@@ -1,6 +1,13 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, spacing, fontSize, borderRadius } from '../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../constants';
+import { useTheme, useThemedStyles } from '../theme';
 
 interface EmptyStateProps {
   title: string;
@@ -13,6 +20,8 @@ export default function EmptyState({
   subtitle,
   icon = 'file-tray-outline',
 }: EmptyStateProps) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
@@ -24,36 +33,38 @@ export default function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 80,
-    paddingHorizontal: spacing.xxl,
-  },
-  iconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: borderRadius.xl,
-    backgroundColor: colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  title: {
-    color: colors.textSecondary,
-    fontSize: fontSize.xl,
-    fontWeight: '600',
-    marginBottom: spacing.sm,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: colors.textTertiary,
-    fontSize: fontSize.md,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingTop: 80,
+      paddingHorizontal: spacing.xxl,
+    },
+    iconWrap: {
+      width: 72,
+      height: 72,
+      borderRadius: borderRadius.xl,
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: spacing.lg,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    title: {
+      color: colors.textSecondary,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansSemiBold,
+      marginBottom: spacing.sm,
+      textAlign: 'center',
+    },
+    subtitle: {
+      color: colors.textTertiary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+      lineHeight: 20,
+    },
+  });

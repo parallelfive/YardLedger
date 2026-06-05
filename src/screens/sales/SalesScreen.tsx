@@ -1,56 +1,41 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, FlatList, StyleSheet, RefreshControl } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { SalesStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useSales } from '../../hooks/useSales';
-import { RefreshableList, DateRangeSelector } from '../../components';
+import { DateRangeSelector } from '../../components';
+import {
+  SectionLabel,
+  DeltaTag,
+  fmtMoney,
+  fmtMoney0,
+  fmtLbs,
+} from '../../components/foundry';
 import {
   type DatePreset,
   getDateRange,
 } from '../../components/DateRangeSelector';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
-import { calculateTotalProfit } from '../../utils/calculations';
-import { aggregateSalesByCategory } from '../../services/sales';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 type Props = NativeStackScreenProps<SalesStackParamList, 'SalesList'>;
 
 export default function SalesScreen({ navigation }: Props) {
   const { t } = useT();
-  const [preset, setPreset] = useState<DatePreset>('today');
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  const [preset, setPreset] = useState<DatePreset>('month');
   const { start, end } = getDateRange(preset);
   const { sales, loading, error, refresh } = useSales(start, end);
-  const [searchInput, setSearchInput] = useState('');
-  const [appliedSearch, setAppliedSearch] = useState('');
-
-  const filteredSales = useMemo(() => {
-    if (!appliedSearch) return sales;
-    const q = appliedSearch.toLowerCase();
-    return sales.filter((s) => {
-      if (s.metal_name?.toLowerCase().includes(q)) return true;
-      if (s.buyer_name?.toLowerCase().includes(q)) return true;
-      return false;
-    });
-  }, [sales, appliedSearch]);
-
-  const totalProfit = calculateTotalProfit(filteredSales);
-  const categorySummaries = aggregateSalesByCategory(filteredSales);
-
-  const handleSearch = () => {
-    setAppliedSearch(searchInput.trim());
-  };
-
-  const handleClearSearch = () => {
-    setSearchInput('');
-    setAppliedSearch('');
-  };
 
   useFocusEffect(
     useCallback(() => {
@@ -58,322 +43,214 @@ export default function SalesScreen({ navigation }: Props) {
     }, [refresh])
   );
 
+  const { revenue, profit, weight } = useMemo(() => {
+    return sales.reduce(
+      (acc, s) => ({
+        revenue: acc.revenue + Number(s.total_revenue),
+        profit: acc.profit + Number(s.profit),
+        weight: acc.weight + Number(s.weight),
+      }),
+      { revenue: 0, profit: 0, weight: 0 }
+    );
+  }, [sales]);
+
+  const margin = revenue > 0 ? Math.round((profit / revenue) * 100) : 0;
+
   return (
     <View style={styles.container}>
-      <DateRangeSelector selected={preset} onSelect={setPreset} />
-      {error && (
-        <View style={styles.errorBar}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-      <View style={styles.searchRow}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder={t.searchSales}
-          placeholderTextColor={colors.textTertiary}
-          value={searchInput}
-          onChangeText={setSearchInput}
-          onSubmitEditing={handleSearch}
-          returnKeyType="search"
-        />
-        {appliedSearch ? (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={handleClearSearch}
-          >
-            <Text style={styles.clearButtonText}>{t.clearSearch}</Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-            <Text style={styles.searchButtonText}>{t.search}</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      {filteredSales.length > 0 && (
-        <>
-          <View style={styles.summaryBar}>
-            <Text style={styles.summaryLabel}>{t.totalProfit}</Text>
-            <Text
-              style={[
-                styles.summaryValue,
-                totalProfit < 0 && styles.summaryNegative,
-              ]}
-            >
-              ${totalProfit.toFixed(2)}
-            </Text>
-          </View>
-
-          {categorySummaries.length > 0 && (
-            <View style={styles.categorySection}>
-              <Text style={styles.categorySectionTitle}>
-                {t.profitByCategory}
-              </Text>
-              {categorySummaries.map((cat) => (
-                <View key={cat.categoryName} style={styles.categoryCard}>
-                  <View style={styles.categoryHeader}>
-                    <Text style={styles.categoryName}>{cat.categoryName}</Text>
-                    <Text
-                      style={[
-                        styles.categoryProfit,
-                        cat.totalProfit < 0 && styles.categoryProfitNegative,
-                      ]}
-                    >
-                      ${cat.totalProfit.toFixed(2)}
-                    </Text>
-                  </View>
-                  <View style={styles.categoryDetails}>
-                    <Text style={styles.categoryDetail}>
-                      {t.sold}: {cat.totalWeightSold.toFixed(0)} lbs
-                    </Text>
-                    <Text style={styles.categoryDetail}>
-                      {t.revenue}: ${cat.totalRevenue.toFixed(2)}
-                    </Text>
-                    <Text style={styles.categoryDetail}>
-                      {t.cost}: ${cat.totalCost.toFixed(2)}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-        </>
-      )}
-      <RefreshableList
-        data={filteredSales}
+      <FlatList
+        data={sales}
         keyExtractor={(item) => item.id}
-        loading={loading}
-        onRefresh={refresh}
-        emptyTitle={t.noSales}
-        emptySubtitle={t.recordSalesProfit}
-        renderItem={({ item }) => {
-          const profit = Number(item.profit);
-          return (
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.metalName}>{item.metal_name}</Text>
-                <Text
-                  style={[styles.profit, profit < 0 && styles.profitNegative]}
-                >
-                  ${profit.toFixed(2)}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={refresh}
+            tintColor={colors.accent}
+          />
+        }
+        contentContainerStyle={styles.content}
+        ListHeaderComponent={
+          <>
+            <DateRangeSelector selected={preset} onSelect={setPreset} />
+            {error ? (
+              <View style={styles.errorBar}>
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            <View style={styles.statRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>{t.totalSold}</Text>
+                <Text style={styles.statValue}>{fmtMoney0(revenue)}</Text>
+                <Text style={styles.statSub}>
+                  {fmtLbs(weight)} {t.lbShipped}
                 </Text>
               </View>
-              <Text style={styles.detail}>
-                {Number(item.weight).toFixed(2)} lbs @ $
-                {Number(item.sale_price_per_lb).toFixed(4)}
-                {t.perLb}
-              </Text>
-              <Text style={styles.detail}>
-                {t.revenue}: ${Number(item.total_revenue).toFixed(2)} |{' '}
-                {t.avgCost}: ${Number(item.cost_basis_per_lb).toFixed(4)}
-                {t.perLb}
-              </Text>
-              {item.buyer_name ? (
-                <Text style={styles.detail}>
-                  {t.buyerName}: {item.buyer_name}
+              <View style={styles.statCard}>
+                <Text style={styles.statLabel}>{t.grossProfit}</Text>
+                <Text
+                  style={[
+                    styles.statValue,
+                    { color: profit < 0 ? colors.rust : colors.moss },
+                  ]}
+                >
+                  {fmtMoney0(profit)}
                 </Text>
-              ) : null}
-              <Text style={styles.date}>
-                {new Date(item.created_at).toLocaleDateString()}
-              </Text>
+                <Text style={styles.statSub}>
+                  {margin}% {t.margin.toLowerCase()}
+                </Text>
+              </View>
+            </View>
+
+            <SectionLabel
+              actionLabel={t.newSaleAction}
+              onAction={() => navigation.navigate('NewSale')}
+            >
+              {t.outboundLoads}
+            </SectionLabel>
+          </>
+        }
+        ListEmptyComponent={
+          loading ? null : (
+            <View style={styles.empty}>
+              <Ionicons
+                name="trending-up-outline"
+                size={40}
+                color={colors.textTertiary}
+              />
+              <Text style={styles.emptyTitle}>{t.noSales}</Text>
+              <Text style={styles.emptySub}>{t.recordSalesProfit}</Text>
+            </View>
+          )
+        }
+        renderItem={({ item }) => {
+          const p = Number(item.profit);
+          const date = new Date(item.created_at).toLocaleDateString();
+          return (
+            <View style={styles.row}>
+              <View style={styles.rowIcon}>
+                <Ionicons name="cube-outline" size={20} color={colors.teal} />
+              </View>
+              <View style={styles.rowInfo}>
+                <Text style={styles.rowBuyer} numberOfLines={1}>
+                  {item.buyer_name || item.metal_name}
+                </Text>
+                <Text style={styles.rowMeta}>
+                  {item.metal_name} · {fmtLbs(Number(item.weight))} lb · {date}
+                </Text>
+              </View>
+              <View style={styles.rowRight}>
+                <Text style={styles.rowTotal}>
+                  {fmtMoney(Number(item.total_revenue))}
+                </Text>
+                <DeltaTag up={p >= 0}>{fmtMoney(Math.abs(p))}</DeltaTag>
+              </View>
             </View>
           );
         }}
       />
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('NewSale')}
-      >
-        <Text style={styles.fabText}>{t.newSale}</Text>
-      </TouchableOpacity>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: fontSize.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  searchButton: {
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  searchButtonText: {
-    color: colors.background,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  clearButton: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  clearButtonText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  summaryBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-  },
-  summaryLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.lg,
-  },
-  summaryValue: {
-    color: colors.success,
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
-  },
-  summaryNegative: {
-    color: colors.danger,
-  },
-  categorySection: {
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-  },
-  categorySectionTitle: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-    marginBottom: spacing.sm,
-  },
-  categoryCard: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  categoryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  categoryName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-  },
-  categoryProfit: {
-    color: colors.success,
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-  },
-  categoryProfitNegative: {
-    color: colors.danger,
-  },
-  categoryDetails: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  categoryDetail: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-  },
-  card: {
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.success,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  metalName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-  },
-  profit: {
-    color: colors.success,
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-  },
-  profitNegative: {
-    color: colors.danger,
-  },
-  detail: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
-  },
-  date: {
-    color: colors.textTertiary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
-  },
-  errorBar: {
-    backgroundColor: colors.danger,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-  },
-  errorText: {
-    color: '#fff',
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    right: spacing.xl,
-    backgroundColor: colors.accent,
-    borderRadius: 28,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.xl,
-    elevation: 5,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-  },
-  fabText: {
-    color: colors.background,
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    content: {
+      padding: spacing.lg,
+      paddingBottom: spacing.xxxl,
+      gap: spacing.sm,
+    },
+    statRow: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      marginVertical: spacing.md,
+    },
+    statCard: {
+      flex: 1,
+      padding: spacing.lg,
+      borderRadius: 18,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    statLabel: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.8,
+      textTransform: 'uppercase',
+    },
+    statValue: {
+      color: colors.textPrimary,
+      fontSize: 24,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+      marginTop: 4,
+    },
+    statSub: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      padding: spacing.md,
+      backgroundColor: colors.card,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+    },
+    rowIcon: {
+      width: 38,
+      height: 38,
+      borderRadius: 10,
+      backgroundColor: colors.teal + '24',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    rowInfo: { flex: 1 },
+    rowBuyer: {
+      color: colors.textPrimary,
+      fontSize: 14.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    rowMeta: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    rowRight: { alignItems: 'flex-end', gap: 3 },
+    rowTotal: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.monoSemiBold,
+    },
+    errorBar: {
+      backgroundColor: colors.danger,
+      padding: spacing.md,
+      borderRadius: borderRadius.md,
+      marginTop: spacing.md,
+    },
+    errorText: {
+      color: colors.white,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sansSemiBold,
+    },
+    empty: { alignItems: 'center', paddingTop: spacing.xxxl, gap: spacing.sm },
+    emptyTitle: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    emptySub: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+    },
+  });

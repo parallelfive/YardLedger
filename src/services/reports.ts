@@ -12,6 +12,30 @@ export interface DailySummary {
   topMetals: { name: string; weight: number }[];
 }
 
+// Daily buy-$ totals for the last `days` days (oldest → newest) — feeds the
+// dashboard sparkline.
+export async function fetchRecentBuyTotals(days = 14): Promise<number[]> {
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - (days - 1));
+  const { data, error } = await supabase
+    .from('receipts')
+    .select('subtotal, created_at')
+    .eq('type', 'buy')
+    .gte('created_at', since.toISOString());
+  if (error) throw error;
+  const buckets = new Array(days).fill(0) as number[];
+  const startMs = since.getTime();
+  const dayMs = 86400000;
+  for (const r of data ?? []) {
+    const idx = Math.floor(
+      (new Date(r.created_at as string).getTime() - startMs) / dayMs
+    );
+    if (idx >= 0 && idx < days) buckets[idx] += Number(r.subtotal);
+  }
+  return buckets;
+}
+
 export async function fetchDailySummary(
   startDate: string,
   endDate: string
@@ -415,6 +439,7 @@ export interface ComplianceReceiptRow {
   is_catalytic: boolean | null;
   payment_method: string | null;
   hold_until: string | null;
+  reported_at: string | null;
   subtotal: number;
   line_items: {
     metal_name: string;
@@ -564,6 +589,38 @@ export async function markReceiptsReported(
       created_by: userId,
     });
   if (logError) throw logError;
+}
+
+// ---------- Reporting status (for the State Reporting screen) ----------
+export interface ReportingStatus {
+  pending: number;
+  lastUpload: {
+    created_at: string;
+    receipt_count: number;
+    status: string;
+    method: string;
+  } | null;
+}
+
+export async function fetchReportingStatus(): Promise<ReportingStatus> {
+  const { count, error } = await supabase
+    .from('receipts')
+    .select('id', { count: 'exact', head: true })
+    .eq('type', 'buy')
+    .is('reported_at', null);
+  if (error) throw error;
+
+  const { data: log, error: logError } = await supabase
+    .from('compliance_upload_log')
+    .select('created_at, receipt_count, status, method')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (logError) throw logError;
+
+  return {
+    pending: count ?? 0,
+    lastUpload: (log?.[0] as ReportingStatus['lastUpload']) ?? null,
+  };
 }
 
 // ---------- Material still on a mandatory hold ----------

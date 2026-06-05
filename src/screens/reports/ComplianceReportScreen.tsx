@@ -27,7 +27,9 @@ import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useAppSelector, type RootState } from '../../store';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import { Tag, SectionLabel, fmtMoney } from '../../components/foundry';
+import { type Palette, spacing, fontSize, fonts } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 interface PurchaseRecordRow {
   date: string;
@@ -50,6 +52,8 @@ interface PurchaseRecordRow {
 
 export default function ComplianceReportScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const isFocused = useIsFocused();
   const [preset, setPreset] = useState<DatePreset>('today');
@@ -222,6 +226,12 @@ export default function ComplianceReportScreen() {
         mimeType: 'text/csv',
         UTI: 'public.comma-separated-values-text',
       });
+      // Regulated PII — don't leave the export lingering in the cache dir.
+      try {
+        file.delete();
+      } catch {
+        /* best effort */
+      }
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }
@@ -240,6 +250,12 @@ export default function ComplianceReportScreen() {
         mimeType: 'text/csv',
         UTI: 'public.comma-separated-values-text',
       });
+      // Regulated PII — don't leave the export lingering in the cache dir.
+      try {
+        file.delete();
+      } catch {
+        /* best effort */
+      }
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }
@@ -262,6 +278,12 @@ export default function ComplianceReportScreen() {
         mimeType: 'text/csv',
         UTI: 'public.comma-separated-values-text',
       });
+      // Regulated PII — don't leave the export lingering in the cache dir.
+      try {
+        file.delete();
+      } catch {
+        /* best effort */
+      }
       Alert.alert(
         t.markReportedTitle,
         t.markReportedConfirm.replace('{n}', String(unreported.length)),
@@ -314,106 +336,131 @@ export default function ComplianceReportScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{restrictedCount}</Text>
+              <Text style={[styles.statNumber, { color: colors.rust }]}>
+                {restrictedCount}
+              </Text>
               <Text style={styles.statLabel}>{t.restrictedMaterial}</Text>
             </View>
           </View>
 
-          {/* Actions */}
-          <View style={styles.actions}>
-            <TouchableOpacity
-              style={styles.actionButton}
+          {/* Export / report actions */}
+          <SectionLabel>{t.tabReports}</SectionLabel>
+          <View style={styles.exportGrid}>
+            <ExportBtn
+              icon="print-outline"
+              tone={colors.accent}
+              label={t.purchaseRecord}
+              sub={t.tabReports}
               onPress={() => handlePrint(false)}
-            >
-              <Ionicons name="print" size={20} color={colors.accent} />
-              <Text style={styles.actionText}>{t.purchaseRecord}</Text>
-            </TouchableOpacity>
-
+            />
             {restrictedCount > 0 && (
-              <TouchableOpacity
-                style={styles.actionButton}
+              <ExportBtn
+                icon="shield-outline"
+                tone={colors.rust}
+                label={t.restrictedReport}
+                sub={`${restrictedCount} ${t.flaggedCount}`}
                 onPress={() => handlePrint(true)}
-              >
-                <Ionicons name="warning" size={20} color={colors.warning} />
-                <Text style={styles.actionText}>{t.restrictedReport}</Text>
-              </TouchableOpacity>
+              />
             )}
-
-            <TouchableOpacity
-              style={styles.actionButton}
+            <ExportBtn
+              icon="download-outline"
+              tone={colors.teal}
+              label={t.exportCsv}
+              sub={t.spreadsheet}
               onPress={handleExportCsv}
-            >
-              <Ionicons name="download-outline" size={20} color={colors.teal} />
-              <Text style={styles.actionText}>{t.exportCsv}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
+            />
+            <ExportBtn
+              icon="cloud-upload-outline"
+              tone={colors.gold}
+              label={t.nmrldExport}
+              sub={t.stateReporting}
               onPress={handleNmrldExport}
-            >
-              <Ionicons
-                name="cloud-upload-outline"
-                size={20}
-                color={colors.accent}
-              />
-              <Text style={styles.actionText}>{t.nmrldExport}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
+            />
+            <ExportBtn
+              icon="checkmark-done-outline"
+              tone={colors.moss}
+              label={t.reportUnreported}
+              sub={t.awaitingReport}
               onPress={handleReportUnreported}
-            >
-              <Ionicons
-                name="checkmark-done-outline"
-                size={20}
-                color={colors.success}
-              />
-              <Text style={styles.actionText}>{t.reportUnreported}</Text>
-            </TouchableOpacity>
+            />
           </View>
 
           {/* Transaction List */}
-          {rows.map((row, i) => (
-            <View
-              key={i}
-              style={[
-                styles.recordCard,
-                row.hasRestricted && styles.recordCardRestricted,
-              ]}
-            >
-              <View style={styles.recordHeader}>
-                <Text style={styles.recordReceipt}>{row.receiptNumber}</Text>
-                <Text style={styles.recordAmount}>
-                  ${row.amountPaid.toFixed(2)}
-                </Text>
-              </View>
-              <Text style={styles.recordSeller}>{row.sellerName}</Text>
-              <Text style={styles.recordDetail}>{row.date}</Text>
-              <Text style={styles.recordDetail}>{row.materials}</Text>
-              {row.dlNumber ? (
-                <Text style={styles.recordDetail}>
-                  {t.dlNumberShort} {row.dlNumber}
-                  {row.stateOfIssue ? ` (${row.stateOfIssue})` : ''}
-                </Text>
-              ) : null}
-              {row.vehiclePlate ? (
-                <Text style={styles.recordDetail}>
-                  {t.vehiclePlateShort} {row.vehiclePlate}
-                  {row.vehicleYear || row.vehicleMake || row.vehicleModel
-                    ? ` — ${[row.vehicleYear, row.vehicleMake, row.vehicleModel].filter(Boolean).join(' ')}`
-                    : ''}
-                  {row.vehicleColor ? ` (${row.vehicleColor})` : ''}
-                </Text>
-              ) : null}
-              {row.hasRestricted && (
-                <View style={styles.restrictedTag}>
-                  <Text style={styles.restrictedTagText}>
-                    {t.restrictedMaterial}
+          <SectionLabel>{t.purchaseRecord}</SectionLabel>
+          <View style={styles.list}>
+            {rows.map((row, i) => {
+              const vehicle = [
+                row.vehicleYear,
+                row.vehicleMake,
+                row.vehicleModel,
+              ]
+                .filter(Boolean)
+                .join(' ');
+              return (
+                <View
+                  key={i}
+                  style={[
+                    styles.recordCard,
+                    {
+                      borderLeftColor: row.hasRestricted
+                        ? colors.rust
+                        : colors.accent,
+                    },
+                  ]}
+                >
+                  <View style={styles.recordHeader}>
+                    <View style={styles.recordTitleLine}>
+                      <Text style={styles.recordSeller}>{row.sellerName}</Text>
+                      {row.hasRestricted && (
+                        <Ionicons
+                          name="alert-circle"
+                          size={13}
+                          color={colors.rust}
+                        />
+                      )}
+                    </View>
+                    <Text style={styles.recordAmount}>
+                      {fmtMoney(row.amountPaid)}
+                    </Text>
+                  </View>
+                  <Text style={styles.recordReceipt}>{row.receiptNumber}</Text>
+                  <Text style={styles.recordMeta}>
+                    {[
+                      row.date,
+                      row.dlNumber
+                        ? `${t.dlNumberShort} ${row.dlNumber}${row.stateOfIssue ? ` (${row.stateOfIssue})` : ''}`
+                        : null,
+                      row.vehiclePlate
+                        ? `${t.vehiclePlateShort} ${row.vehiclePlate}${vehicle ? ` — ${vehicle}` : ''}${row.vehicleColor ? ` (${row.vehicleColor})` : ''}`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
                   </Text>
+                  {!!row.materials && (
+                    <Text style={styles.recordMaterials}>{row.materials}</Text>
+                  )}
+                  <View style={styles.recordTags}>
+                    <Tag
+                      label={row.sellerAffirmed ? t.affirmed : t.noAffirm}
+                      color={
+                        row.sellerAffirmed ? colors.textTertiary : colors.rust
+                      }
+                      icon={row.sellerAffirmed ? 'checkmark' : 'close'}
+                    />
+                    {row.hasRestricted && (
+                      <Tag
+                        label={t.restrictedMaterial}
+                        color={colors.rust}
+                        soft={colors.rust + '22'}
+                        icon="warning"
+                      />
+                    )}
+                  </View>
                 </View>
-              )}
-            </View>
-          ))}
+              );
+            })}
+          </View>
         </>
       )}
       <View style={{ height: spacing.xxxl }} />
@@ -421,123 +468,178 @@ export default function ComplianceReportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  loader: {
-    marginTop: spacing.xxxl,
-  },
-  empty: {
-    padding: spacing.xxxl,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.lg,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    paddingVertical: spacing.md,
-    marginBottom: spacing.md,
-  },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    color: colors.accent,
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
-  },
-  statLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
-  },
-  statDivider: {
-    width: 1,
-    height: '60%',
-    backgroundColor: colors.border,
-  },
-  actions: {
-    paddingHorizontal: spacing.lg,
-    gap: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.card,
-    padding: spacing.lg,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-  },
-  actionText: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-  },
-  recordCard: {
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.lg,
-    marginBottom: spacing.sm,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-  },
-  recordCardRestricted: {
-    borderLeftColor: colors.warning,
-  },
-  recordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  recordReceipt: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-  },
-  recordAmount: {
-    color: colors.accent,
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-  },
-  recordSeller: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-    marginTop: spacing.xs,
-  },
-  recordDetail: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
-  },
-  restrictedTag: {
-    alignSelf: 'flex-start',
-    backgroundColor: 'rgba(210, 153, 34, 0.15)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: borderRadius.sm,
-    marginTop: spacing.sm,
-  },
-  restrictedTagText: {
-    color: colors.warning,
-    fontSize: fontSize.xs,
-    fontWeight: '700',
-  },
-});
+function ExportBtn({
+  icon,
+  tone,
+  label,
+  sub,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: string;
+  label: string;
+  sub: string;
+  onPress: () => void;
+}) {
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <TouchableOpacity style={styles.exportBtn} onPress={onPress}>
+      <View style={[styles.exportIcon, { backgroundColor: tone + '24' }]}>
+        <Ionicons name={icon} size={18} color={tone} />
+      </View>
+      <View style={styles.exportTextWrap}>
+        <Text style={styles.exportLabel} numberOfLines={1}>
+          {label}
+        </Text>
+        <Text style={styles.exportSub} numberOfLines={1}>
+          {sub}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loader: {
+      marginTop: spacing.xxxl,
+    },
+    empty: {
+      padding: spacing.xxxl,
+      alignItems: 'center',
+    },
+    emptyText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.md,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: 15,
+      marginBottom: spacing.lg,
+    },
+    statBox: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statNumber: {
+      color: colors.textPrimary,
+      fontSize: 26,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+    },
+    statLabel: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+      marginTop: 3,
+    },
+    statDivider: {
+      width: 1,
+      backgroundColor: colors.borderSubtle,
+      alignSelf: 'stretch',
+    },
+    exportGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    exportBtn: {
+      width: '47.5%',
+      flexGrow: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      padding: spacing.md,
+      borderRadius: 14,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    exportIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    exportTextWrap: { flex: 1, minWidth: 0 },
+    exportLabel: {
+      color: colors.textPrimary,
+      fontSize: 13.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    exportSub: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 1,
+    },
+    list: { paddingHorizontal: spacing.lg, gap: spacing.sm },
+    recordCard: {
+      backgroundColor: colors.card,
+      padding: spacing.md,
+      borderRadius: 15,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderLeftWidth: 3,
+    },
+    recordHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    },
+    recordTitleLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      flex: 1,
+    },
+    recordReceipt: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    recordAmount: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.monoSemiBold,
+    },
+    recordSeller: {
+      color: colors.textPrimary,
+      fontSize: 14.5,
+      fontFamily: fonts.sansSemiBold,
+      flexShrink: 1,
+    },
+    recordMeta: {
+      color: colors.textSecondary,
+      fontSize: 10.5,
+      fontFamily: fonts.mono,
+      marginTop: 6,
+      lineHeight: 15,
+    },
+    recordMaterials: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.sans,
+      marginTop: 3,
+      lineHeight: 16,
+    },
+    recordTags: { flexDirection: 'row', gap: spacing.md, marginTop: 8 },
+  });

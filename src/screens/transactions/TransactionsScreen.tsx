@@ -18,11 +18,19 @@ import {
   PriceSheetModal,
   DateRangeSelector,
 } from '../../components';
+import { TicketRow, fmtMoney } from '../../components/foundry';
 import {
   type DatePreset,
   getDateRange,
 } from '../../components/DateRangeSelector';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
 
 type Props = NativeStackScreenProps<
   TransactionsStackParamList,
@@ -31,6 +39,8 @@ type Props = NativeStackScreenProps<
 
 export default function TransactionsScreen({ navigation }: Props) {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
   const [preset, setPreset] = useState<DatePreset>('today');
@@ -139,37 +149,34 @@ export default function TransactionsScreen({ navigation }: Props) {
         onRefresh={refresh}
         emptyTitle={t.noTransactions}
         emptySubtitle={t.tapToRecordBuy}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.receiptCard}
-            onPress={() =>
-              navigation.navigate('ReceiptDetail', { receiptId: item.id })
-            }
-            onLongPress={() =>
-              navigation.navigate('ReceiptDetail', {
-                receiptId: item.id,
-                printOnLoad: true,
-              })
-            }
-          >
-            <View style={styles.receiptHeader}>
-              <Text style={styles.receiptNumber}>{item.receipt_number}</Text>
-              <Text style={styles.receiptTotal}>
-                ${Number(item.subtotal).toFixed(2)}
-              </Text>
+        renderItem={({ item }) => {
+          const items = (item.line_items ?? []) as {
+            metal_name?: string;
+            is_restricted?: boolean;
+          }[];
+          const no = String(item.receipt_number).split('-').slice(-1)[0];
+          const date = new Date(item.created_at).toLocaleDateString();
+          return (
+            <View style={styles.rowWrap}>
+              <TicketRow
+                customer={item.customer_name}
+                meta={`#${no} · ${date}`}
+                total={fmtMoney(Number(item.subtotal))}
+                sub={`${items.length} item${items.length === 1 ? '' : 's'}`}
+                restricted={items.some((li) => li.is_restricted)}
+                onPress={() =>
+                  navigation.navigate('ReceiptDetail', { receiptId: item.id })
+                }
+                onLongPress={() =>
+                  navigation.navigate('ReceiptDetail', {
+                    receiptId: item.id,
+                    printOnLoad: true,
+                  })
+                }
+              />
             </View>
-            <Text style={styles.customerName}>{item.customer_name}</Text>
-            <Text style={styles.receiptDate}>
-              {new Date(item.created_at).toLocaleDateString()}
-            </Text>
-            {item.line_items && (
-              <Text style={styles.itemCount}>
-                {item.line_items.length}{' '}
-                {item.line_items.length === 1 ? 'item' : 'items'}
-              </Text>
-            )}
-          </TouchableOpacity>
-        )}
+          );
+        }}
       />
       <TouchableOpacity
         style={styles.pricesButton}
@@ -192,171 +199,170 @@ export default function TransactionsScreen({ navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    gap: spacing.sm,
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    fontSize: fontSize.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  searchButton: {
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-  },
-  searchButtonText: {
-    color: colors.background,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  clearButton: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  clearButtonText: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-    paddingVertical: spacing.md,
-  },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statNumber: {
-    color: colors.accent,
-    fontSize: fontSize.xxl,
-    fontWeight: '700',
-  },
-  statLabel: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
-  },
-  statSub: {
-    color: colors.textTertiary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
-  },
-  statDivider: {
-    width: 1,
-    height: '60%',
-    backgroundColor: colors.border,
-  },
-  receiptCard: {
-    backgroundColor: colors.card,
-    marginHorizontal: spacing.md,
-    marginTop: spacing.md,
-    padding: spacing.lg,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.accent,
-  },
-  receiptHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  receiptNumber: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  receiptTotal: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-  },
-  customerName: {
-    color: colors.textPrimary,
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-  },
-  receiptDate: {
-    color: colors.textSecondary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.xs,
-  },
-  itemCount: {
-    color: colors.textTertiary,
-    fontSize: fontSize.xs,
-    marginTop: spacing.xs,
-  },
-  pricesButton: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    left: spacing.xl,
-    backgroundColor: colors.surface,
-    borderRadius: 28,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.xl,
-    elevation: 4,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  pricesButtonText: {
-    color: colors.textPrimary,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
-  fab: {
-    position: 'absolute',
-    bottom: spacing.xl,
-    right: spacing.xl,
-    backgroundColor: colors.accent,
-    borderRadius: 28,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.xl,
-    elevation: 5,
-    shadowColor: colors.accent,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-  },
-  fabText: {
-    color: colors.background,
-    fontSize: fontSize.lg,
-    fontWeight: '700',
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    searchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
+      gap: spacing.sm,
+    },
+    searchInput: {
+      flex: 1,
+      backgroundColor: colors.inputBackground,
+      color: colors.textPrimary,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    searchButton: {
+      backgroundColor: colors.accent,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+    },
+    searchButtonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
+    },
+    clearButton: {
+      backgroundColor: colors.surface,
+      borderRadius: borderRadius.md,
+      paddingHorizontal: spacing.lg,
+      paddingVertical: spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    clearButtonText: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
+    },
+    statsRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      marginHorizontal: spacing.md,
+      marginTop: spacing.md,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.borderSubtle,
+      borderLeftWidth: 3,
+      borderLeftColor: colors.accent,
+      paddingVertical: spacing.md,
+    },
+    statBox: {
+      flex: 1,
+      alignItems: 'center',
+    },
+    statNumber: {
+      color: colors.accent,
+      fontSize: fontSize.xxl,
+      fontFamily: fonts.monoSemiBold,
+    },
+    statLabel: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+      marginTop: spacing.xs,
+    },
+    statSub: {
+      color: colors.textTertiary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+      marginTop: spacing.xs,
+    },
+    statDivider: {
+      width: 1,
+      height: '60%',
+      backgroundColor: colors.border,
+    },
+    rowWrap: {
+      marginHorizontal: spacing.md,
+      marginTop: spacing.sm,
+    },
+    receiptHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: spacing.xs,
+    },
+    receiptNumber: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.monoMedium,
+      letterSpacing: 0.5,
+    },
+    receiptTotal: {
+      color: colors.accent,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.monoSemiBold,
+    },
+    customerName: {
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansSemiBold,
+    },
+    receiptDate: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+      marginTop: spacing.xs,
+    },
+    itemCount: {
+      color: colors.textTertiary,
+      fontSize: fontSize.xs,
+      fontFamily: fonts.mono,
+      marginTop: spacing.xs,
+    },
+    pricesButton: {
+      position: 'absolute',
+      bottom: spacing.xl,
+      left: spacing.xl,
+      backgroundColor: colors.surface,
+      borderRadius: 28,
+      paddingVertical: 14,
+      paddingHorizontal: spacing.xl,
+      elevation: 4,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    pricesButtonText: {
+      color: colors.textPrimary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
+    },
+    fab: {
+      position: 'absolute',
+      bottom: spacing.xl,
+      right: spacing.xl,
+      backgroundColor: colors.accent,
+      borderRadius: 28,
+      paddingVertical: 14,
+      paddingHorizontal: spacing.xl,
+      elevation: 5,
+      shadowColor: colors.accent,
+      shadowOffset: { width: 0, height: 3 },
+      shadowOpacity: 0.35,
+      shadowRadius: 6,
+    },
+    fabText: {
+      color: colors.accentInk,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sansBold,
+    },
+  });

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,13 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  type KeyboardTypeOptions,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useAppSelector, type RootState } from '../../store';
+import { useCurrentCompany } from '../../hooks/useCurrentCompany';
 import {
   fetchCompanySettings,
   updateCompanySettings,
@@ -24,11 +27,109 @@ import {
   saveReportingConfig,
   sendReportNow,
 } from '../../services/reporting';
-import { colors, spacing, fontSize, borderRadius } from '../../constants';
+import { useTheme, useThemedStyles } from '../../theme';
+import {
+  type Palette,
+  spacing,
+  fontSize,
+  borderRadius,
+  fonts,
+} from '../../constants';
+
+// ── grouped card (uppercase title + bordered surface) ─────────
+function AdmGroup({ title, children }: { title: string; children: ReactNode }) {
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <View style={styles.group}>
+      <Text style={styles.groupTitle}>{title}</Text>
+      <View style={styles.groupCard}>{children}</View>
+    </View>
+  );
+}
+
+// ── single field row inside a group (label over value) ────────
+function AdmField({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  mono,
+  keyboardType,
+  autoCapitalize,
+  autoCorrect,
+  multiline,
+  secureTextEntry,
+  maxLength,
+  last,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  placeholder?: string;
+  mono?: boolean;
+  keyboardType?: KeyboardTypeOptions;
+  autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
+  autoCorrect?: boolean;
+  multiline?: boolean;
+  secureTextEntry?: boolean;
+  maxLength?: number;
+  last?: boolean;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <View style={[styles.field, last && styles.fieldLast]}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput
+        style={[styles.fieldInput, mono && styles.fieldInputMono]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textTertiary}
+        keyboardType={keyboardType}
+        autoCapitalize={autoCapitalize}
+        autoCorrect={autoCorrect}
+        multiline={multiline}
+        secureTextEntry={secureTextEntry}
+        maxLength={maxLength}
+      />
+    </View>
+  );
+}
+
+// ── switch row inside a group ─────────────────────────────────
+function AdmSwitch({
+  label,
+  value,
+  onValueChange,
+  last,
+}: {
+  label: string;
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+  last?: boolean;
+}) {
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
+  return (
+    <View style={[styles.switchRow, last && styles.fieldLast]}>
+      <Text style={styles.switchLabel}>{label}</Text>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ true: colors.accent, false: colors.border }}
+        thumbColor={colors.white}
+      />
+    </View>
+  );
+}
 
 export default function CompanyProfileScreen() {
   const { t } = useT();
+  const { colors } = useTheme();
+  const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
+  const company = useCurrentCompany();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -193,105 +294,113 @@ export default function CompanyProfileScreen() {
     );
   }
 
+  // Monogram initials from the prefix (e.g. "GR-2026" -> "GR") or name.
+  const monogram = (
+    company?.prefix?.replace(/[^A-Za-z]/g, '').slice(0, 2) ||
+    companyName.replace(/[^A-Za-z]/g, '').slice(0, 2) ||
+    'GR'
+  ).toUpperCase();
+
   return (
-    <ScrollView style={styles.container}>
-      {/* Logo Section */}
-      <View style={styles.logoSection}>
-        <Text style={styles.sectionTitle}>{t.companyLogo}</Text>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Identity header — logo/monogram + name */}
+      <View style={styles.identity}>
         <TouchableOpacity
-          style={styles.logoPicker}
+          style={styles.logoTile}
           onPress={handlePickLogo}
           disabled={uploading}
+          activeOpacity={0.8}
         >
           {uploading ? (
-            <ActivityIndicator color={colors.accent} size="large" />
+            <ActivityIndicator color={colors.accentInk} />
           ) : logoUrl ? (
             <Image source={{ uri: logoUrl }} style={styles.logoImage} />
           ) : (
-            <View style={styles.logoPlaceholder}>
-              <Text style={styles.logoPlaceholderText}>{t.tapToAddLogo}</Text>
-            </View>
+            <Text style={styles.monogram}>{monogram}</Text>
           )}
         </TouchableOpacity>
-        {logoUrl && <Text style={styles.logoHint}>{t.tapLogoToChange}</Text>}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text style={styles.identityName} numberOfLines={1}>
+            {companyName || company?.name || '—'}
+          </Text>
+          <Text style={styles.identitySub}>{company?.prefix ?? stateCode}</Text>
+          <Text style={styles.logoHint}>{t.tapLogoToChange}</Text>
+        </View>
       </View>
 
-      {/* Company Info */}
-      <Text style={styles.sectionTitle}>{t.companyInfo}</Text>
+      {/* Identity */}
+      <AdmGroup title={t.companyInfo}>
+        <AdmField
+          label={t.companyNameLabel}
+          value={companyName}
+          onChangeText={setCompanyName}
+          placeholder={t.companyNamePlaceholder}
+        />
+        <AdmField
+          label={t.phoneLabel}
+          value={phone}
+          onChangeText={setPhone}
+          placeholder={t.phonePlaceholder}
+          keyboardType="phone-pad"
+          mono
+          last
+        />
+      </AdmGroup>
 
-      <Text style={styles.label}>{t.companyNameLabel}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t.companyNamePlaceholder}
-        placeholderTextColor={colors.textTertiary}
-        value={companyName}
-        onChangeText={setCompanyName}
-      />
+      {/* Location */}
+      <AdmGroup title={t.locationContact}>
+        <AdmField
+          label={t.addressLabel}
+          value={address}
+          onChangeText={setAddress}
+          placeholder={t.addressPlaceholder}
+          multiline
+          last
+        />
+      </AdmGroup>
 
-      <Text style={styles.label}>{t.addressLabel}</Text>
-      <TextInput
-        style={[styles.input, styles.multilineInput]}
-        placeholder={t.addressPlaceholder}
-        placeholderTextColor={colors.textTertiary}
-        value={address}
-        onChangeText={setAddress}
-        multiline
-        numberOfLines={3}
-      />
+      {/* Compliance rules */}
+      <AdmGroup title={t.complianceRules}>
+        <AdmField
+          label={t.stateLabel}
+          value={stateCode}
+          onChangeText={setStateCode}
+          autoCapitalize="characters"
+          maxLength={2}
+          mono
+        />
+        <AdmField
+          label={t.timezoneLabel}
+          value={timezone}
+          onChangeText={setTimezone}
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="America/Denver"
+          mono
+        />
+        <AdmField
+          label={t.generalHoldHoursLabel}
+          value={generalHoldHours}
+          onChangeText={setGeneralHoldHours}
+          keyboardType="number-pad"
+          mono
+        />
+        <AdmField
+          label={t.catHoldDaysLabel}
+          value={catHoldDays}
+          onChangeText={setCatHoldDays}
+          keyboardType="number-pad"
+          mono
+        />
+        <AdmSwitch
+          label={t.catCheckOnlyLabel}
+          value={catCheckOnly}
+          onValueChange={setCatCheckOnly}
+          last
+        />
+      </AdmGroup>
 
-      <Text style={styles.label}>{t.phoneLabel}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t.phonePlaceholder}
-        placeholderTextColor={colors.textTertiary}
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-      />
-
-      {/* Compliance Rules */}
-      <Text style={styles.sectionTitle}>{t.complianceRules}</Text>
-
-      <Text style={styles.label}>{t.stateLabel}</Text>
-      <TextInput
-        style={styles.input}
-        value={stateCode}
-        onChangeText={setStateCode}
-        autoCapitalize="characters"
-        maxLength={2}
-      />
-
-      <Text style={styles.label}>{t.timezoneLabel}</Text>
-      <TextInput
-        style={styles.input}
-        value={timezone}
-        onChangeText={setTimezone}
-        autoCapitalize="none"
-        autoCorrect={false}
-        placeholder="America/Denver"
-        placeholderTextColor={colors.textTertiary}
-      />
-
-      <Text style={styles.label}>{t.generalHoldHoursLabel}</Text>
-      <TextInput
-        style={styles.input}
-        value={generalHoldHours}
-        onChangeText={setGeneralHoldHours}
-        keyboardType="number-pad"
-      />
-
-      <Text style={styles.label}>{t.catHoldDaysLabel}</Text>
-      <TextInput
-        style={styles.input}
-        value={catHoldDays}
-        onChangeText={setCatHoldDays}
-        keyboardType="number-pad"
-      />
-
-      <View style={styles.switchRow}>
-        <Text style={styles.label}>{t.catCheckOnlyLabel}</Text>
-        <Switch value={catCheckOnly} onValueChange={setCatCheckOnly} />
-      </View>
+      <Text style={styles.footnote}>{t.profilePrintsNote}</Text>
 
       {/* Save */}
       <TouchableOpacity
@@ -300,72 +409,69 @@ export default function CompanyProfileScreen() {
         disabled={saving}
       >
         {saving ? (
-          <ActivityIndicator color={colors.background} />
+          <ActivityIndicator color={colors.accentInk} />
         ) : (
-          <Text style={styles.saveButtonText}>{t.save}</Text>
+          <>
+            <Ionicons name="checkmark" size={18} color={colors.accentInk} />
+            <Text style={styles.saveButtonText}>{t.save}</Text>
+          </>
         )}
       </TouchableOpacity>
 
       {/* State Reporting (owner only) — per-yard LeadsOnline SFTP credentials */}
       {isOwner && (
         <>
-          <Text style={styles.sectionTitle}>{t.stateReporting}</Text>
-
-          <View style={styles.switchRow}>
-            <Text style={styles.label}>{t.reportingEnabled}</Text>
-            <Switch value={repEnabled} onValueChange={setRepEnabled} />
-          </View>
-
-          <Text style={styles.label}>{t.sftpHost}</Text>
-          <TextInput
-            style={styles.input}
-            value={repHost}
-            onChangeText={setRepHost}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="sftp.leadsonline.com"
-            placeholderTextColor={colors.textTertiary}
-          />
-
-          <Text style={styles.label}>{t.sftpPort}</Text>
-          <TextInput
-            style={styles.input}
-            value={repPort}
-            onChangeText={setRepPort}
-            keyboardType="number-pad"
-          />
-
-          <Text style={styles.label}>{t.sftpUsername}</Text>
-          <TextInput
-            style={styles.input}
-            value={repUsername}
-            onChangeText={setRepUsername}
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          <Text style={styles.label}>{t.sftpPassword}</Text>
-          <TextInput
-            style={styles.input}
-            value={repPassword}
-            onChangeText={setRepPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder={repHasCreds ? '•••••••• (unchanged)' : ''}
-            placeholderTextColor={colors.textTertiary}
-          />
-
-          <Text style={styles.label}>{t.sftpRemoteDir}</Text>
-          <TextInput
-            style={styles.input}
-            value={repRemoteDir}
-            onChangeText={setRepRemoteDir}
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="/uploads"
-            placeholderTextColor={colors.textTertiary}
-          />
+          <AdmGroup title={t.stateReporting}>
+            <AdmSwitch
+              label={t.reportingEnabled}
+              value={repEnabled}
+              onValueChange={setRepEnabled}
+            />
+            <AdmField
+              label={t.sftpHost}
+              value={repHost}
+              onChangeText={setRepHost}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="sftp.leadsonline.com"
+              mono
+            />
+            <AdmField
+              label={t.sftpPort}
+              value={repPort}
+              onChangeText={setRepPort}
+              keyboardType="number-pad"
+              mono
+            />
+            <AdmField
+              label={t.sftpUsername}
+              value={repUsername}
+              onChangeText={setRepUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+              mono
+            />
+            <AdmField
+              label={t.sftpPassword}
+              value={repPassword}
+              onChangeText={setRepPassword}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder={repHasCreds ? '•••••••• (unchanged)' : ''}
+              mono
+            />
+            <AdmField
+              label={t.sftpRemoteDir}
+              value={repRemoteDir}
+              onChangeText={setRepRemoteDir}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="/uploads"
+              mono
+              last
+            />
+          </AdmGroup>
 
           <TouchableOpacity
             style={[
@@ -376,7 +482,7 @@ export default function CompanyProfileScreen() {
             disabled={savingReporting}
           >
             {savingReporting ? (
-              <ActivityIndicator color={colors.background} />
+              <ActivityIndicator color={colors.accentInk} />
             ) : (
               <Text style={styles.saveButtonText}>{t.saveReportingConfig}</Text>
             )}
@@ -384,7 +490,6 @@ export default function CompanyProfileScreen() {
 
           <TouchableOpacity
             style={[
-              styles.saveButton,
               styles.sendNowButton,
               (sendingReport || !repEnabled) && styles.saveButtonDisabled,
             ]}
@@ -394,7 +499,14 @@ export default function CompanyProfileScreen() {
             {sendingReport ? (
               <ActivityIndicator color={colors.accent} />
             ) : (
-              <Text style={styles.sendNowButtonText}>{t.sendReportNow}</Text>
+              <>
+                <Ionicons
+                  name="cloud-upload-outline"
+                  size={18}
+                  color={colors.accent}
+                />
+                <Text style={styles.sendNowButtonText}>{t.sendReportNow}</Text>
+              </>
             )}
           </TouchableOpacity>
         </>
@@ -405,116 +517,162 @@ export default function CompanyProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.lg,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-  },
-  sectionTitle: {
-    color: colors.textPrimary,
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-    marginBottom: spacing.md,
-    marginTop: spacing.lg,
-  },
-  logoSection: {
-    alignItems: 'center',
-    marginBottom: spacing.lg,
-  },
-  logoPicker: {
-    width: 140,
-    height: 140,
-    borderRadius: borderRadius.md,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderStyle: 'dashed',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  logoImage: {
-    width: 140,
-    height: 140,
-  },
-  logoPlaceholder: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.card,
-  },
-  logoPlaceholderText: {
-    color: colors.textTertiary,
-    fontSize: fontSize.md,
-    textAlign: 'center',
-    padding: spacing.md,
-  },
-  logoHint: {
-    color: colors.textTertiary,
-    fontSize: fontSize.sm,
-    marginTop: spacing.sm,
-  },
-  label: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    marginBottom: spacing.xs,
-    marginTop: spacing.sm,
-  },
-  input: {
-    backgroundColor: colors.inputBackground,
-    color: colors.textPrimary,
-    borderRadius: borderRadius.md,
-    paddingVertical: 14,
-    paddingHorizontal: spacing.lg,
-    marginBottom: spacing.md,
-    fontSize: fontSize.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  multilineInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  saveButton: {
-    backgroundColor: colors.accent,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    alignItems: 'center',
-    marginTop: spacing.xl,
-  },
-  saveButtonDisabled: {
-    opacity: 0.4,
-  },
-  saveButtonText: {
-    color: colors.background,
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-  },
-  sendNowButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: colors.accent,
-    marginTop: spacing.md,
-  },
-  sendNowButtonText: {
-    color: colors.accent,
-    fontSize: fontSize.xl,
-    fontWeight: '700',
-  },
-  bottomSpacer: {
-    height: spacing.xxxl,
-  },
-});
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    content: {
+      padding: spacing.lg,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    // ── identity header ──
+    identity: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      marginBottom: spacing.xl,
+    },
+    logoTile: {
+      width: 58,
+      height: 58,
+      borderRadius: 16,
+      backgroundColor: colors.textPrimary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      overflow: 'hidden',
+    },
+    logoImage: { width: 58, height: 58 },
+    monogram: {
+      color: colors.background,
+      fontSize: 22,
+      fontFamily: fonts.display,
+      letterSpacing: -0.5,
+    },
+    identityName: {
+      color: colors.textPrimary,
+      fontSize: 18,
+      fontFamily: fonts.sansBold,
+    },
+    identitySub: {
+      color: colors.textTertiary,
+      fontSize: 11,
+      fontFamily: fonts.mono,
+      marginTop: 2,
+    },
+    logoHint: {
+      color: colors.accent,
+      fontSize: 11,
+      fontFamily: fonts.sansMedium,
+      marginTop: 4,
+    },
+    // ── grouped card ──
+    group: { marginBottom: spacing.lg },
+    groupTitle: {
+      color: colors.textTertiary,
+      fontSize: 10.5,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 1,
+      textTransform: 'uppercase',
+      paddingHorizontal: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    groupCard: {
+      borderRadius: borderRadius.lg,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      overflow: 'hidden',
+    },
+    field: {
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    fieldLast: { borderBottomWidth: 0 },
+    fieldLabel: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+      marginBottom: 5,
+    },
+    fieldInput: {
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.sansMedium,
+      padding: 0,
+    },
+    fieldInputMono: {
+      fontFamily: fonts.mono,
+      letterSpacing: 0.3,
+    },
+    switchRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 10,
+      paddingHorizontal: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderSubtle,
+    },
+    switchLabel: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.sansMedium,
+      marginRight: spacing.md,
+    },
+    footnote: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.mono,
+      lineHeight: 16,
+      paddingHorizontal: spacing.xs,
+      marginBottom: spacing.sm,
+    },
+    saveButton: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      backgroundColor: colors.accent,
+      borderRadius: 14,
+      padding: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: spacing.md,
+    },
+    saveButtonDisabled: { opacity: 0.5 },
+    saveButtonText: {
+      color: colors.accentInk,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    sendNowButton: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: colors.accent,
+      borderRadius: 14,
+      padding: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: spacing.md,
+    },
+    sendNowButtonText: {
+      color: colors.accent,
+      fontSize: fontSize.xl,
+      fontFamily: fonts.sansBold,
+    },
+    bottomSpacer: {
+      height: spacing.xxxl,
+    },
+  });

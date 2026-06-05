@@ -1,5 +1,9 @@
-import { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { useEffect, useMemo } from 'react';
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+} from '@react-navigation/native';
 import { ActivityIndicator, View } from 'react-native';
 import * as Linking from 'expo-linking';
 import AuthNavigator from './AuthNavigator';
@@ -8,6 +12,7 @@ import PendingApprovalScreen from '../screens/auth/PendingApprovalScreen';
 import { useAppDispatch, useAppSelector, type RootState } from '../store';
 import { initializeAuth, setSession, fetchProfile } from '../store/authStore';
 import { supabase } from '../config/supabase';
+import { useTheme } from '../theme';
 
 /** Extract auth tokens from a deep link URL and set the Supabase session.
  * Only the expected auth callback path may set a session — otherwise any
@@ -34,9 +39,28 @@ async function handleAuthDeepLink(url: string) {
 
 export default function RootNavigator() {
   const dispatch = useAppDispatch();
+  const { colors, isLight } = useTheme();
   const { session, profile, loading } = useAppSelector(
     (state: RootState) => state.auth
   );
+
+  // Theme the NavigationContainer so scene/card backgrounds match the palette
+  // (otherwise dark mode flashes a white background during transitions).
+  const navTheme = useMemo(() => {
+    const base = isLight ? DefaultTheme : DarkTheme;
+    return {
+      ...base,
+      colors: {
+        ...base.colors,
+        background: colors.background,
+        card: colors.surface,
+        text: colors.textPrimary,
+        border: colors.borderSubtle,
+        primary: colors.accent,
+        notification: colors.accent,
+      },
+    };
+  }, [isLight, colors]);
 
   useEffect(() => {
     dispatch(initializeAuth());
@@ -71,10 +95,10 @@ export default function RootNavigator() {
           flex: 1,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: '#0f0f23',
+          backgroundColor: colors.background,
         }}
       >
-        <ActivityIndicator size="large" color="#4ecdc4" />
+        <ActivityIndicator size="large" color={colors.accent} />
       </View>
     );
   }
@@ -82,7 +106,7 @@ export default function RootNavigator() {
   // Not logged in
   if (!session) {
     return (
-      <NavigationContainer>
+      <NavigationContainer theme={navTheme}>
         <AuthNavigator />
       </NavigationContainer>
     );
@@ -95,7 +119,7 @@ export default function RootNavigator() {
 
   // Logged in and approved
   return (
-    <NavigationContainer>
+    <NavigationContainer theme={navTheme}>
       <MainNavigator />
     </NavigationContainer>
   );

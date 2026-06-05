@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { FlatList, ActivityIndicator, RefreshControl } from 'react-native';
 import type { FlatListProps, ListRenderItem } from 'react-native';
-import { colors } from '../constants';
+import { useTheme } from '../theme';
 import EmptyState from './EmptyState';
 import AnimatedListItem from './AnimatedListItem';
 
@@ -23,6 +23,7 @@ export default function RefreshableList<T>({
   renderItem,
   ...props
 }: RefreshableListProps<T>) {
+  const { colors } = useTheme();
   const animatedRenderItem: ListRenderItem<T> = useCallback(
     (info) => (
       <AnimatedListItem index={info.index}>
