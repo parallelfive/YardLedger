@@ -42,14 +42,16 @@ up. Same for anyone pulling this branch.
 3. **Scheme / bundle id unchanged** (`yardledger` / `com.parallelfive.YardLedger`)
    to preserve the existing build identity + auth deep links. If a `tare://`
    scheme is wanted, also update `emailRedirectTo` in `authStore.signUp`.
-4. **Server role vs PIN identity**: RLS/`is_admin()` still derive from the
-   device's Supabase session user, while `activeIdentity` (the PIN'd staff)
-   drives client attribution + UI gating. Keep the device provisioned by an
-   appropriate account; elevated actions remain gated by access codes. A fully
-   server-enforced per-PIN role would require minting a session per PIN (the
-   "PIN replaces login" model we did not choose).
-5. **`worker_id` attribution**: receipts/sales should record the PIN'd
-   `activeIdentity.user_id`. Wire `useNewTransaction` / sale creation to read it
-   from the store instead of the session profile (next step).
-6. **Prod**: apply migration `20260605000001` (`supabase db push`) before
-   shipping; PIN sign-in is inert until staff set PINs.
+4. **Server role vs PIN identity**: client UI now gates on the PIN'd staffer's
+   role via `useRole()` (activeIdentity → session fallback). RLS/`is_admin()`
+   still derive from the device's Supabase session user, so provision the device
+   with an admin/owner account and let PINs gate the UI per staff; elevated
+   actions also remain gated by access codes. A fully server-enforced per-PIN
+   role would require minting a session per PIN (the "PIN replaces login" model
+   we did not choose). DONE (UI gating).
+5. **`worker_id` attribution** — DONE. Receipts/sales record
+   `activeIdentity.user_id`; migration `20260605000002` relaxes the INSERT
+   policies to "staff in the device's company" (still tenant-safe).
+6. **Prod**: apply migrations `20260605000001` + `20260605000002`
+   (`supabase db push`) before shipping; PIN sign-in is inert until staff set
+   PINs.

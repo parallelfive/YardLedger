@@ -157,7 +157,12 @@ export default function SettingsScreen() {
 
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const company = useAppSelector((s: RootState) => s.auth.company);
-  const { isAdmin } = useRole();
+  const activeIdentity = useAppSelector(
+    (s: RootState) => s.auth.activeIdentity
+  );
+  const { isAdmin, role } = useRole();
+  // Who's on shift (PIN'd in), falling back to the device's session profile.
+  const shiftName = activeIdentity?.name || profile?.name || t.account;
 
   const [pinOpen, setPinOpen] = useState(false);
 
@@ -209,14 +214,14 @@ export default function SettingsScreen() {
         {/* Account */}
         <Group title={t.account}>
           <Row
-            label={profile?.name || t.account}
+            label={shiftName}
             sub={profile?.email}
             icon="person-outline"
             right={
-              profile?.role ? (
+              role ? (
                 <View style={styles.rolePill}>
                   <Text style={styles.rolePillText}>
-                    {roleLabel(profile.role, t).toUpperCase()}
+                    {roleLabel(role, t).toUpperCase()}
                   </Text>
                 </View>
               ) : undefined
