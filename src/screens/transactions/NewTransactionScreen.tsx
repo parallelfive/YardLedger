@@ -80,13 +80,6 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const [selectedCustomerId, setSelectedCustomerId] = useState<
     string | undefined
   >();
-  // Override coming from the AddMaterial keypad — applied through the existing
-  // AccessCodeModal flow once the new line item lands in state.
-  const [pendingOverride, setPendingOverride] = useState<{
-    index: number;
-    price: number;
-  } | null>(null);
-
   // Governing tier (strictest material wins) — drives which steps appear.
   const tier: Tier | null =
     tx.lineItems.length === 0
@@ -111,21 +104,6 @@ export default function NewTransactionScreen({ navigation }: Props) {
   useEffect(() => {
     if (step > steps.length - 1) setStep(steps.length - 1);
   }, [steps.length, step]);
-
-  // Stage the keypad override: once the new line item exists and the hook's
-  // override price matches, route it through requestOverride (opens the
-  // AccessCodeModal). approveOverride then writes it back, tracked per line.
-  useEffect(() => {
-    if (!pendingOverride) return;
-    // Wait until the new line item has actually landed in state and the hook's
-    // override price reflects what the keypad staged — otherwise requestOverride
-    // would index an undefined line item (crash) or open the code modal with a
-    // stale price.
-    if (pendingOverride.index >= tx.lineItems.length) return;
-    if (tx.overridePrice !== String(pendingOverride.price)) return;
-    tx.requestOverride(pendingOverride.index);
-    setPendingOverride(null);
-  }, [pendingOverride, tx]);
 
   const tierMeta = (tr: Tier | null) => {
     switch (tr) {
@@ -198,20 +176,17 @@ export default function NewTransactionScreen({ navigation }: Props) {
     [tx, t.flagWarning, t.flagCustomer, t.ok]
   );
 
-  // Add a line item from the keypad sheet, staging any authorized override.
+  // Add a line item from the keypad sheet, applying any authorized override.
   const handleAddMaterial = useCallback(
     (metal: Metal, weight: number, overridePrice: number | null) => {
       const newIndex = tx.lineItems.length;
       tx.addLineItem(metal, weight);
       setShowAddSheet(false);
       if (overridePrice != null) {
-        // Stage the override price directly — do NOT call startPriceEdit here,
-        // it reads lineItems[newIndex] which doesn't exist yet in this render's
-        // closure (the addLineItem above is async) and would crash. The effect
-        // above routes the staged price through requestOverride once the line
-        // item lands in state.
-        tx.setOverridePrice(String(overridePrice));
-        setPendingOverride({ index: newIndex, price: overridePrice });
+        // Open the access-code gate for the new line's index directly. The
+        // AccessCodeModal blocks interaction, so the price can't be clobbered
+        // before approveOverride applies it (no shared-string race).
+        tx.beginOverride(newIndex, overridePrice);
       }
     },
     [tx]

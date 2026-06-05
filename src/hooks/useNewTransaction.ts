@@ -120,6 +120,17 @@ export function useNewTransaction(
     setShowCodeModal(true);
   };
 
+  // Begin an override with an explicit price (e.g. from the keypad add-sheet),
+  // without round-tripping through the shared overridePrice string + an effect.
+  // The AccessCodeModal it opens is modal, so the price can't be clobbered
+  // before approveOverride reads it.
+  const beginOverride = (index: number, price: number) => {
+    if (!price || price <= 0) return;
+    setOverridePrice(String(price));
+    setOverrideIndex(index);
+    setShowCodeModal(true);
+  };
+
   const approveOverride = () => {
     if (overrideIndex === null) return;
     const newPrice = parseFloat(overridePrice);
@@ -293,7 +304,9 @@ export function useNewTransaction(
         receipt.seller_id_photo_uri ?? null
       );
     } catch (err) {
-      console.error('[saveReceipt] Error:', err);
+      // Log only the message — a raw Postgres/PostgREST error can echo back
+      // submitted column values (seller DL #, address) into device logs.
+      console.error('[saveReceipt] Error:', (err as Error).message);
       Alert.alert(t.error, (err as Error).message);
     } finally {
       setSaving(false);
@@ -372,6 +385,7 @@ export function useNewTransaction(
     removeLineItem,
     startPriceEdit,
     requestOverride,
+    beginOverride,
     approveOverride,
     cancelOverride,
     cancelEdit,

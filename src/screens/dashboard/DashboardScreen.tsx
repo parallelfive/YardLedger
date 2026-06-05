@@ -137,7 +137,11 @@ export default function DashboardScreen() {
   }
 
   const bought = summary?.totalBoughtDollars ?? 0;
-  const cents = String(Math.round((bought % 1) * 100)).padStart(2, '0');
+  // Derive dollars + cents from a single rounded value so they can't disagree
+  // at the .995 boundary (e.g. 1234.999 → "$1,234" + ".100").
+  const boughtCents = Math.round(bought * 100);
+  const boughtWhole = Math.floor(boughtCents / 100);
+  const cents = String(boughtCents % 100).padStart(2, '0');
   const margin =
     summary && summary.totalSoldRevenue > 0
       ? Math.round((summary.grossProfit / summary.totalSoldRevenue) * 100)
@@ -164,7 +168,7 @@ export default function DashboardScreen() {
           ) : null}
         </View>
         <Text style={styles.heroValue}>
-          {fmtMoney0(Math.floor(bought))}
+          {fmtMoney0(boughtWhole)}
           <Text style={styles.heroCents}>.{cents}</Text>
         </Text>
         <Text style={styles.heroSub}>

@@ -44,3 +44,6 @@ yarn-error.*
 
 # local dev orchestrator (scripts/dev.sh)
 .dev/
+
+# Local Supabase SQL-editor scratch files (may contain PII/secrets)
+supabase/snippets/

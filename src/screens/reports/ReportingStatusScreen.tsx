@@ -65,6 +65,12 @@ export default function ReportingStatusScreen() {
         mimeType: 'text/csv',
         UTI: 'public.comma-separated-values-text',
       });
+      // Regulated PII — purge the cached export after sharing.
+      try {
+        file.delete();
+      } catch {
+        /* best effort */
+      }
       Alert.alert(
         t.markReportedTitle,
         t.markReportedConfirm.replace('{n}', String(unreported.length)),

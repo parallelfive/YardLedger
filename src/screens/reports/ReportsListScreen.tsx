@@ -46,10 +46,20 @@ async function shareCsv(rows: ComplianceReceiptRow[], name: string) {
   const csv = buildNmrldExportCsv(rows);
   const file = new File(Paths.cache, name);
   file.write(csv);
-  await Sharing.shareAsync(file.uri, {
-    mimeType: 'text/csv',
-    UTI: 'public.comma-separated-values-text',
-  });
+  // These CSVs contain regulated seller PII (DL #, address, VIN). Purge the
+  // cached copy once the share sheet closes so it doesn't linger at rest.
+  try {
+    await Sharing.shareAsync(file.uri, {
+      mimeType: 'text/csv',
+      UTI: 'public.comma-separated-values-text',
+    });
+  } finally {
+    try {
+      file.delete();
+    } catch {
+      /* best effort */
+    }
+  }
 }
 
 export default function ReportsListScreen({ navigation }: Props) {

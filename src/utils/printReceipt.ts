@@ -170,11 +170,20 @@ export async function shareReceipt(receipt: PrintReceiptData): Promise<void> {
   const source = new File(uri);
   source.move(dest);
 
-  await Sharing.shareAsync(dest.uri, {
-    mimeType: 'application/pdf',
-    UTI: 'com.adobe.pdf',
-    dialogTitle: receipt.receipt_number,
-  });
+  try {
+    await Sharing.shareAsync(dest.uri, {
+      mimeType: 'application/pdf',
+      UTI: 'com.adobe.pdf',
+      dialogTitle: receipt.receipt_number,
+    });
+  } finally {
+    // Receipt PDF carries seller PII — don't leave it in the cache dir.
+    try {
+      dest.delete();
+    } catch {
+      /* best effort */
+    }
+  }
 }
 
 export { type PrintReceiptData };

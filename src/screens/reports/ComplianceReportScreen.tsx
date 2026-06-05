@@ -226,6 +226,12 @@ export default function ComplianceReportScreen() {
         mimeType: 'text/csv',
         UTI: 'public.comma-separated-values-text',
       });
+      // Regulated PII — don't leave the export lingering in the cache dir.
+      try {
+        file.delete();
+      } catch {
+        /* best effort */
+      }
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }
@@ -244,6 +250,12 @@ export default function ComplianceReportScreen() {
         mimeType: 'text/csv',
         UTI: 'public.comma-separated-values-text',
       });
+      // Regulated PII — don't leave the export lingering in the cache dir.
+      try {
+        file.delete();
+      } catch {
+        /* best effort */
+      }
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }
@@ -266,6 +278,12 @@ export default function ComplianceReportScreen() {
         mimeType: 'text/csv',
         UTI: 'public.comma-separated-values-text',
       });
+      // Regulated PII — don't leave the export lingering in the cache dir.
+      try {
+        file.delete();
+      } catch {
+        /* best effort */
+      }
       Alert.alert(
         t.markReportedTitle,
         t.markReportedConfirm.replace('{n}', String(unreported.length)),
