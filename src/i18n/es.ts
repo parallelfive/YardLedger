@@ -12,6 +12,7 @@ export default {
   // Auth - Login
   appName: 'YardLedger',
   appTagline: 'Llega al neto verdadero',
+  enterPasscode: 'Ingresa el código',
   email: 'Correo Electrónico',
   password: 'Contraseña',
   signIn: 'Iniciar Sesión',
