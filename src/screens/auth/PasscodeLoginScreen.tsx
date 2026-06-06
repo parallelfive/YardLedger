@@ -2,7 +2,7 @@
 // Presentational: the parent wires `onSubmit(pin, role)` to the real auth once
 // the passcode auth model is decided (see PR notes). UI ported from the Tare
 // design handoff (screen-login.jsx).
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,8 @@ interface Props {
   busy?: boolean;
   error?: string | null;
   onSubmit: (pin: string, role: TareRole) => void;
+  /** Bumped by the parent on each failed attempt → clears the dots + shakes. */
+  failNonce?: number;
   /** Escape hatch — sign the device out back to the email/invite login. */
   onSignOut?: () => void;
 }
@@ -45,6 +47,7 @@ export default function PasscodeLoginScreen({
   busy,
   error,
   onSubmit,
+  failNonce = 0,
   onSignOut,
 }: Props) {
   const { t } = useT();
@@ -81,17 +84,22 @@ export default function PasscodeLoginScreen({
     ]).start();
   };
 
+  // On a failed attempt the parent bumps failNonce → clear the dots and shake.
+  // (On success the gate unmounts, so the dots just disappear.)
+  useEffect(() => {
+    if (failNonce > 0) {
+      setPin('');
+      runShake();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [failNonce]);
+
   const press = (d: string) => {
     if (busy) return;
     const next = (pin + d).slice(0, 4);
     setPin(next);
     if (next.length === 4) {
       onSubmit(next, role);
-      // Clear shortly after so a wrong PIN resets the dots (parent sets error).
-      setTimeout(() => {
-        setPin('');
-        runShake();
-      }, 240);
     }
   };
   const back = () => setPin((p) => p.slice(0, -1));

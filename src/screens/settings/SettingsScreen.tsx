@@ -13,7 +13,7 @@ import Constants from 'expo-constants';
 import { useT } from '../../hooks/useT';
 import { useRole } from '../../hooks';
 import { useAppDispatch, useAppSelector, type RootState } from '../../store';
-import { signOut } from '../../store/authStore';
+import { signOut, lockTerminal } from '../../store/authStore';
 import { setLanguage } from '../../store/settingsStore';
 import { type Palette, spacing, fonts, borderRadius } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
@@ -328,6 +328,18 @@ export default function SettingsScreen() {
             icon="information-circle-outline"
             iconColor={colors.textTertiary}
             right={<Text style={styles.valueMono}>{appVersion}</Text>}
+            last
+          />
+        </Group>
+
+        {/* Lock to the passcode pad */}
+        <Group title={t.terminalSection}>
+          <Row
+            label={t.lockTerminal}
+            sub={t.lockTerminalDesc}
+            icon="lock-closed-outline"
+            iconColor={colors.accent}
+            onPress={() => dispatch(lockTerminal())}
             last
           />
         </Group>

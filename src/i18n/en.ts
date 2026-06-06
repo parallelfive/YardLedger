@@ -15,6 +15,8 @@ export default {
   enterPasscode: 'Enter passcode',
   signOutDevice: 'Not you? Sign out',
   lockTerminal: 'Lock terminal',
+  lockTerminalDesc: 'Sign out to the passcode pad',
+  terminalSection: 'Terminal',
   dayBook: 'Day book',
   setShiftPin: 'Shift PIN',
   setShiftPinDesc: 'Set a 4-digit PIN to sign in at the counter',

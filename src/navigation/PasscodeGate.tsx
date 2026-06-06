@@ -13,6 +13,7 @@ export default function PasscodeGate() {
   const company = useAppSelector((s: RootState) => s.auth.company);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [failNonce, setFailNonce] = useState(0);
 
   const onSubmit = useCallback(
     async (pin: string, _role: TareRole) => {
@@ -23,6 +24,7 @@ export default function PasscodeGate() {
         dispatch(setActiveIdentity(identity));
       } catch (e) {
         setError((e as Error).message || 'Wrong passcode');
+        setFailNonce((n) => n + 1);
       } finally {
         setBusy(false);
       }
@@ -35,6 +37,7 @@ export default function PasscodeGate() {
       companyName={company?.name ?? 'Tare'}
       busy={busy}
       error={error}
+      failNonce={failNonce}
       onSubmit={onSubmit}
       onSignOut={() => dispatch(signOut())}
     />

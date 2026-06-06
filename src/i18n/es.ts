@@ -15,6 +15,8 @@ export default {
   enterPasscode: 'Ingresa el código',
   signOutDevice: '¿No eres tú? Cerrar sesión',
   lockTerminal: 'Bloquear terminal',
+  lockTerminalDesc: 'Volver al teclado de código',
+  terminalSection: 'Terminal',
   dayBook: 'Diario',
   setShiftPin: 'PIN de turno',
   setShiftPinDesc: 'Configura un PIN de 4 dígitos para entrar en el mostrador',
