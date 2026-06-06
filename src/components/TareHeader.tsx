@@ -111,7 +111,9 @@ export default function TareHeader({
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.iconBtn}
-            onPress={() => Alert.alert(t.search, t.searchComingSoon)}
+            onPress={() =>
+              nav.navigate('TransactionsTab', { screen: 'Search' })
+            }
           >
             <Ionicons name="search" size={19} color={colors.textSecondary} />
           </TouchableOpacity>

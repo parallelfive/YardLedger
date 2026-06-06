@@ -8,3 +8,4 @@ export {
 export { printReceipt } from './printReceipt';
 export { parseDriversLicense } from './parseDriversLicense';
 export { printNmPurchaseRecord, printNmCatConverterForm } from './printNmForms';
+export { stateName } from './usStates';

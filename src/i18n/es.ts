@@ -18,6 +18,8 @@ export default {
   outbound: 'Salientes',
   compliance: 'Cumplimiento',
   searchComingSoon: 'La búsqueda global llegará pronto.',
+  searchPlaceholder: 'Recibos, clientes, metales…',
+  noResults: 'Sin resultados',
   enterPasscodeToSignIn: 'Ingresa tu código para entrar',
   signOutDevice: '¿No eres tú? Cerrar sesión',
   lockTerminal: 'Bloquear terminal',

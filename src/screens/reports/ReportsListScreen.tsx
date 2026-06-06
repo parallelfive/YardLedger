@@ -30,6 +30,8 @@ import {
 } from '../../services/reports';
 import { Tag, SectionLabel, fmtMoney, fmtLbs } from '../../components/foundry';
 import { TareHeader } from '../../components';
+import { fetchCompanySettings } from '../../services/companySettings';
+import { stateName } from '../../utils';
 import {
   type Palette,
   spacing,
@@ -76,13 +78,19 @@ export default function ReportsListScreen({ navigation }: Props) {
 
   const [preset, setPreset] = useState<DatePreset>('month');
   const [rows, setRows] = useState<ComplianceReceiptRow[]>([]);
+  const [stateCode, setStateCode] = useState('');
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const { start, end } = getDateRange(preset);
-      setRows(await fetchComplianceReport(start, end));
+      const [data, settings] = await Promise.all([
+        fetchComplianceReport(start, end),
+        fetchCompanySettings().catch(() => null),
+      ]);
+      setRows(data);
+      if (settings?.state) setStateCode(settings.state);
     } catch {
       setRows([]);
     } finally {
@@ -148,7 +156,7 @@ export default function ReportsListScreen({ navigation }: Props) {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <TareHeader title={t.compliance} />
+      <TareHeader title={t.compliance} rightLabel={stateName(stateCode)} />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}

@@ -223,6 +223,32 @@ export async function fetchReceipts(
   return data;
 }
 
+export interface ReceiptSearchRow {
+  id: string;
+  receipt_number: string;
+  customer_name: string;
+  subtotal: number;
+  created_at: string;
+}
+
+/** Search receipts by receipt number or customer name (global header search). */
+export async function searchReceipts(
+  query: string
+): Promise<ReceiptSearchRow[]> {
+  // Strip characters that would broaden the ilike (% _ \) or break the PostgREST
+  // .or() filter string (comma, parens) — keep it to a literal contains match.
+  const safe = query.replace(/[\\%_,()]/g, ' ').trim();
+  if (!safe) return [];
+  const { data, error } = await supabase
+    .from('receipts')
+    .select('id, receipt_number, customer_name, subtotal, created_at')
+    .or(`receipt_number.ilike.%${safe}%,customer_name.ilike.%${safe}%`)
+    .order('created_at', { ascending: false })
+    .limit(15);
+  if (error) throw error;
+  return (data ?? []) as ReceiptSearchRow[];
+}
+
 export async function fetchReceiptById(receiptId: string) {
   const { data, error } = await supabase
     .from('receipts')

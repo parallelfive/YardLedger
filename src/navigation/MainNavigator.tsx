@@ -22,6 +22,7 @@ import OnHoldScreen from '../screens/reports/OnHoldScreen';
 import ReportingStatusScreen from '../screens/reports/ReportingStatusScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
+import GlobalSearchScreen from '../screens/search/GlobalSearchScreen';
 import CustomerListScreen from '../screens/customers/CustomerListScreen';
 import CustomerProfileScreen from '../screens/customers/CustomerProfileScreen';
 import MarketPricesScreen from '../screens/admin/MarketPricesScreen';
@@ -67,6 +68,7 @@ export type TransactionsStackParamList = {
   NewTransaction: undefined;
   ReceiptDetail: { receiptId: string; printOnLoad?: boolean };
   Settings: undefined;
+  Search: undefined;
 };
 
 export type SalesStackParamList = {
@@ -134,6 +136,11 @@ function TransactionsNavigator() {
       <TransactionsStack.Screen
         name="Settings"
         component={SettingsScreen}
+        options={{ headerShown: false, presentation: 'modal' }}
+      />
+      <TransactionsStack.Screen
+        name="Search"
+        component={GlobalSearchScreen}
         options={{ headerShown: false, presentation: 'modal' }}
       />
     </TransactionsStack.Navigator>

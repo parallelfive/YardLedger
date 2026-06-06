@@ -18,6 +18,8 @@ export default {
   outbound: 'Outbound',
   compliance: 'Compliance',
   searchComingSoon: 'Global search is coming soon.',
+  searchPlaceholder: 'Receipts, customers, metals…',
+  noResults: 'No results',
   enterPasscodeToSignIn: 'Enter your passcode to sign in',
   signOutDevice: 'Not you? Sign out',
   lockTerminal: 'Lock terminal',
