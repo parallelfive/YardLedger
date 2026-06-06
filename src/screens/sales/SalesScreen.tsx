@@ -14,6 +14,7 @@ import {
   fmtMoney0,
   fmtLbs,
 } from '../../components/foundry';
+import { TareHeader } from '../../components';
 import {
   type DatePreset,
   getDateRange,
@@ -58,6 +59,7 @@ export default function SalesScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
+      <TareHeader title={t.tabSales} rightLabel={t.outbound} />
       <FlatList
         data={sales}
         keyExtractor={(item) => item.id}

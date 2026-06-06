@@ -19,6 +19,7 @@ import {
   fmtLbs,
   type Tone,
 } from '../../components/foundry';
+import { TareHeader } from '../../components';
 import {
   type Palette,
   spacing,
@@ -114,6 +115,10 @@ export default function InventoryScreen() {
 
   return (
     <View style={styles.container}>
+      <TareHeader
+        title={t.tabInventory}
+        rightLabel={`${rows.length} ${t.metalsWord}`}
+      />
       <FlatList
         data={filtered}
         keyExtractor={(r) => r.id}

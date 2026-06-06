@@ -5,7 +5,6 @@ import {
   type BottomTabBarProps,
 } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import TransactionsScreen from '../screens/transactions/TransactionsScreen';
 import NewTransactionScreen from '../screens/transactions/NewTransactionScreen';
@@ -106,36 +105,6 @@ const CustomersStack = createNativeStackNavigator<CustomersStackParamList>();
 const ReportsStack = createNativeStackNavigator<ReportsStackParamList>();
 const AdminStack = createNativeStackNavigator<AdminStackParamList>();
 
-// Top-bar controls — consistent across every tab and matching the design's
-// Home header: a quick theme toggle + a settings cog. Customers, Admin, Lock,
-// Language and Sign out all live inside the Settings screen now.
-function SettingsButton() {
-  const navigation = useNavigation();
-  const { colors, isLight, toggle } = useTheme();
-  const navStyles = useThemedStyles(makeNavStyles);
-  const nav = navigation as {
-    navigate: (name: string, params?: object) => void;
-  };
-
-  return (
-    <View style={navStyles.headerRight}>
-      <TouchableOpacity style={navStyles.headerIconButton} onPress={toggle}>
-        <Ionicons
-          name={isLight ? 'sunny-outline' : 'moon-outline'}
-          size={21}
-          color={colors.accent}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={navStyles.headerIconButton}
-        onPress={() => nav.navigate('TransactionsTab', { screen: 'Settings' })}
-      >
-        <Ionicons name="cog-outline" size={22} color={colors.textSecondary} />
-      </TouchableOpacity>
-    </View>
-  );
-}
-
 function TransactionsNavigator() {
   const { t } = useT();
   const { colors } = useTheme();
@@ -146,7 +115,6 @@ function TransactionsNavigator() {
         component={TransactionsScreen}
         options={{
           title: t.transactions,
-          headerRight: () => <SettingsButton />,
         }}
       />
       <TransactionsStack.Screen
@@ -173,14 +141,13 @@ function TransactionsNavigator() {
 }
 
 function SalesNavigator() {
-  const { t } = useT();
   const { colors } = useTheme();
   return (
     <SalesStack.Navigator screenOptions={stackOpts(colors)}>
       <SalesStack.Screen
         name="SalesList"
         component={SalesScreen}
-        options={{ title: t.tabSales, headerRight: () => <SettingsButton /> }}
+        options={{ headerShown: false }}
       />
       <SalesStack.Screen
         name="NewSale"
@@ -223,8 +190,7 @@ function ReportsNavigator() {
         name="ReportsList"
         component={ReportsListScreen}
         options={{
-          title: t.tabReports,
-          headerRight: () => <SettingsButton />,
+          headerShown: false,
         }}
       />
       <ReportsStack.Screen
@@ -462,7 +428,6 @@ export default function MainNavigator() {
           fontFamily: fonts.sansBold,
           fontSize: fontSize.xl,
         },
-        headerRight: () => <SettingsButton />,
       }}
     >
       <Tab.Screen
@@ -473,7 +438,7 @@ export default function MainNavigator() {
       <Tab.Screen
         name="Inventory"
         component={InventoryScreen}
-        options={{ title: t.tabStock }}
+        options={{ title: t.tabStock, headerShown: false }}
       />
       <Tab.Screen
         name="SalesTab"
