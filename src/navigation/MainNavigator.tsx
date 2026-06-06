@@ -29,9 +29,6 @@ import MarketPricesScreen from '../screens/admin/MarketPricesScreen';
 import UserApprovalScreen from '../screens/admin/UserApprovalScreen';
 import PricingScreen from '../screens/admin/PricingScreen';
 import CompanyProfileScreen from '../screens/admin/CompanyProfileScreen';
-import { useAppDispatch } from '../store';
-import { signOut, lockTerminal } from '../store/authStore';
-import { toggleLanguage } from '../store/settingsStore';
 import { useT } from '../hooks/useT';
 import { useRole } from '../hooks';
 import { useTheme, useThemedStyles } from '../theme';
@@ -109,21 +106,13 @@ const CustomersStack = createNativeStackNavigator<CustomersStackParamList>();
 const ReportsStack = createNativeStackNavigator<ReportsStackParamList>();
 const AdminStack = createNativeStackNavigator<AdminStackParamList>();
 
-// Top-bar controls: a quick theme toggle + an overflow menu. The menu is the
-// home for areas the design keeps off the tab bar (Customers, Admin, Pricing…).
+// Top-bar controls — consistent across every tab and matching the design's
+// Home header: a quick theme toggle + a settings cog. Customers, Admin, Lock,
+// Language and Sign out all live inside the Settings screen now.
 function SettingsButton() {
-  const { t, language } = useT();
-  const dispatch = useAppDispatch();
   const navigation = useNavigation();
   const { colors, isLight, toggle } = useTheme();
   const navStyles = useThemedStyles(makeNavStyles);
-  const { isAdmin } = useRole();
-  const [visible, setVisible] = useState(false);
-
-  const go = (target: () => void) => {
-    setVisible(false);
-    target();
-  };
   const nav = navigation as {
     navigate: (name: string, params?: object) => void;
   };
@@ -139,143 +128,10 @@ function SettingsButton() {
       </TouchableOpacity>
       <TouchableOpacity
         style={navStyles.headerIconButton}
-        onPress={() => setVisible(true)}
+        onPress={() => nav.navigate('TransactionsTab', { screen: 'Settings' })}
       >
-        <Ionicons
-          name="ellipsis-horizontal"
-          size={22}
-          color={colors.textSecondary}
-        />
+        <Ionicons name="cog-outline" size={22} color={colors.textSecondary} />
       </TouchableOpacity>
-      <Modal
-        visible={visible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setVisible(false)}
-      >
-        <TouchableOpacity
-          style={navStyles.settingsOverlay}
-          activeOpacity={1}
-          onPress={() => setVisible(false)}
-        >
-          <View style={navStyles.settingsModal}>
-            <TouchableOpacity
-              style={navStyles.settingsRow}
-              onPress={() =>
-                go(() =>
-                  nav.navigate('TransactionsTab', { screen: 'Settings' })
-                )
-              }
-            >
-              <Ionicons
-                name="settings-outline"
-                size={22}
-                color={colors.accent}
-              />
-              <Text style={navStyles.settingsRowText}>{t.settings}</Text>
-            </TouchableOpacity>
-            <View style={navStyles.settingsDivider} />
-            <TouchableOpacity
-              style={navStyles.settingsRow}
-              onPress={() => go(() => nav.navigate('CustomersTab'))}
-            >
-              <Ionicons name="people-outline" size={22} color={colors.accent} />
-              <Text style={navStyles.settingsRowText}>{t.customers}</Text>
-            </TouchableOpacity>
-            {isAdmin && (
-              <>
-                <View style={navStyles.settingsDivider} />
-                <TouchableOpacity
-                  style={navStyles.settingsRow}
-                  onPress={() =>
-                    go(() => nav.navigate('AdminTab', { screen: 'Pricing' }))
-                  }
-                >
-                  <Ionicons
-                    name="pricetag-outline"
-                    size={22}
-                    color={colors.accent}
-                  />
-                  <Text style={navStyles.settingsRowText}>{t.pricing}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={navStyles.settingsRow}
-                  onPress={() =>
-                    go(() => nav.navigate('AdminTab', { screen: 'Users' }))
-                  }
-                >
-                  <Ionicons
-                    name="shield-outline"
-                    size={22}
-                    color={colors.accent}
-                  />
-                  <Text style={navStyles.settingsRowText}>{t.tabUsers}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={navStyles.settingsRow}
-                  onPress={() =>
-                    go(() =>
-                      nav.navigate('AdminTab', { screen: 'CompanyProfile' })
-                    )
-                  }
-                >
-                  <Ionicons
-                    name="business-outline"
-                    size={22}
-                    color={colors.accent}
-                  />
-                  <Text style={navStyles.settingsRowText}>
-                    {t.companyProfile}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-            <View style={navStyles.settingsDivider} />
-            <TouchableOpacity
-              style={navStyles.settingsRow}
-              onPress={() => go(() => dispatch(toggleLanguage()))}
-            >
-              <Ionicons
-                name="language-outline"
-                size={22}
-                color={colors.accent}
-              />
-              <Text style={navStyles.settingsRowText}>{t.language}</Text>
-              <Text style={navStyles.settingsRowValue}>
-                {language === 'en' ? t.english : t.spanish}
-              </Text>
-            </TouchableOpacity>
-            <View style={navStyles.settingsDivider} />
-            <TouchableOpacity
-              style={navStyles.settingsRow}
-              onPress={() => go(() => dispatch(lockTerminal()))}
-            >
-              <Ionicons
-                name="lock-closed-outline"
-                size={22}
-                color={colors.accent}
-              />
-              <Text style={navStyles.settingsRowText}>{t.lockTerminal}</Text>
-            </TouchableOpacity>
-            <View style={navStyles.settingsDivider} />
-            <TouchableOpacity
-              style={navStyles.settingsRow}
-              onPress={() => go(() => dispatch(signOut()))}
-            >
-              <Ionicons
-                name="log-out-outline"
-                size={22}
-                color={colors.danger}
-              />
-              <Text
-                style={[navStyles.settingsRowText, { color: colors.danger }]}
-              >
-                {t.signOut}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
     </View>
   );
 }
