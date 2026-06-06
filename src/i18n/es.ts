@@ -13,6 +13,8 @@ export default {
   appName: 'YardLedger',
   appTagline: 'Llega al neto verdadero',
   enterPasscode: 'Ingresa el código',
+  terminalLocked: 'Terminal bloqueado',
+  enterPasscodeToSignIn: 'Ingresa tu código para entrar',
   signOutDevice: '¿No eres tú? Cerrar sesión',
   lockTerminal: 'Bloquear terminal',
   lockTerminalDesc: 'Volver al teclado de código',

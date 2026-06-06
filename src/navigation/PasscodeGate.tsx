@@ -7,21 +7,27 @@ import { useAppDispatch, useAppSelector, type RootState } from '../store';
 import { setActiveIdentity, signOut } from '../store/authStore';
 
 /** Shown when the device has a company session but the terminal is locked
- * (no active staff identity). Validates the PIN → attributes the shift. */
+ * (no active staff identity). The PIN identifies one person → signs in as them. */
 export default function PasscodeGate() {
   const dispatch = useAppDispatch();
   const company = useAppSelector((s: RootState) => s.auth.company);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [failNonce, setFailNonce] = useState(0);
+  const [resolved, setResolved] = useState<{
+    name: string;
+    role: TareRole;
+  } | null>(null);
 
   const onSubmit = useCallback(
-    async (pin: string, _role: TareRole) => {
+    async (pin: string) => {
       setBusy(true);
       setError(null);
       try {
         const identity = await validatePin(pin);
-        dispatch(setActiveIdentity(identity));
+        // Show who resolved for a beat, then attribute the shift to them.
+        setResolved({ name: identity.name, role: identity.role });
+        setTimeout(() => dispatch(setActiveIdentity(identity)), 620);
       } catch (e) {
         setError((e as Error).message || 'Wrong passcode');
         setFailNonce((n) => n + 1);
@@ -37,6 +43,7 @@ export default function PasscodeGate() {
       companyName={company?.name ?? 'Tare'}
       busy={busy}
       error={error}
+      resolved={resolved}
       failNonce={failNonce}
       onSubmit={onSubmit}
       onSignOut={() => dispatch(signOut())}

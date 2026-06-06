@@ -1,7 +1,7 @@
-// Tare counter sign-in — a shared yard terminal where staff sign in by PIN.
-// Presentational: the parent wires `onSubmit(pin, role)` to the real auth once
-// the passcode auth model is decided (see PR notes). UI ported from the Tare
-// design handoff (screen-login.jsx).
+// Tare counter sign-in — each staffer has their OWN PIN. The PIN identifies the
+// user and signs in as them; their role comes with them. No role picker — you
+// can only unlock the profile whose passcode you know. Ported from the updated
+// Tare design handoff (screen-login.jsx + Auth Model Change).
 import { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -22,30 +22,33 @@ export type TareRole = 'worker' | 'admin' | 'owner';
 
 interface Props {
   companyName: string;
-  /** Initials shown in the avatar for the selected role/user. */
-  userInitials?: string;
-  userName?: string;
   busy?: boolean;
   error?: string | null;
-  onSubmit: (pin: string, role: TareRole) => void;
+  /** Set once a PIN resolves a person — shows them briefly before sign-in. */
+  resolved?: { name: string; role: TareRole } | null;
+  onSubmit: (pin: string) => void;
   /** Bumped by the parent on each failed attempt → clears the dots + shakes. */
   failNonce?: number;
   /** Escape hatch — sign the device out back to the email/invite login. */
   onSignOut?: () => void;
 }
 
-const ROLES: { key: TareRole; label: string }[] = [
-  { key: 'worker', label: 'Worker' },
-  { key: 'admin', label: 'Admin' },
-  { key: 'owner', label: 'Owner' },
-];
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .map((s) => s[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+const roleLabel = (role: TareRole, t: ReturnType<typeof useT>['t']) =>
+  role === 'owner' ? t.roleOwner : role === 'admin' ? t.admin : t.worker;
 
 export default function PasscodeLoginScreen({
   companyName,
-  userInitials = 'TR',
-  userName,
   busy,
   error,
+  resolved,
   onSubmit,
   failNonce = 0,
   onSignOut,
@@ -54,9 +57,16 @@ export default function PasscodeLoginScreen({
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
-  const [role, setRole] = useState<TareRole>('admin');
   const [pin, setPin] = useState('');
   const shake = useRef(new Animated.Value(0)).current;
+
+  const ok = !!resolved;
+  // Permission ring: moss = can manage (admin/owner), gold = worker.
+  const ring = ok
+    ? resolved.role === 'worker'
+      ? colors.gold
+      : colors.moss
+    : colors.accent;
 
   const runShake = () => {
     shake.setValue(0);
@@ -85,7 +95,6 @@ export default function PasscodeLoginScreen({
   };
 
   // On a failed attempt the parent bumps failNonce → clear the dots and shake.
-  // (On success the gate unmounts, so the dots just disappear.)
   useEffect(() => {
     if (failNonce > 0) {
       setPin('');
@@ -95,27 +104,26 @@ export default function PasscodeLoginScreen({
   }, [failNonce]);
 
   const press = (d: string) => {
-    if (busy) return;
+    if (busy || ok) return;
     const next = (pin + d).slice(0, 4);
     setPin(next);
-    if (next.length === 4) {
-      onSubmit(next, role);
-    }
+    if (next.length === 4) onSubmit(next);
   };
-  const back = () => setPin((p) => p.slice(0, -1));
+  const back = () => {
+    if (!ok) setPin((p) => p.slice(0, -1));
+  };
 
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 56 }]}>
+    <View style={[styles.container, { paddingTop: insets.top + 48 }]}>
       <View style={styles.ambient} />
 
       {/* Brand lockup */}
-      <TareMark size={64} radius={18} />
+      <TareMark size={62} radius={18} />
       <View style={{ marginTop: spacing.lg }}>
-        <Wordmark size={34} />
+        <Wordmark size={32} />
       </View>
-      <Text style={styles.tagline}>{t.appTagline}</Text>
 
       {/* Yard context */}
       <View style={styles.companyChip}>
@@ -124,39 +132,51 @@ export default function PasscodeLoginScreen({
             {companyName.slice(0, 2).toUpperCase()}
           </Text>
         </View>
-        <Text style={styles.companyName}>{companyName}</Text>
+        <Text style={styles.companyName} numberOfLines={1}>
+          {companyName}
+        </Text>
       </View>
 
-      {/* Who's signing in */}
-      <View style={styles.userBlock}>
-        <View style={styles.userAvatar}>
-          <Text style={styles.userAvatarText}>{userInitials}</Text>
+      {/* Identity slot — neutral until a valid PIN resolves a person */}
+      <View style={styles.identity}>
+        <View
+          style={[
+            styles.idAvatar,
+            {
+              backgroundColor: ok ? ring + '28' : colors.surface,
+              borderColor: ok ? ring : colors.borderStrong,
+            },
+          ]}
+        >
+          {ok ? (
+            <Text style={[styles.idInitials, { color: ring }]}>
+              {initialsOf(resolved.name)}
+            </Text>
+          ) : (
+            <Ionicons
+              name="lock-closed"
+              size={24}
+              color={colors.textTertiary}
+            />
+          )}
         </View>
-        {userName ? <Text style={styles.userName}>{userName}</Text> : null}
-        <View style={styles.roleRow}>
-          {ROLES.map((r) => {
-            const active = role === r.key;
-            return (
-              <TouchableOpacity
-                key={r.key}
-                onPress={() => {
-                  setRole(r.key);
-                  setPin('');
-                }}
-                style={[styles.rolePill, active && styles.rolePillActive]}
-              >
-                <Text
-                  style={[
-                    styles.rolePillText,
-                    active && styles.rolePillTextActive,
-                  ]}
-                >
-                  {r.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        <Text style={styles.idName}>
+          {ok ? resolved.name : t.terminalLocked}
+        </Text>
+        <Text
+          style={[
+            styles.idSub,
+            ok
+              ? {
+                  color: ring,
+                  textTransform: 'uppercase',
+                  fontFamily: fonts.monoSemiBold,
+                }
+              : null,
+          ]}
+        >
+          {ok ? roleLabel(resolved.role, t) : t.enterPasscodeToSignIn}
+        </Text>
       </View>
 
       {/* PIN dots */}
@@ -177,7 +197,7 @@ export default function PasscodeLoginScreen({
       >
         {[0, 1, 2, 3].map((i) => {
           const filled = i < pin.length;
-          const c = error ? colors.rust : colors.accent;
+          const c = error ? colors.rust : ring;
           return (
             <View
               key={i}
@@ -193,7 +213,7 @@ export default function PasscodeLoginScreen({
         })}
       </Animated.View>
       <Text style={[styles.hint, error ? { color: colors.rust } : null]}>
-        {busy ? '' : error ? error : t.enterPasscode}
+        {busy ? '' : error ? error : ' '}
       </Text>
 
       {/* Keypad */}
@@ -204,7 +224,7 @@ export default function PasscodeLoginScreen({
               key={n}
               style={styles.key}
               onPress={() => press(n)}
-              disabled={busy}
+              disabled={busy || ok}
             >
               <Text style={styles.keyText}>{n}</Text>
             </TouchableOpacity>
@@ -213,14 +233,14 @@ export default function PasscodeLoginScreen({
           <TouchableOpacity
             style={styles.key}
             onPress={() => press('0')}
-            disabled={busy}
+            disabled={busy || ok}
           >
             <Text style={styles.keyText}>0</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.key, styles.keyGhost]}
             onPress={back}
-            disabled={busy}
+            disabled={busy || ok}
           >
             {busy ? (
               <ActivityIndicator color={colors.accent} />
@@ -268,16 +288,8 @@ const makeStyles = (colors: Palette) =>
       height: 240,
       backgroundColor: colors.accentMuted,
     },
-    tagline: {
-      marginTop: 6,
-      fontSize: 11.5,
-      letterSpacing: 0.6,
-      textTransform: 'uppercase',
-      color: colors.textTertiary,
-      fontFamily: fonts.mono,
-    },
     companyChip: {
-      marginTop: 26,
+      marginTop: 22,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 10,
@@ -307,49 +319,31 @@ const makeStyles = (colors: Palette) =>
       fontFamily: fonts.sansSemiBold,
       color: colors.textSecondary,
     },
-    userBlock: { marginTop: 24, alignItems: 'center' },
-    userAvatar: {
-      width: 54,
-      height: 54,
+    identity: { marginTop: 30, alignItems: 'center', height: 96 },
+    idAvatar: {
+      width: 56,
+      height: 56,
       borderRadius: 99,
-      backgroundColor: colors.accentMuted,
-      borderWidth: 1,
-      borderColor: colors.accentLine,
+      borderWidth: 1.5,
       alignItems: 'center',
       justifyContent: 'center',
     },
-    userAvatarText: {
-      fontSize: 19,
-      fontFamily: fonts.display,
-      color: colors.accent,
-    },
-    userName: {
-      marginTop: 10,
+    idInitials: { fontSize: 20, fontFamily: fonts.display },
+    idName: {
+      marginTop: 11,
       fontSize: 16,
-      fontFamily: fonts.sansSemiBold,
+      fontFamily: fonts.sansBold,
       color: colors.textPrimary,
     },
-    roleRow: { flexDirection: 'row', gap: 6, marginTop: 10 },
-    rolePill: {
-      paddingHorizontal: 11,
-      paddingVertical: 6,
-      borderRadius: 99,
-      backgroundColor: colors.surface,
-      borderWidth: 1,
-      borderColor: colors.border,
+    idSub: {
+      marginTop: 3,
+      fontSize: 11,
+      letterSpacing: 0.4,
+      color: colors.textTertiary,
+      fontFamily: fonts.mono,
     },
-    rolePillActive: {
-      backgroundColor: colors.accent,
-      borderColor: colors.accent,
-    },
-    rolePillText: {
-      fontSize: 11.5,
-      fontFamily: fonts.sansSemiBold,
-      color: colors.textSecondary,
-    },
-    rolePillTextActive: { color: colors.accentInk },
     dotsRow: {
-      marginTop: 22,
+      marginTop: 6,
       flexDirection: 'row',
       gap: 14,
       height: 16,
@@ -381,10 +375,7 @@ const makeStyles = (colors: Palette) =>
       borderWidth: 1,
       borderColor: colors.border,
     },
-    keyGhost: {
-      backgroundColor: 'transparent',
-      borderColor: 'transparent',
-    },
+    keyGhost: { backgroundColor: 'transparent', borderColor: 'transparent' },
     keyText: {
       fontSize: 27,
       fontFamily: fonts.display,

@@ -13,6 +13,8 @@ export default {
   appName: 'YardLedger',
   appTagline: 'Get to the true net',
   enterPasscode: 'Enter passcode',
+  terminalLocked: 'Terminal locked',
+  enterPasscodeToSignIn: 'Enter your passcode to sign in',
   signOutDevice: 'Not you? Sign out',
   lockTerminal: 'Lock terminal',
   lockTerminalDesc: 'Sign out to the passcode pad',
