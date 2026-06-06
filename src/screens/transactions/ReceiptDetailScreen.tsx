@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
@@ -128,6 +129,7 @@ function Section({
 export default function ReceiptDetailScreen({ route, navigation }: Props) {
   const { t } = useT();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
   const { receiptId, printOnLoad } = route.params;
   const [receipt, setReceipt] = useState<ReceiptDetail | null>(null);
@@ -225,7 +227,13 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.lg },
+        ]}
+      >
         {/* Centered big total + receipt number + customer · time */}
         <View style={styles.heroBlock}>
           <Text style={styles.heroNo}>{receipt.receipt_number}</Text>

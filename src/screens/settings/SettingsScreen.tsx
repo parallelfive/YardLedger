@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useT } from '../../hooks/useT';
@@ -147,6 +148,7 @@ export default function SettingsScreen() {
   const { t, language } = useT();
   const { colors, isLight, toggle } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
   const nav = navigation as {
@@ -196,7 +198,7 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       {/* header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.flex}>
           <Text style={styles.eyebrow}>{t.settingsEyebrow}</Text>
           <Text style={styles.title}>{t.settings}</Text>
