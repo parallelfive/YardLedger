@@ -139,6 +139,9 @@ export function useNewTransaction(
   const approveOverride = () => {
     if (overrideIndex === null) return;
     const newPrice = parseFloat(overridePrice);
+    // Guard against a NaN/zero price slipping through to the line total (this is
+    // also wired directly to the access-code modal's onSuccess, so re-validate).
+    if (!Number.isFinite(newPrice) || newPrice <= 0) return;
 
     setLineItems((prev) =>
       prev.map((item, i) =>

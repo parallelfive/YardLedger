@@ -32,6 +32,7 @@ import {
   type Tone,
 } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
 import { type Palette, spacing, borderRadius, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
 
@@ -56,6 +57,7 @@ const MIX_TONES: Tone[] = ['copper', 'steel', 'gold', 'moss', 'ink3'];
 export default function DashboardScreen() {
   const { t } = useT();
   const { colors } = useTheme();
+  const { isAdmin } = useRole();
   const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation() as unknown as Nav;
   const today = new Date();
@@ -213,8 +215,8 @@ export default function DashboardScreen() {
           />
         </View>
 
-        {/* Compliance strip */}
-        {unreported > 0 && (
+        {/* Compliance strip — only managers can reach the Reports tab it links to */}
+        {isAdmin && unreported > 0 && (
           <TouchableOpacity
             style={styles.compliance}
             activeOpacity={0.7}
@@ -264,7 +266,7 @@ export default function DashboardScreen() {
           <TouchableOpacity
             style={styles.action}
             activeOpacity={0.85}
-            onPress={() => navigation.navigate('InventoryTab')}
+            onPress={() => navigation.navigate('Inventory')}
           >
             <Ionicons
               name="layers-outline"

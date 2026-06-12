@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import PasscodeLoginScreen, {
   type TareRole,
 } from '../screens/auth/PasscodeLoginScreen';
@@ -18,6 +18,16 @@ export default function PasscodeGate() {
     name: string;
     role: TareRole;
   } | null>(null);
+  // Pending "show who resolved, then sign them in" timer. Held in a ref so we
+  // can cancel it if the component unmounts or the device signs out first —
+  // otherwise a stray dispatch would re-enter the app after teardown.
+  const signInTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (signInTimer.current) clearTimeout(signInTimer.current);
+    },
+    []
+  );
 
   const onSubmit = useCallback(
     async (pin: string) => {
@@ -27,7 +37,11 @@ export default function PasscodeGate() {
         const identity = await validatePin(pin);
         // Show who resolved for a beat, then attribute the shift to them.
         setResolved({ name: identity.name, role: identity.role });
-        setTimeout(() => dispatch(setActiveIdentity(identity)), 620);
+        if (signInTimer.current) clearTimeout(signInTimer.current);
+        signInTimer.current = setTimeout(
+          () => dispatch(setActiveIdentity(identity)),
+          620
+        );
       } catch (e) {
         setError((e as Error).message || 'Wrong passcode');
         setFailNonce((n) => n + 1);
@@ -38,6 +52,11 @@ export default function PasscodeGate() {
     [dispatch]
   );
 
+  const handleSignOut = useCallback(() => {
+    if (signInTimer.current) clearTimeout(signInTimer.current);
+    dispatch(signOut());
+  }, [dispatch]);
+
   return (
     <PasscodeLoginScreen
       companyName={company?.name ?? 'Tare'}
@@ -46,7 +65,7 @@ export default function PasscodeGate() {
       resolved={resolved}
       failNonce={failNonce}
       onSubmit={onSubmit}
-      onSignOut={() => dispatch(signOut())}
+      onSignOut={handleSignOut}
     />
   );
 }

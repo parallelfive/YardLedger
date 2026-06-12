@@ -2,7 +2,7 @@
 // One header on every primary tab: brand + yard (left), Search · Alerts · Avatar
 // (right), then title + a contextual right label. The avatar opens the
 // "Account & terminal" sheet — the single door to everything administrative.
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -57,18 +57,19 @@ export default function TareHeader({
   // Permission ring: moss = can manage (admin/owner), gold = worker.
   const ring = role === 'worker' ? colors.gold : colors.moss;
 
+  // Only managers can act on the unreported queue (the bell routes to the
+  // admin-only Reports tab), so only they fetch the count. Re-runs on focus.
   useFocusEffect(
     useCallback(() => {
+      if (!isAdmin) {
+        setAlerts(0);
+        return;
+      }
       fetchUnreportedReceipts()
         .then((r) => setAlerts(r.length))
         .catch(() => setAlerts(0));
-    }, [])
+    }, [isAdmin])
   );
-  useEffect(() => {
-    fetchUnreportedReceipts()
-      .then((r) => setAlerts(r.length))
-      .catch(() => setAlerts(0));
-  }, []);
 
   const go = (target: () => void) => {
     setSheet(false);
@@ -117,23 +118,25 @@ export default function TareHeader({
           >
             <Ionicons name="search" size={19} color={colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => nav.navigate('ReportsTab')}
-          >
-            <Ionicons
-              name="notifications-outline"
-              size={19}
-              color={colors.textSecondary}
-            />
-            {alerts > 0 ? (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {alerts > 9 ? '9+' : alerts}
-                </Text>
-              </View>
-            ) : null}
-          </TouchableOpacity>
+          {isAdmin ? (
+            <TouchableOpacity
+              style={styles.iconBtn}
+              onPress={() => nav.navigate('ReportsTab')}
+            >
+              <Ionicons
+                name="notifications-outline"
+                size={19}
+                color={colors.textSecondary}
+              />
+              {alerts > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {alerts > 9 ? '9+' : alerts}
+                  </Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          ) : null}
           <TouchableOpacity
             style={[styles.avatar, { borderColor: ring }]}
             onPress={() => setSheet(true)}

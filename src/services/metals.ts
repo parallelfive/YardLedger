@@ -85,12 +85,14 @@ export async function logPriceChange(
   newPrice: number,
   changedBy: string
 ) {
-  await supabase.from('price_history').insert({
+  const { error } = await supabase.from('price_history').insert({
     metal_id: metalId,
     old_price: oldPrice,
     new_price: newPrice,
     changed_by: changedBy,
   });
+  // This is the pricing audit trail — don't let a failed write vanish silently.
+  if (error) throw error;
 }
 
 export async function fetchPriceHistory(
