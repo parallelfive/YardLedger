@@ -627,4 +627,8 @@ export default {
   confirmPinLabel: 'Confirm PIN',
   pinMismatch: 'PINs do not match',
   savePin: 'Save PIN',
+  // --- offline ---
+  offlineBanner: 'Offline — saved on this device, will sync when you reconnect',
+  syncingQueued: 'Syncing queued transactions',
+  queuedSuffix: 'queued',
 } as const;

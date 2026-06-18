@@ -632,4 +632,9 @@ export default {
   confirmPinLabel: 'Confirma el PIN',
   pinMismatch: 'Los PIN no coinciden',
   savePin: 'Guardar PIN',
+  // --- offline ---
+  offlineBanner:
+    'Sin conexión — guardado en este dispositivo, se sincronizará al reconectar',
+  syncingQueued: 'Sincronizando transacciones en cola',
+  queuedSuffix: 'en cola',
 } as const;

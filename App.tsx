@@ -20,9 +20,12 @@ import { store } from './src/store';
 import { ThemeProvider, useTheme } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
 import { AdminElevationProvider } from './src/providers/AdminElevationProvider';
+import OfflineBanner from './src/components/OfflineBanner';
+import { useConnectivity } from './src/hooks/useConnectivity';
 
 function ThemedApp() {
   const { colors, isLight } = useTheme();
+  useConnectivity();
   return (
     <GestureHandlerRootView
       style={{ flex: 1, backgroundColor: colors.background }}
@@ -30,6 +33,7 @@ function ThemedApp() {
       <SafeAreaProvider>
         <StatusBar style={isLight ? 'dark' : 'light'} />
         <AdminElevationProvider>
+          <OfflineBanner />
           <RootNavigator />
         </AdminElevationProvider>
       </SafeAreaProvider>
