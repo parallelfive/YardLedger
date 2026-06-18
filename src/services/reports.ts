@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
 
 // ---------- Daily Summary ----------
 
@@ -40,8 +41,8 @@ export async function fetchDailySummary(
   startDate: string,
   endDate: string
 ): Promise<DailySummary> {
-  const rangeStart = `${startDate}T00:00:00`;
-  const rangeEnd = `${endDate}T23:59:59`;
+  const rangeStart = startOfLocalDayUtc(startDate);
+  const rangeEnd = endOfLocalDayUtc(endDate);
 
   // Fetch buy receipts with line items in range
   const { data: receipts, error: receiptsError } = await supabase
@@ -194,8 +195,8 @@ export async function fetchProfitabilityReport(
   startDate: string,
   endDate: string
 ): Promise<ProfitabilityReport> {
-  const rangeStart = `${startDate}T00:00:00`;
-  const rangeEnd = `${endDate}T23:59:59`;
+  const rangeStart = startOfLocalDayUtc(startDate);
+  const rangeEnd = endOfLocalDayUtc(endDate);
 
   // Fetch buy line items in range
   const { data: buyData, error: buyError } = await supabase
@@ -457,8 +458,8 @@ export async function fetchComplianceReport(
     .from('receipts')
     .select('*, line_items(metal_name, weight, total, is_restricted)')
     .eq('type', 'buy')
-    .gte('created_at', `${startDate}T00:00:00`)
-    .lte('created_at', `${endDate}T23:59:59`)
+    .gte('created_at', startOfLocalDayUtc(startDate))
+    .lte('created_at', endOfLocalDayUtc(endDate))
     .order('created_at', { ascending: false });
 
   if (error) throw error;

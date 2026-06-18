@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
 
 interface CreateSaleParams {
   metalId: string;
@@ -42,10 +43,10 @@ export async function fetchSales(startDate?: string, endDate?: string) {
     .order('created_at', { ascending: false });
 
   if (startDate) {
-    query = query.gte('created_at', `${startDate}T00:00:00`);
+    query = query.gte('created_at', startOfLocalDayUtc(startDate));
   }
   if (endDate) {
-    query = query.lte('created_at', `${endDate}T23:59:59`);
+    query = query.lte('created_at', endOfLocalDayUtc(endDate));
   }
 
   const { data, error } = await query;

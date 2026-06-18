@@ -3,6 +3,7 @@ import { File } from 'expo-file-system';
 import { decode } from 'base64-arraybuffer';
 import type { LineItemInput } from '../types';
 import { upsertCustomer } from './customers';
+import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
 
 interface CreateReceiptParams {
   customerName: string;
@@ -206,10 +207,10 @@ export async function fetchReceipts(
     query = query.eq('worker_id', workerId);
   }
   if (startDate) {
-    query = query.gte('created_at', `${startDate}T00:00:00`);
+    query = query.gte('created_at', startOfLocalDayUtc(startDate));
   }
   if (endDate) {
-    query = query.lte('created_at', `${endDate}T23:59:59`);
+    query = query.lte('created_at', endOfLocalDayUtc(endDate));
   }
 
   const { data, error } = await query;
