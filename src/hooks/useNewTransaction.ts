@@ -1,4 +1,4 @@
-import { useState, type RefObject } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { Alert } from 'react-native';
 import type { LineItemInput, Metal } from '../types';
 import type { SignaturePadHandle } from '../components/SignaturePad';
@@ -27,6 +27,10 @@ export function useNewTransaction(
   const [lineItems, setLineItems] = useState<LineItemInput[]>([]);
   const [signature, setSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Synchronous re-entry guard. `saving` state updates asynchronously, so a
+  // fast double-tap can fire saveReceipt twice before the button re-renders as
+  // disabled — each firing an RPC, producing duplicate receipts + inventory.
+  const savingRef = useRef(false);
   const [sellerAffirmed, setSellerAffirmed] = useState(false);
   // Payment method. NM prohibits cash for catalytic converters (57-30-2.4),
   // so a converter transaction is forced to check below.
@@ -217,6 +221,7 @@ export function useNewTransaction(
     ) => void,
     customerId?: string
   ) => {
+    if (savingRef.current) return; // already submitting — ignore re-entry
     if (!customerName.trim()) {
       Alert.alert(t.error, t.enterCustomerName);
       return;
@@ -255,12 +260,19 @@ export function useNewTransaction(
       return;
     }
 
+    // Lock before the first await so a double-tap during the async signature
+    // read can't fire a second createReceipt.
+    savingRef.current = true;
+    setSaving(true);
+
     // Read signature imperatively to avoid async race condition
     let signatureData = signature;
     if (signaturePadRef?.current) {
       signatureData = await signaturePadRef.current.readSignature();
     }
     if (!signatureData) {
+      savingRef.current = false;
+      setSaving(false);
       Alert.alert(t.error, t.signatureRequired);
       return;
     }
@@ -270,7 +282,6 @@ export function useNewTransaction(
       ? 'check'
       : paymentMethod;
 
-    setSaving(true);
     try {
       const receipt = await createReceipt({
         customerName,
@@ -317,6 +328,7 @@ export function useNewTransaction(
       console.error('[saveReceipt] Error:', (err as Error).message);
       Alert.alert(t.error, (err as Error).message);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };
