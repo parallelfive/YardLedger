@@ -17,6 +17,12 @@ interface AuthState {
   // How the identity was set. Auto-lock only engages once someone has PIN'd in,
   // so a freshly email-signed-in user (no PIN yet) is never locked out.
   activeIdentitySource: 'session' | 'pin' | null;
+  // Admin-elevation window (epoch ms) opened by a verified admin/owner PIN.
+  // Privileged DB writes are gated on has_admin_elevation() server-side; this is
+  // the client cache so we don't re-prompt within the window. isOwner tracks
+  // whether the window is owner-grade.
+  elevationExpiresAt: number | null;
+  elevationIsOwner: boolean;
   loading: boolean;
   error: string | null;
 }
@@ -28,6 +34,8 @@ const initialState: AuthState = {
   company: null,
   activeIdentity: null,
   activeIdentitySource: null,
+  elevationExpiresAt: null,
+  elevationIsOwner: false,
   loading: true,
   error: null,
 };
@@ -174,6 +182,21 @@ const authSlice = createSlice({
     lockTerminal(state) {
       state.activeIdentity = null;
       state.activeIdentitySource = null;
+      // A locked terminal must drop any admin elevation.
+      state.elevationExpiresAt = null;
+      state.elevationIsOwner = false;
+    },
+    // An admin/owner proved their PIN — cache the elevation window.
+    setElevation(
+      state,
+      action: PayloadAction<{ expiresAt: number; isOwner: boolean }>
+    ) {
+      state.elevationExpiresAt = action.payload.expiresAt;
+      state.elevationIsOwner = action.payload.isOwner;
+    },
+    clearElevation(state) {
+      state.elevationExpiresAt = null;
+      state.elevationIsOwner = false;
     },
   },
   extraReducers: (builder) => {
@@ -219,10 +242,18 @@ const authSlice = createSlice({
         state.company = null;
         state.activeIdentity = null;
         state.activeIdentitySource = null;
+        state.elevationExpiresAt = null;
+        state.elevationIsOwner = false;
       });
   },
 });
 
-export const { setSession, clearError, setActiveIdentity, lockTerminal } =
-  authSlice.actions;
+export const {
+  setSession,
+  clearError,
+  setActiveIdentity,
+  lockTerminal,
+  setElevation,
+  clearElevation,
+} = authSlice.actions;
 export default authSlice.reducer;

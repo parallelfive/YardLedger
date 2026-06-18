@@ -618,4 +618,7 @@ export default {
   unrealizedGain: 'unrealized gain',
   unrealizedLoss: 'unrealized loss',
   tapToSign: 'Tap to sign',
+  // --- admin elevation ---
+  ownerAuthorization: 'Owner authorization',
+  enterPinToAuthorize: 'Enter your PIN to authorize',
 } as const;

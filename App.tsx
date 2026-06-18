@@ -19,6 +19,7 @@ import {
 import { store } from './src/store';
 import { ThemeProvider, useTheme } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
+import { AdminElevationProvider } from './src/providers/AdminElevationProvider';
 
 function ThemedApp() {
   const { colors, isLight } = useTheme();
@@ -28,7 +29,9 @@ function ThemedApp() {
     >
       <SafeAreaProvider>
         <StatusBar style={isLight ? 'dark' : 'light'} />
-        <RootNavigator />
+        <AdminElevationProvider>
+          <RootNavigator />
+        </AdminElevationProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

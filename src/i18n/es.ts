@@ -623,4 +623,7 @@ export default {
   unrealizedGain: 'ganancia no realizada',
   unrealizedLoss: 'pérdida no realizada',
   tapToSign: 'Toca para firmar',
+  // --- admin elevation ---
+  ownerAuthorization: 'Autorización de propietario',
+  enterPinToAuthorize: 'Ingresa tu PIN para autorizar',
 } as const;
