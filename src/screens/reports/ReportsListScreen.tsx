@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import { useT } from '../../hooks/useT';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useRole } from '../../hooks';
 import { useAppSelector, type RootState } from '../../store';
 import DateRangeSelector, {
@@ -68,6 +69,7 @@ async function shareCsv(rows: ComplianceReceiptRow[], name: string) {
 
 export default function ReportsListScreen({ navigation }: Props) {
   const { t } = useT();
+  const { ensureElevated } = useAdminElevation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const rootNav = useNavigation() as {
@@ -123,6 +125,7 @@ export default function ReportsListScreen({ navigation }: Props) {
           {
             text: t.confirm,
             onPress: async () => {
+              if (!(await ensureElevated())) return;
               try {
                 await markReceiptsReported(
                   unreported.map((r) => r.id),

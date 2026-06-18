@@ -19,7 +19,8 @@ import {
   deleteReceipt,
   markReceiptDisposed,
 } from '../../services/receipts';
-import { AccessCodeModal, SignedImage } from '../../components';
+import { SignedImage } from '../../components';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { Tag, fmtMoney, fmtLbs } from '../../components/foundry';
 import { printReceipt, shareReceipt } from '../../utils/printReceipt';
 import {
@@ -131,11 +132,10 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
+  const { ensureElevated } = useAdminElevation();
   const { receiptId, printOnLoad } = route.params;
   const [receipt, setReceipt] = useState<ReceiptDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showDeleteAuth, setShowDeleteAuth] = useState(false);
-  const [showDisposeAuth, setShowDisposeAuth] = useState(false);
 
   const handlePrint = useCallback(
     async (data?: ReceiptDetail) => {
@@ -545,7 +545,7 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
         {receipt.hold_until && !receipt.disposed_at && (
           <TouchableOpacity
             style={styles.disposeButton}
-            onPress={() => {
+            onPress={async () => {
               const heldUntil = receipt.hold_until
                 ? new Date(receipt.hold_until)
                 : null;
@@ -556,7 +556,15 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
                 );
                 return;
               }
-              setShowDisposeAuth(true);
+              if (!(await ensureElevated())) return;
+              try {
+                await markReceiptDisposed(receiptId);
+                Alert.alert(t.success, t.materialDisposed);
+                const updated = await fetchReceiptById(receiptId);
+                setReceipt(updated as ReceiptDetail);
+              } catch (err) {
+                Alert.alert(t.error, (err as Error).message);
+              }
             }}
           >
             <Text style={styles.disposeButtonText}>{t.markDisposed}</Text>
@@ -572,7 +580,16 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
               {
                 text: t.deleteReceipt,
                 style: 'destructive',
-                onPress: () => setShowDeleteAuth(true),
+                onPress: async () => {
+                  if (!(await ensureElevated())) return;
+                  try {
+                    await deleteReceipt(receiptId);
+                    Alert.alert(t.success, t.receiptDeleted);
+                    navigation.goBack();
+                  } catch (err) {
+                    Alert.alert(t.error, (err as Error).message);
+                  }
+                },
               },
             ]);
           }}
@@ -597,37 +614,6 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
           <Text style={styles.doneButtonText}>{t.done}</Text>
         </TouchableOpacity>
       </View>
-
-      <AccessCodeModal
-        visible={showDeleteAuth}
-        onSuccess={async () => {
-          setShowDeleteAuth(false);
-          try {
-            await deleteReceipt(receiptId);
-            Alert.alert(t.success, t.receiptDeleted);
-            navigation.goBack();
-          } catch (err) {
-            Alert.alert(t.error, (err as Error).message);
-          }
-        }}
-        onCancel={() => setShowDeleteAuth(false)}
-      />
-
-      <AccessCodeModal
-        visible={showDisposeAuth}
-        onSuccess={async () => {
-          setShowDisposeAuth(false);
-          try {
-            await markReceiptDisposed(receiptId);
-            Alert.alert(t.success, t.materialDisposed);
-            const updated = await fetchReceiptById(receiptId);
-            setReceipt(updated as ReceiptDetail);
-          } catch (err) {
-            Alert.alert(t.error, (err as Error).message);
-          }
-        }}
-        onCancel={() => setShowDisposeAuth(false)}
-      />
     </View>
   );
 }

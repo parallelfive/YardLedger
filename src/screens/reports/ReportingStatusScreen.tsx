@@ -21,12 +21,14 @@ import {
 } from '../../services/reports';
 import { MiniStat, SectionLabel } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useAppSelector, type RootState } from '../../store';
 import { type Palette, spacing, borderRadius, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
 
 export default function ReportingStatusScreen() {
   const { t } = useT();
+  const { ensureElevated } = useAdminElevation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const isFocused = useIsFocused();
@@ -79,6 +81,7 @@ export default function ReportingStatusScreen() {
           {
             text: t.confirm,
             onPress: async () => {
+              if (!(await ensureElevated())) return;
               try {
                 await markReceiptsReported(
                   unreported.map((r) => r.id),

@@ -26,6 +26,7 @@ import {
 import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useAppSelector, type RootState } from '../../store';
 import { Tag, SectionLabel, fmtMoney } from '../../components/foundry';
 import { type Palette, spacing, fontSize, fonts } from '../../constants';
@@ -52,6 +53,7 @@ interface PurchaseRecordRow {
 
 export default function ComplianceReportScreen() {
   const { t } = useT();
+  const { ensureElevated } = useAdminElevation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((s: RootState) => s.auth.profile);
@@ -292,6 +294,7 @@ export default function ComplianceReportScreen() {
           {
             text: t.confirm,
             onPress: async () => {
+              if (!(await ensureElevated())) return;
               try {
                 await markReceiptsReported(
                   unreported.map((r) => r.id),

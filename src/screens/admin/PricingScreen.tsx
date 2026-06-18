@@ -25,6 +25,7 @@ import {
   type PriceHistoryEntry,
 } from '../../services/metals';
 import { useAppSelector, type RootState } from '../../store';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useT } from '../../hooks/useT';
 import { MetalDot, fmtMoney, type Tone } from '../../components/foundry';
 import { useTheme, useThemedStyles } from '../../theme';
@@ -79,6 +80,7 @@ export default function PricingScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
+  const { ensureElevated } = useAdminElevation();
   const [sections, setSections] = useState<MetalSection[]>([]);
   const [categories, setCategories] = useState<MetalCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -178,6 +180,7 @@ export default function PricingScreen() {
       return;
     }
 
+    if (!(await ensureElevated())) return;
     setSaving(true);
     try {
       const updates: {
@@ -222,6 +225,7 @@ export default function PricingScreen() {
       return;
     }
 
+    if (!(await ensureElevated())) return;
     setSaving(true);
     try {
       await createMetal(trimmedName, price, selectedCategoryId);
@@ -243,6 +247,7 @@ export default function PricingScreen() {
         text: t.delete,
         style: 'destructive',
         onPress: async () => {
+          if (!(await ensureElevated())) return;
           setSaving(true);
           try {
             await deactivateMetal(editingMetal.id);

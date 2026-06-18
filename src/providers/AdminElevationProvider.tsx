@@ -11,18 +11,17 @@ import { useAppDispatch, useAppSelector } from '../store';
 import { setElevation } from '../store/authStore';
 
 interface ElevationContextValue {
-  // Resolves once an admin-elevation window is active (immediately if one is
-  // already live, otherwise after the user enters a valid admin/owner PIN).
-  // Rejects if the user cancels. Pass requireOwner for owner-grade actions.
-  ensureElevated: (requireOwner?: boolean) => Promise<void>;
+  // Resolves true once an admin-elevation window is active (immediately if one
+  // is already live, otherwise after the user enters a valid admin/owner PIN),
+  // or false if the user cancels. Pass requireOwner for owner-grade actions.
+  ensureElevated: (requireOwner?: boolean) => Promise<boolean>;
 }
 
 const ElevationContext = createContext<ElevationContextValue | null>(null);
 
 interface PendingRequest {
   requireOwner: boolean;
-  resolve: () => void;
-  reject: (err: Error) => void;
+  resolve: (elevated: boolean) => void;
 }
 
 export function AdminElevationProvider({ children }: { children: ReactNode }) {
@@ -43,24 +42,24 @@ export function AdminElevationProvider({ children }: { children: ReactNode }) {
       w.expiresAt != null &&
       w.expiresAt > Date.now() &&
       (!requireOwner || w.isOwner);
-    if (live) return Promise.resolve();
-    return new Promise<void>((resolve, reject) => {
+    if (live) return Promise.resolve(true);
+    return new Promise<boolean>((resolve) => {
       setPending((prev) => {
-        // If a prompt is already open, abandon the older waiter.
-        prev?.reject(new Error('superseded'));
-        return { requireOwner, resolve, reject };
+        // If a prompt is already open, abandon the older waiter (treat as cancel).
+        prev?.resolve(false);
+        return { requireOwner, resolve };
       });
     });
   }, []);
 
   const handleSuccess = (newExpiresAt: number, newIsOwner: boolean) => {
     dispatch(setElevation({ expiresAt: newExpiresAt, isOwner: newIsOwner }));
-    pending?.resolve();
+    pending?.resolve(true);
     setPending(null);
   };
 
   const handleCancel = () => {
-    pending?.reject(new Error('cancelled'));
+    pending?.resolve(false);
     setPending(null);
   };
 
