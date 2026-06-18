@@ -76,13 +76,16 @@ function isNetworkError(msg: string): boolean {
 // preserves the rest of the queue in order. A permanent rejection (e.g. an
 // oversell, or a price that's no longer market so it reads as an unauthorized
 // override) is dropped from the queue and reported so the operator can re-key it.
+//
+// The queue is persisted after EACH item (success or permanent drop), so a crash
+// mid-replay never re-processes an already-committed item into a duplicate.
 export async function replayOutbox(): Promise<ReplayResult> {
-  const items = await readAll();
+  let items = await readAll();
   const failed: { item: OutboxItem; error: string }[] = [];
   let succeeded = 0;
 
-  for (let i = 0; i < items.length; i++) {
-    const item = items[i];
+  while (items.length > 0) {
+    const item = items[0];
     try {
       if (item.kind === 'receipt') await createReceipt(item.params);
       else await createSale(item.params);
@@ -90,15 +93,15 @@ export async function replayOutbox(): Promise<ReplayResult> {
     } catch (err) {
       const msg = (err as Error).message ?? 'Unknown error';
       if (isNetworkError(msg)) {
-        // Still offline — keep this item and everything after it, in order.
-        const keep = items.slice(i);
-        await writeAll(keep);
-        return { succeeded, failed, remaining: keep.length };
+        // Still offline — leave this item and everything after it in order.
+        return { succeeded, failed, remaining: items.length };
       }
       failed.push({ item, error: msg });
     }
+    // Commit progress: drop the head (committed or permanently failed).
+    items = items.slice(1);
+    await writeAll(items);
   }
 
-  await writeAll([]);
   return { succeeded, failed, remaining: 0 };
 }
