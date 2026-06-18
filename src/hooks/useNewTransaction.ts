@@ -2,9 +2,11 @@ import { useRef, useState, type RefObject } from 'react';
 import { Alert } from 'react-native';
 import type { LineItemInput, Metal } from '../types';
 import type { SignaturePadHandle } from '../components/SignaturePad';
-import { useAppSelector, type RootState } from '../store';
+import { useAppDispatch, useAppSelector, type RootState } from '../store';
+import { setPendingOutbox } from '../store/appStore';
 import { useT } from './useT';
-import { createReceipt } from '../services/receipts';
+import { createReceipt, type CreateReceiptParams } from '../services/receipts';
+import { enqueueReceipt } from '../services/outbox';
 import {
   calculateLineItemTotal,
   calculateReceiptTotal,
@@ -20,6 +22,8 @@ export function useNewTransaction(
   const activeIdentity = useAppSelector(
     (state: RootState) => state.auth.activeIdentity
   );
+  const isOnline = useAppSelector((state: RootState) => state.app.isOnline);
+  const dispatch = useAppDispatch();
 
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -219,7 +223,8 @@ export function useNewTransaction(
       customerId: string,
       sellerIdPhotoUrl: string | null
     ) => void,
-    customerId?: string
+    customerId?: string,
+    onQueued?: () => void
   ) => {
     if (savingRef.current) return; // already submitting — ignore re-entry
     if (!customerName.trim()) {
@@ -282,41 +287,65 @@ export function useNewTransaction(
       ? 'check'
       : paymentMethod;
 
+    const receiptParams: CreateReceiptParams = {
+      customerName,
+      customerPhone,
+      customerId,
+      type: 'buy',
+      subtotal: receiptTotal,
+      signatureUri: signatureData,
+      workerId: activeIdentity?.user_id ?? profile.id,
+      notes: '',
+      vehiclePlate,
+      vehicleYear,
+      vehicleMake,
+      vehicleModel,
+      vehicleColor,
+      sellerAffirmed,
+      sellerName,
+      sellerDlNumber,
+      sellerStateOfIssue,
+      sellerDob,
+      sellerAddress,
+      sellerCity,
+      sellerState,
+      sellerZip,
+      sellerIdPhotoUri,
+      catConverterNumbers,
+      transportVin,
+      catConverterPhotoUri,
+      catTitlePhotoUri,
+      sellerPhotoUri,
+      materialPhotoUri,
+      paymentMethod: effectivePaymentMethod,
+      isCatalytic: hasCatalyticConverter,
+      lineItems,
+    };
+
+    // Offline: queue the buy locally and replay on reconnect. Price overrides
+    // need server validation (an admin code), so offline buys must be at market
+    // price — block any override rather than have it rejected silently on sync.
+    if (!isOnline) {
+      if (lineItems.some((li) => li.isPriceOverride)) {
+        savingRef.current = false;
+        setSaving(false);
+        Alert.alert(t.error, t.noOverridesOffline);
+        return;
+      }
+      try {
+        const n = await enqueueReceipt(receiptParams);
+        dispatch(setPendingOutbox(n));
+        resetForm();
+        onQueued?.();
+      } finally {
+        savingRef.current = false;
+        setSaving(false);
+      }
+      return;
+    }
+
     try {
-      const receipt = await createReceipt({
-        customerName,
-        customerPhone,
-        customerId,
-        type: 'buy',
-        subtotal: receiptTotal,
-        signatureUri: signatureData,
-        workerId: activeIdentity?.user_id ?? profile.id,
-        notes: '',
-        vehiclePlate,
-        vehicleYear,
-        vehicleMake,
-        vehicleModel,
-        vehicleColor,
-        sellerAffirmed,
-        sellerName,
-        sellerDlNumber,
-        sellerStateOfIssue,
-        sellerDob,
-        sellerAddress,
-        sellerCity,
-        sellerState,
-        sellerZip,
-        sellerIdPhotoUri,
-        catConverterNumbers,
-        transportVin,
-        catConverterPhotoUri,
-        catTitlePhotoUri,
-        sellerPhotoUri,
-        materialPhotoUri,
-        paymentMethod: effectivePaymentMethod,
-        isCatalytic: hasCatalyticConverter,
-        lineItems,
-      });
+      const receipt = await createReceipt(receiptParams);
       onSuccess(
         receipt.id,
         receipt.customer_id,

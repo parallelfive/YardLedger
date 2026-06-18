@@ -1,7 +1,7 @@
 import { supabase } from '../config/supabase';
 import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
 
-interface CreateSaleParams {
+export interface CreateSaleParams {
   metalId: string;
   metalName: string;
   weight: number;

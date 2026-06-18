@@ -637,4 +637,12 @@ export default {
     'Sin conexión — guardado en este dispositivo, se sincronizará al reconectar',
   syncingQueued: 'Sincronizando transacciones en cola',
   queuedSuffix: 'en cola',
+  savedOffline: 'Guardado sin conexión',
+  willSyncMsg:
+    'Guardado en este dispositivo — se sincronizará automáticamente al reconectar.',
+  noOverridesOffline:
+    'Los ajustes de precio requieren conexión. Usa el precio de mercado para guardar sin conexión.',
+  syncIssuesTitle: 'Algunos elementos sin conexión no se sincronizaron',
+  syncIssuesMsg:
+    '{n} transacción(es) en cola fueron rechazadas al sincronizar y deben volver a ingresarse.',
 } as const;

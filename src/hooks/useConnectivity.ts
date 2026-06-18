@@ -14,7 +14,9 @@ export function useConnectivity(onReconnect?: () => void) {
 
   useEffect(() => {
     let active = true;
-    let wasOnline = true;
+    // Start false so the first successful probe also triggers onReconnect —
+    // flushing any queue left over from a previous (offline) session on launch.
+    let wasOnline = false;
 
     const check = async () => {
       const online = await probeOnline();

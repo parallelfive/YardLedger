@@ -16,9 +16,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { SalesStackParamList } from '../../navigation/MainNavigator';
 import { useT } from '../../hooks/useT';
-import { useAppSelector, type RootState } from '../../store';
+import { useAppDispatch, useAppSelector, type RootState } from '../../store';
+import { setPendingOutbox } from '../../store/appStore';
 import { fetchInventory } from '../../services/inventory';
 import { createSale } from '../../services/sales';
+import { enqueueSale } from '../../services/outbox';
 import {
   MetalDot,
   fmtMoney,
@@ -66,6 +68,8 @@ export default function NewSaleScreen({ navigation }: Props) {
   const activeIdentity = useAppSelector(
     (state: RootState) => state.auth.activeIdentity
   );
+  const isOnline = useAppSelector((state: RootState) => state.app.isOnline);
+  const dispatch = useAppDispatch();
 
   const [buyerName, setBuyerName] = useState('');
   const [inventory, setInventory] = useState<InvRow[]>([]);
@@ -140,17 +144,28 @@ export default function NewSaleScreen({ navigation }: Props) {
 
   const handleSave = async () => {
     if (!selected || !canRecord || !profile) return;
+    const saleParams = {
+      metalId: selected.metalId,
+      metalName: selected.metalName,
+      weight,
+      salePricePerLb: price,
+      costBasisPerLb: selected.avgCost,
+      buyerName: buyerName.trim() || undefined,
+      workerId: activeIdentity?.user_id ?? profile.id,
+    };
     setSaving(true);
     try {
-      await createSale({
-        metalId: selected.metalId,
-        metalName: selected.metalName,
-        weight,
-        salePricePerLb: price,
-        costBasisPerLb: selected.avgCost,
-        buyerName: buyerName.trim() || undefined,
-        workerId: activeIdentity?.user_id ?? profile.id,
-      });
+      if (!isOnline) {
+        // Queue the sale; the server validates oversell on replay (best-effort
+        // check happened in the UI against cached inventory).
+        const n = await enqueueSale(saleParams);
+        dispatch(setPendingOutbox(n));
+        Alert.alert(t.savedOffline, t.willSyncMsg, [
+          { text: t.ok, onPress: () => navigation.navigate('SalesList') },
+        ]);
+        return;
+      }
+      await createSale(saleParams);
       Alert.alert(t.success, t.saleSaved, [
         { text: t.ok, onPress: () => navigation.navigate('SalesList') },
       ]);

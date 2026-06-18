@@ -5,7 +5,7 @@ import type { LineItemInput } from '../types';
 import { upsertCustomer } from './customers';
 import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
 
-interface CreateReceiptParams {
+export interface CreateReceiptParams {
   customerName: string;
   customerPhone: string;
   customerId?: string;

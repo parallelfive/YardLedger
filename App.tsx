@@ -1,8 +1,9 @@
+import { useCallback, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Provider } from 'react-redux';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 import {
   useFonts,
   Archivo_400Regular,
@@ -16,16 +17,39 @@ import {
   SplineSansMono_500Medium,
   SplineSansMono_600SemiBold,
 } from '@expo-google-fonts/spline-sans-mono';
-import { store } from './src/store';
+import { store, useAppDispatch } from './src/store';
+import { setPendingOutbox } from './src/store/appStore';
 import { ThemeProvider, useTheme } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
 import { AdminElevationProvider } from './src/providers/AdminElevationProvider';
 import OfflineBanner from './src/components/OfflineBanner';
 import { useConnectivity } from './src/hooks/useConnectivity';
+import { replayOutbox, outboxCount } from './src/services/outbox';
+import { useT } from './src/hooks/useT';
 
 function ThemedApp() {
   const { colors, isLight } = useTheme();
-  useConnectivity();
+  const { t } = useT();
+  const dispatch = useAppDispatch();
+
+  // Replay queued offline buys/sales whenever connectivity returns. Surface any
+  // permanent rejections (e.g. oversell on a queued sale) so they're re-keyed.
+  const onReconnect = useCallback(async () => {
+    const res = await replayOutbox();
+    dispatch(setPendingOutbox(res.remaining));
+    if (res.failed.length > 0) {
+      Alert.alert(
+        t.syncIssuesTitle,
+        t.syncIssuesMsg.replace('{n}', String(res.failed.length))
+      );
+    }
+  }, [dispatch, t]);
+  useConnectivity(onReconnect);
+
+  // Reflect any pending queue in the banner on launch.
+  useEffect(() => {
+    void outboxCount().then((n) => dispatch(setPendingOutbox(n)));
+  }, [dispatch]);
   return (
     <GestureHandlerRootView
       style={{ flex: 1, backgroundColor: colors.background }}

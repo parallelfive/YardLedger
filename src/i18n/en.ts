@@ -631,4 +631,12 @@ export default {
   offlineBanner: 'Offline — saved on this device, will sync when you reconnect',
   syncingQueued: 'Syncing queued transactions',
   queuedSuffix: 'queued',
+  savedOffline: 'Saved offline',
+  willSyncMsg:
+    'Saved on this device — it will sync automatically when you reconnect.',
+  noOverridesOffline:
+    'Price overrides need a connection. Use the market price to save offline.',
+  syncIssuesTitle: 'Some offline items could not sync',
+  syncIssuesMsg:
+    '{n} queued transaction(s) were rejected on sync and need to be re-entered.',
 } as const;
