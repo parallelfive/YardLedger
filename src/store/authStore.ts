@@ -174,9 +174,14 @@ const authSlice = createSlice({
       state.error = null;
     },
     // A staff member PIN'd in — attribute the shift to them (enables auto-lock).
+    // Switching identity must drop any admin elevation so it can't be inherited
+    // by whoever takes over the terminal (the server window is cleared too via
+    // AdminElevationProvider's identity-change effect).
     setActiveIdentity(state, action: PayloadAction<PinIdentity>) {
       state.activeIdentity = action.payload;
       state.activeIdentitySource = 'pin';
+      state.elevationExpiresAt = null;
+      state.elevationIsOwner = false;
     },
     // Lock the terminal back to the passcode pad (manual or auto-lock idle).
     lockTerminal(state) {

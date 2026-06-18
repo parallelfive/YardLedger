@@ -2,13 +2,15 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
 import AdminElevationModal from '../components/AdminElevationModal';
 import { useAppDispatch, useAppSelector } from '../store';
-import { setElevation } from '../store/authStore';
+import { setElevation, clearElevation } from '../store/authStore';
+import { clearElevation as clearElevationRpc } from '../services/admin';
 
 interface ElevationContextValue {
   // Resolves true once an admin-elevation window is active (immediately if one
@@ -35,6 +37,23 @@ export function AdminElevationProvider({ children }: { children: ReactNode }) {
   windowRef.current = { expiresAt, isOwner };
 
   const [pending, setPending] = useState<PendingRequest | null>(null);
+
+  // When the active staff identity changes (lock or PIN-in), drop any elevation
+  // so an admin's window can't be inherited by whoever takes over the terminal.
+  // Clears the client cache and the server window (best-effort). Does NOT fire
+  // for the elevating admin themselves (their identity doesn't change).
+  const activeUserId = useAppSelector(
+    (s) => s.auth.activeIdentity?.user_id ?? null
+  );
+  const prevUserId = useRef(activeUserId);
+  useEffect(() => {
+    if (prevUserId.current === activeUserId) return;
+    prevUserId.current = activeUserId;
+    dispatch(clearElevation());
+    void clearElevationRpc().catch(() => {
+      /* best-effort; the window also auto-expires server-side */
+    });
+  }, [activeUserId, dispatch]);
 
   const ensureElevated = useCallback((requireOwner = false) => {
     const w = windowRef.current;

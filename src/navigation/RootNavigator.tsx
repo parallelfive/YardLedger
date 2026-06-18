@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   NavigationContainer,
   DefaultTheme,
@@ -11,8 +11,10 @@ import MainNavigator from './MainNavigator';
 import PendingApprovalScreen from '../screens/auth/PendingApprovalScreen';
 import PasscodeGate from './PasscodeGate';
 import AutoLock from './AutoLock';
+import SetAdminPinScreen from '../screens/auth/SetAdminPinScreen';
 import { useAppDispatch, useAppSelector, type RootState } from '../store';
 import { initializeAuth, setSession, fetchProfile } from '../store/authStore';
+import { currentUserHasPin } from '../services/admin';
 import { supabase } from '../config/supabase';
 import { useTheme } from '../theme';
 
@@ -45,6 +47,10 @@ export default function RootNavigator() {
   const { session, profile, loading, activeIdentity } = useAppSelector(
     (state: RootState) => state.auth
   );
+  // Admins/owners need a PIN to open elevation windows; gate them to set one.
+  const [needsPin, setNeedsPin] = useState(false);
+  const role = profile?.role;
+  const isActive = profile?.isActive;
 
   // Theme the NavigationContainer so scene/card backgrounds match the palette
   // (otherwise dark mode flashes a white background during transitions).
@@ -90,6 +96,25 @@ export default function RootNavigator() {
     };
   }, [dispatch]);
 
+  // An admin/owner with no PIN can't authorize anything → prompt them to set one.
+  useEffect(() => {
+    let cancelled = false;
+    if (session && isActive && (role === 'admin' || role === 'owner')) {
+      currentUserHasPin()
+        .then((has) => {
+          if (!cancelled) setNeedsPin(!has);
+        })
+        .catch(() => {
+          if (!cancelled) setNeedsPin(false);
+        });
+    } else {
+      setNeedsPin(false);
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [session, isActive, role]);
+
   if (loading) {
     return (
       <View
@@ -117,6 +142,11 @@ export default function RootNavigator() {
   // Logged in but not yet approved by admin
   if (!profile?.isActive) {
     return <PendingApprovalScreen />;
+  }
+
+  // Admin/owner without a PIN must set one before they can authorize admin work.
+  if ((profile.role === 'admin' || profile.role === 'owner') && needsPin) {
+    return <SetAdminPinScreen onDone={() => setNeedsPin(false)} />;
   }
 
   // Device has a company session but the terminal is locked → passcode pad.

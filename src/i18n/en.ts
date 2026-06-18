@@ -621,4 +621,10 @@ export default {
   // --- admin elevation ---
   ownerAuthorization: 'Owner authorization',
   enterPinToAuthorize: 'Enter your PIN to authorize',
+  setPinTitle: 'Set your admin PIN',
+  setPinSubtitle:
+    'You need a 4-digit PIN to authorize admin actions on this terminal.',
+  confirmPinLabel: 'Confirm PIN',
+  pinMismatch: 'PINs do not match',
+  savePin: 'Save PIN',
 } as const;
