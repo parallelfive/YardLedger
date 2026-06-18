@@ -132,7 +132,10 @@ export default function NewSaleScreen({ navigation }: Props) {
 
   const selectMetal = (row: InvRow) => {
     setSelectedId(row.id);
-    setSalePrice(row.avgCost.toFixed(2));
+    // Leave the price blank so the operator must enter a real sale price.
+    // Pre-filling with avg COST silently booked every default sale at cost,
+    // i.e. profit = $0 — the whole point of profit tracking was lost.
+    setSalePrice('');
   };
 
   const handleSave = async () => {
