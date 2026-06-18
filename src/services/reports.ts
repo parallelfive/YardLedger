@@ -423,6 +423,7 @@ export interface ComplianceReceiptRow {
   created_at: string;
   customer_name: string;
   seller_name: string | null;
+  seller_dob: string | null;
   seller_dl_number: string | null;
   seller_state_of_issue: string | null;
   seller_address: string | null;
@@ -480,6 +481,7 @@ const NMRLD_HEADERS = [
   'receipt_number',
   'transaction_datetime',
   'seller_name',
+  'seller_dob',
   'seller_address',
   'seller_city',
   'seller_state',
@@ -512,6 +514,7 @@ export function buildNmrldExportCsv(rows: ComplianceReceiptRow[]): string {
           r.receipt_number,
           r.created_at,
           r.seller_name,
+          r.seller_dob,
           r.seller_address,
           r.seller_city,
           r.seller_state,
