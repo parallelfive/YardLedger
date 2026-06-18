@@ -1,13 +1,26 @@
 import { supabase } from '../config/supabase';
+import { loadJson, saveJson } from './localStore';
 
 export async function fetchMetals() {
-  const { data, error } = await supabase
-    .from('metals')
-    .select('*')
-    .eq('is_active', true)
-    .order('name');
-  if (error) throw error;
-  return data;
+  const run = async () => {
+    const { data, error } = await supabase
+      .from('metals')
+      .select('*')
+      .eq('is_active', true)
+      .order('name');
+    if (error) throw error;
+    return data;
+  };
+  try {
+    const data = await run();
+    await saveJson('metals', data);
+    return data;
+  } catch (err) {
+    // Offline: serve the last-known catalog so the buy screen still works.
+    const cached = await loadJson<Awaited<ReturnType<typeof run>>>('metals');
+    if (cached) return cached;
+    throw err;
+  }
 }
 
 export async function createMetal(
@@ -63,13 +76,25 @@ export async function deactivateMetal(metalId: string) {
 }
 
 export async function fetchMetalCategories() {
-  const { data, error } = await supabase
-    .from('metal_categories')
-    .select('*')
-    .eq('is_active', true)
-    .order('display_order');
-  if (error) throw error;
-  return data;
+  const run = async () => {
+    const { data, error } = await supabase
+      .from('metal_categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order');
+    if (error) throw error;
+    return data;
+  };
+  try {
+    const data = await run();
+    await saveJson('metal_categories', data);
+    return data;
+  } catch (err) {
+    const cached =
+      await loadJson<Awaited<ReturnType<typeof run>>>('metal_categories');
+    if (cached) return cached;
+    throw err;
+  }
 }
 
 export interface PriceHistoryEntry {
