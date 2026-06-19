@@ -55,13 +55,6 @@ type Props = NativeStackScreenProps<
   'NewTransaction'
 >;
 
-interface SavedReceipt {
-  id: string;
-  total: number;
-  customerName: string;
-  itemCount: number;
-}
-
 type Tier = 'open' | 'regulated' | 'restricted' | 'catalytic';
 type StepName = 'materials' | 'seller' | 'vehicle' | 'converter' | 'review';
 
@@ -77,7 +70,6 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const [step, setStep] = useState(0);
   const [printAfterSave, setPrintAfterSave] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
-  const [savedReceipt, setSavedReceipt] = useState<SavedReceipt | null>(null);
   const [snack, setSnack] = useState<{
     receiptId: string;
     receiptNumber: string;
@@ -255,34 +247,10 @@ export default function NewTransactionScreen({ navigation }: Props) {
   // Offline: the buy was queued locally (the hook already reset the form). Give
   // feedback and return to a fresh ticket — there's no server receipt to view.
   const handleSaveQueued = useCallback(() => {
-    setSavedReceipt(null);
     setSelectedCustomerId(undefined);
     setStep(0);
     Alert.alert(t.savedOffline, t.willSyncMsg);
   }, [t]);
-
-  const handleNewTicket = useCallback(
-    (keepCustomer: boolean) => {
-      tx.resetForm(keepCustomer);
-      setSavedReceipt(null);
-      setStep(0);
-      if (!keepCustomer) setSelectedCustomerId(undefined);
-    },
-    [tx]
-  );
-
-  const handleViewReceipt = useCallback(() => {
-    if (!savedReceipt) return;
-    const receiptId = savedReceipt.id;
-    setSavedReceipt(null);
-    tx.resetForm();
-    setStep(0);
-    navigation.popToTop();
-    navigation.navigate('ReceiptDetail', {
-      receiptId,
-      printOnLoad: printAfterSave,
-    });
-  }, [savedReceipt, navigation, printAfterSave, tx]);
 
   const handleClose = useCallback(() => {
     if (tx.lineItems.length > 0) {
@@ -1121,57 +1089,6 @@ export default function NewTransactionScreen({ navigation }: Props) {
               </TouchableOpacity>
             </View>
             <AddMaterialKeypad onAdd={handleAddMaterial} />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Quick-mode success modal */}
-      <Modal
-        visible={!!savedReceipt}
-        transparent
-        animationType="fade"
-        onRequestClose={handleViewReceipt}
-      >
-        <View style={styles.successOverlay}>
-          <View style={styles.successModal}>
-            <View style={styles.successIconCircle}>
-              <Ionicons name="checkmark" size={36} color={colors.white} />
-            </View>
-            <Text style={styles.successTitle}>{t.receiptSaved}</Text>
-            {savedReceipt && (
-              <View style={styles.successSummary}>
-                <Text style={styles.successCustomer}>
-                  {savedReceipt.customerName}
-                </Text>
-                <Text style={styles.successDetail}>
-                  {savedReceipt.itemCount}{' '}
-                  {savedReceipt.itemCount === 1 ? 'item' : t.items} ·{' '}
-                  {fmtMoney(savedReceipt.total)}
-                </Text>
-              </View>
-            )}
-            <TouchableOpacity
-              style={styles.quickModeButton}
-              onPress={() => handleNewTicket(false)}
-            >
-              <Text style={styles.quickModeButtonText}>{t.newTicket}</Text>
-            </TouchableOpacity>
-            {savedReceipt && (
-              <TouchableOpacity
-                style={styles.quickModeSameCustomer}
-                onPress={() => handleNewTicket(true)}
-              >
-                <Text style={styles.quickModeSameCustomerText}>
-                  {t.newTicketSameCustomer}
-                </Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={styles.viewReceiptButton}
-              onPress={handleViewReceipt}
-            >
-              <Text style={styles.viewReceiptButtonText}>{t.viewReceipt}</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
