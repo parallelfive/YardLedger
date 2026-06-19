@@ -7,12 +7,16 @@
 //   1. Cron — header `x-cron-secret: <CRON_SECRET>` → every company.
 //   2. Authenticated OWNER from the app → their own company only.
 //
-// Per company, crash-safe ordering:
-//   pii_to_purge(company)  → past-window receipts + their photo object paths
-//   storage.remove(paths)  → delete the ID/seller/material photos from the bucket
-//   redact_receipt_pii(ids)→ null the PII columns + stamp pii_purged_at
-// Listing before deleting/redacting means a re-run re-lists the same receipts
-// (still unpurged) and re-deletes already-gone paths as a harmless no-op.
+// Per company, crash-safe ordering, for BOTH the receipts and the customers
+// roster (the roster carries its own DL#/photo/DOB/address per repeat seller):
+//   pii_to_purge(company)            → past-window receipts + photo object paths
+//   customers_pii_to_purge(company)  → reference-aware roster rows + DL photo path
+//   storage.remove(paths)            → delete the photos from the bucket
+//   redact_receipt_pii / redact_customer_pii → clear the PII columns
+// Listing before deleting/redacting means a re-run re-lists the same rows (still
+// unpurged) and re-deletes already-gone paths as a harmless no-op. The roster
+// purge is reference-aware: a row is only cleared when the person has no buy
+// receipt still inside its retention window.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -64,19 +68,76 @@ async function purgeCompany(admin: any, companyId: string) {
   );
   if (redErr) return { companyId, status: 'error', reason: redErr.message };
 
+  // ── Roster (customers) purge — reference-aware, same crash-safe ordering ──
+  const roster = await purgeCompanyRoster(admin, companyId);
+  if (roster.status === 'error') {
+    // Receipts already redacted (idempotent on re-run); surface the roster
+    // failure so the next run retries the roster half.
+    return { companyId, status: 'error', reason: `roster: ${roster.reason}` };
+  }
+
+  const totalPhotos = paths.length + roster.photos;
   await admin.from('compliance_upload_log').insert({
     company_id: companyId,
     method: 'purge',
     receipt_count: redacted ?? ids.length,
     status: 'success',
-    detail: `Purged PII from ${redacted ?? ids.length} expired receipt(s); deleted ${paths.length} photo(s)`,
+    detail: `Purged PII from ${redacted ?? ids.length} expired receipt(s) and ${roster.customers} roster row(s); deleted ${totalPhotos} photo(s)`,
   });
 
   return {
     companyId,
     status: 'success',
     receipts: redacted ?? ids.length,
+    customers: roster.customers,
+    photos: totalPhotos,
+  };
+}
+
+// Purge regulated ID data from the customers roster for one company. Mirrors
+// the receipt flow: list eligible rows, delete their DL photo objects, then
+// redact the columns. Returns counts (photos deleted, customers redacted).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function purgeCompanyRoster(admin: any, companyId: string) {
+  const { data: rows, error } = await admin.rpc('customers_pii_to_purge', {
+    p_company: companyId,
+  });
+  if (error)
+    return { status: 'error', reason: error.message, photos: 0, customers: 0 };
+  if (!rows || rows.length === 0) {
+    return { status: 'success', photos: 0, customers: 0 };
+  }
+
+  const paths = rows.flatMap(
+    (r: { photo_paths: string[] }) => r.photo_paths ?? []
+  );
+  if (paths.length > 0) {
+    const { error: rmErr } = await admin.storage
+      .from(PRIVATE_BUCKET)
+      .remove(paths);
+    // Don't advance to redaction if the object delete failed — leave the rows
+    // so the next run retries (the path is still on the unredacted row).
+    if (rmErr)
+      return {
+        status: 'error',
+        reason: rmErr.message,
+        photos: 0,
+        customers: 0,
+      };
+  }
+
+  const ids = rows.map((r: { customer_id: string }) => r.customer_id);
+  const { data: redacted, error: redErr } = await admin.rpc(
+    'redact_customer_pii',
+    { p_customer_ids: ids }
+  );
+  if (redErr)
+    return { status: 'error', reason: redErr.message, photos: 0, customers: 0 };
+
+  return {
+    status: 'success',
     photos: paths.length,
+    customers: redacted ?? ids.length,
   };
 }
 

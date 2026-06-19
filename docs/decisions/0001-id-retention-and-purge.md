@@ -77,11 +77,17 @@ data-minimization sweet spot.
 
 ## Scope & limitations (v1)
 
-- **Receipts only.** The receipt snapshots the seller identity at purchase time —
-  that's the compliance record. The **`customers` roster** (a convenience table
-  with its own DL photo/DOB/address) is **not** purged yet: a returning customer
-  may still have in-window receipts, so it needs a "no in-window receipts → purge
-  the roster PII" rule. **Follow-up.**
+- **Receipts and the roster.** The receipt snapshots the seller identity at
+  purchase time — that's the compliance record. The **`customers` roster** (a
+  convenience table with its own DL#/photo/DOB/address) is **also purged**
+  (migration `20260619000003`): `customers_pii_to_purge` /
+  `redact_customer_pii`, run by the same `purge-expired-pii` edge function right
+  after the receipts. It is **reference-aware** — a row is scrubbed only when the
+  person has no buy receipt still inside its retention window — and clears the
+  regulated ID data (DL#, DL photo, address, DOB, notes) while keeping name,
+  phone and the `is_flagged`/`flag_reason` safety signal (lower-sensitivity CRM
+  data; the flag must keep working). The roster row itself is kept so receipt
+  `customer_id` references stay intact.
 - **Scheduling is ops.** The edge function is cron-capable (`x-cron-secret`) but
   the actual schedule (e.g., nightly) must be wired in the deploy environment,
   same as `report-to-state`. Until then it can be run manually by an owner.
@@ -108,11 +114,13 @@ This is deliberate:
 
 Two consequences this creates:
 
-1. **Roster purge must be reference-aware (follow-up).** The `customers` row may
-   still be needed by in-window receipts, so it may only be scrubbed when the
-   person has **no in-window receipts left**. Naively purging the roster by age
-   would delete ID we're still legally required to hold. (This is the documented
-   `customers`-purge follow-up above.)
+1. **Roster purge is reference-aware (implemented).** The `customers` row may
+   still be needed by in-window receipts, so it is scrubbed only when the person
+   has **no in-window receipts left** (`customers_pii_to_purge` checks
+   `not exists` an in-window buy; `redact_customer_pii` re-checks the same in its
+   `WHERE` so a stale list can't clear a customer who has since transacted).
+   Naively purging the roster by age would delete ID we're still legally required
+   to hold. Verified: old-only → purges; one in-window receipt → preserved.
 2. **Photo: re-capture vs reuse (product decision).** Today we re-capture the ID
    photo each regulated buy — safest and fully self-contained, at the cost of
    duplicate storage. If we later optimize to _reuse_ a repeat customer's on-file
