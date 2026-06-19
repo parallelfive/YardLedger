@@ -4,6 +4,7 @@ import { decode } from 'base64-arraybuffer';
 import type { LineItemInput } from '../types';
 import { upsertCustomer } from './customers';
 import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
+import { loadJson, saveJson } from './localStore';
 
 export interface CreateReceiptParams {
   customerName: string;
@@ -194,28 +195,42 @@ export async function fetchReceipts(
   startDate?: string,
   endDate?: string
 ) {
-  // Explicit projection for the list view — omits the heavy base64
-  // signature_uri and photo columns (only the detail screen needs those).
-  let query = supabase
-    .from('receipts')
-    .select(
-      'id, receipt_number, customer_name, type, subtotal, created_at, worker_id, line_items(id, metal_name, weight, total, is_restricted)'
-    )
-    .order('created_at', { ascending: false });
+  const run = async () => {
+    // Explicit projection for the list view — omits the heavy base64
+    // signature_uri and photo columns (only the detail screen needs those).
+    let query = supabase
+      .from('receipts')
+      .select(
+        'id, receipt_number, customer_name, type, subtotal, created_at, worker_id, line_items(id, metal_name, weight, total, is_restricted)'
+      )
+      .order('created_at', { ascending: false });
 
-  if (workerId) {
-    query = query.eq('worker_id', workerId);
-  }
-  if (startDate) {
-    query = query.gte('created_at', startOfLocalDayUtc(startDate));
-  }
-  if (endDate) {
-    query = query.lte('created_at', endOfLocalDayUtc(endDate));
-  }
+    if (workerId) {
+      query = query.eq('worker_id', workerId);
+    }
+    if (startDate) {
+      query = query.gte('created_at', startOfLocalDayUtc(startDate));
+    }
+    if (endDate) {
+      query = query.lte('created_at', endOfLocalDayUtc(endDate));
+    }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  };
+  // Cache per (worker, range) so the list still renders offline instead of
+  // erroring. Offline-queued receipts aren't in this list until they sync.
+  const key = `receipts_${workerId ?? 'all'}_${startDate ?? ''}_${endDate ?? ''}`;
+  try {
+    const data = await run();
+    await saveJson(key, data);
+    return data;
+  } catch (err) {
+    const cached = await loadJson<Awaited<ReturnType<typeof run>>>(key);
+    if (cached) return cached;
+    throw err;
+  }
 }
 
 export interface ReceiptSearchRow {

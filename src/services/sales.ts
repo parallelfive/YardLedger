@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
 import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
+import { loadJson, saveJson } from './localStore';
 
 export interface CreateSaleParams {
   metalId: string;
@@ -37,21 +38,35 @@ export async function createSale(params: CreateSaleParams) {
 }
 
 export async function fetchSales(startDate?: string, endDate?: string) {
-  let query = supabase
-    .from('sales')
-    .select('*, metals(category_id, metal_categories(name))')
-    .order('created_at', { ascending: false });
+  const run = async () => {
+    let query = supabase
+      .from('sales')
+      .select('*, metals(category_id, metal_categories(name))')
+      .order('created_at', { ascending: false });
 
-  if (startDate) {
-    query = query.gte('created_at', startOfLocalDayUtc(startDate));
-  }
-  if (endDate) {
-    query = query.lte('created_at', endOfLocalDayUtc(endDate));
-  }
+    if (startDate) {
+      query = query.gte('created_at', startOfLocalDayUtc(startDate));
+    }
+    if (endDate) {
+      query = query.lte('created_at', endOfLocalDayUtc(endDate));
+    }
 
-  const { data, error } = await query;
-  if (error) throw error;
-  return data;
+    const { data, error } = await query;
+    if (error) throw error;
+    return data;
+  };
+  // Cache per range so the list still renders offline instead of erroring.
+  // Offline-queued sales aren't in this list until they sync.
+  const key = `sales_${startDate ?? ''}_${endDate ?? ''}`;
+  try {
+    const data = await run();
+    await saveJson(key, data);
+    return data;
+  } catch (err) {
+    const cached = await loadJson<Awaited<ReturnType<typeof run>>>(key);
+    if (cached) return cached;
+    throw err;
+  }
 }
 
 export interface CategoryProfitSummary {
