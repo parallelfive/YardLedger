@@ -156,6 +156,7 @@ export default {
   print: 'Print',
   saveAndPrint: 'Save & Print',
   saveWithoutPrinting: 'Save without printing',
+  signToEnable: 'Sign above to enable Save & Print',
 
   // Add Line Item Modal
   addLineItem: '+ Add Line Item',

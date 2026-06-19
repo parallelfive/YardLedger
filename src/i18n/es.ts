@@ -157,6 +157,7 @@ export default {
   print: 'Imprimir',
   saveAndPrint: 'Guardar e Imprimir',
   saveWithoutPrinting: 'Guardar sin imprimir',
+  signToEnable: 'Firma arriba para habilitar Guardar e Imprimir',
 
   // Add Line Item Modal
   addLineItem: '+ Agregar Artículo',

@@ -983,7 +983,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 styles.payButton,
                 styles.payButtonSolo,
                 styles.payButtonPrimary,
-                (!canAdvance('review') || tx.saving) &&
+                (!canAdvance('review') || tx.saving || !tx.signature) &&
                   styles.payButtonDisabled,
               ]}
               onPress={() => {
@@ -994,7 +994,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
                   handleSaveQueued
                 );
               }}
-              disabled={!canAdvance('review') || tx.saving}
+              disabled={!canAdvance('review') || tx.saving || !tx.signature}
             >
               {tx.saving && printAfterSave ? (
                 <ActivityIndicator color={colors.accentInk} />
@@ -1021,7 +1021,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
                   handleSaveQueued
                 );
               }}
-              disabled={!canAdvance('review') || tx.saving}
+              disabled={!canAdvance('review') || tx.saving || !tx.signature}
             >
               {tx.saving && !printAfterSave ? (
                 <ActivityIndicator color={colors.textSecondary} />
@@ -1031,9 +1031,10 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 </Text>
               )}
             </TouchableOpacity>
-            <Text style={styles.payHint}>
-              {payMethodLabel} · {tx.lineItems.length}{' '}
-              {tx.lineItems.length === 1 ? t.line : t.lines}
+            <Text style={[styles.payHint, !tx.signature && styles.payHintWarn]}>
+              {!tx.signature
+                ? t.signToEnable
+                : `${payMethodLabel} · ${tx.lineItems.length} ${tx.lineItems.length === 1 ? t.line : t.lines}`}
             </Text>
           </View>
         ) : (
@@ -1818,6 +1819,7 @@ const makeStyles = (colors: Palette) =>
       textAlign: 'center',
       marginTop: 6,
     },
+    payHintWarn: { color: colors.rust },
 
     // Add material sheet
     sheetOverlay: { flex: 1, justifyContent: 'flex-end' },
