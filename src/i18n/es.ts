@@ -158,6 +158,8 @@ export default {
   saveAndPrint: 'Guardar e Imprimir',
   saveWithoutPrinting: 'Guardar sin imprimir',
   signToEnable: 'Firma arriba para habilitar Guardar e Imprimir',
+  receiptSavedToast: 'Recibo guardado',
+  sameSeller: 'Mismo vendedor',
 
   // Add Line Item Modal
   addLineItem: '+ Agregar Artículo',

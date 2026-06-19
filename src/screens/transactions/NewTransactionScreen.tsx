@@ -29,7 +29,11 @@ import {
   type Tone,
 } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
-import { useNewTransaction } from '../../hooks/useNewTransaction';
+import {
+  useNewTransaction,
+  type CreatedReceipt,
+} from '../../hooks/useNewTransaction';
+import Snackbar from '../../components/Snackbar';
 import { useIdScanner } from '../../hooks/useIdScanner';
 import type { Metal } from '../../types';
 import {
@@ -74,6 +78,13 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const [printAfterSave, setPrintAfterSave] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [savedReceipt, setSavedReceipt] = useState<SavedReceipt | null>(null);
+  const [snack, setSnack] = useState<{
+    receiptId: string;
+    receiptNumber: string;
+    customerName: string;
+    customerPhone: string;
+    customerId: string;
+  } | null>(null);
   const [customerResults, setCustomers] = useState<Customer[]>([]);
   const [searchingCustomers, setSearchingCustomers] = useState(false);
   const [showCustomers, setShowCustomers] = useState(false);
@@ -192,34 +203,60 @@ export default function NewTransactionScreen({ navigation }: Props) {
     [tx]
   );
 
+  // Save succeeded (and printed inline if requested). Update the customer's ID
+  // photo, then auto-advance to a fresh ticket and confirm via a snackbar — no
+  // blocking modal, no detour through the receipt detail screen.
   const handleSaveSuccess = useCallback(
-    async (
-      receiptId: string,
-      customerId: string,
-      sellerIdPhotoUrl: string | null
-    ) => {
-      if (sellerIdPhotoUrl && customerId) {
+    async (receipt: CreatedReceipt) => {
+      if (receipt.seller_id_photo_uri && receipt.customer_id) {
         try {
-          await updateCustomerIdPhoto(customerId, sellerIdPhotoUrl);
+          await updateCustomerIdPhoto(
+            receipt.customer_id,
+            receipt.seller_id_photo_uri
+          );
         } catch {
           // Non-blocking — receipt is already saved
         }
       }
-      if (printAfterSave) {
-        tx.resetForm();
-        navigation.popToTop();
-        navigation.navigate('ReceiptDetail', { receiptId, printOnLoad: true });
-      } else {
-        setSavedReceipt({
-          id: receiptId,
-          total: tx.receiptTotal,
-          customerName: tx.customerName,
-          itemCount: tx.lineItems.length,
+      // Capture the seller before resetting so "Same seller" can re-seed it.
+      const sellerName = tx.customerName;
+      const sellerPhone = tx.customerPhone;
+      tx.resetForm();
+      setSelectedCustomerId(undefined);
+      setStep(0);
+      setSnack({
+        receiptId: receipt.id,
+        receiptNumber: receipt.receipt_number,
+        customerName: sellerName,
+        customerPhone: sellerPhone,
+        customerId: receipt.customer_id,
+      });
+    },
+    [tx]
+  );
+
+  const handleSnackView = useCallback(() => {
+    setSnack((s) => {
+      if (s) {
+        navigation.navigate('ReceiptDetail', {
+          receiptId: s.receiptId,
+          printOnLoad: false,
         });
       }
-    },
-    [printAfterSave, tx, navigation]
-  );
+      return null;
+    });
+  }, [navigation]);
+
+  const handleSnackSameSeller = useCallback(() => {
+    setSnack((s) => {
+      if (s) {
+        tx.setCustomerName(s.customerName);
+        tx.setCustomerPhone(s.customerPhone);
+        setSelectedCustomerId(s.customerId || undefined);
+      }
+      return null;
+    });
+  }, [tx]);
 
   // Offline: the buy was queued locally (the hook already reset the form). Give
   // feedback and return to a fresh ticket — there's no server receipt to view.
@@ -991,7 +1028,8 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 tx.saveReceipt(
                   handleSaveSuccess,
                   selectedCustomerId,
-                  handleSaveQueued
+                  handleSaveQueued,
+                  true
                 );
               }}
               disabled={!canAdvance('review') || tx.saving || !tx.signature}
@@ -1018,7 +1056,8 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 tx.saveReceipt(
                   handleSaveSuccess,
                   selectedCustomerId,
-                  handleSaveQueued
+                  handleSaveQueued,
+                  false
                 );
               }}
               disabled={!canAdvance('review') || tx.saving || !tx.signature}
@@ -1147,6 +1186,16 @@ export default function NewTransactionScreen({ navigation }: Props) {
         visible={tx.showCodeModal}
         onSuccess={tx.approveOverride}
         onCancel={tx.cancelOverride}
+      />
+
+      <Snackbar
+        visible={!!snack}
+        message={snack ? `${t.receiptSavedToast} · ${snack.receiptNumber}` : ''}
+        actions={[
+          { label: t.viewReceipt, onPress: handleSnackView },
+          { label: t.sameSeller, onPress: handleSnackSameSeller },
+        ]}
+        onDismiss={() => setSnack(null)}
       />
     </View>
   );

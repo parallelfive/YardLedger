@@ -157,6 +157,8 @@ export default {
   saveAndPrint: 'Save & Print',
   saveWithoutPrinting: 'Save without printing',
   signToEnable: 'Sign above to enable Save & Print',
+  receiptSavedToast: 'Receipt saved',
+  sameSeller: 'Same seller',
 
   // Add Line Item Modal
   addLineItem: '+ Add Line Item',
