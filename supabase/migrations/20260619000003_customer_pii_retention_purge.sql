@@ -37,7 +37,11 @@ as $$
     c.id,
     array_remove(array[c.dl_photo_uri], null)
   from public.customers c
-  where c.company_id = coalesce(p_company, public.current_company_id())
+  -- A session is locked to its own company; only the no-session caller
+  -- (service-role/cron) may target a company via p_company. Prevents an
+  -- authenticated user enumerating another tenant's customer IDs + private
+  -- DL-photo object paths by passing someone else's company uuid.
+  where c.company_id = coalesce(public.current_company_id(), p_company)
     -- still has regulated ID data to clear (keeps the list idempotent)
     and (coalesce(c.drivers_license, '') <> ''
          or c.dl_photo_uri is not null

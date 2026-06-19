@@ -50,18 +50,58 @@ begin
         'Cannot purge PII before the %-year retention window closes (NM 57-30).',
         v_required;
     end if;
-    -- Redaction must CLEAR identity data, not change it to a new value.
-    if coalesce(new.seller_name, '') <> ''
+    -- Redaction must CLEAR identity data, not change it to a new value. This
+    -- covers EVERY column redact_receipt_pii() clears — a partial list would let
+    -- an unlisted PII field survive a "purge".
+    if coalesce(new.customer_name, '') <> ''
+    or coalesce(new.customer_phone, '') <> ''
+    or coalesce(new.seller_name, '') <> ''
     or coalesce(new.seller_dl_number, '') <> ''
     or coalesce(new.seller_dob, '') <> ''
+    or coalesce(new.seller_state_of_issue, '') <> ''
     or coalesce(new.seller_address, '') <> ''
-    or coalesce(new.customer_name, '') <> ''
+    or coalesce(new.seller_city, '') <> ''
+    or coalesce(new.seller_state, '') <> ''
+    or coalesce(new.seller_zip, '') <> ''
+    or coalesce(new.vehicle_plate, '') <> ''
+    or coalesce(new.transport_vin, '') <> ''
+    or coalesce(new.cat_converter_numbers, '') <> ''
     or new.seller_id_photo_uri is not null
     or new.seller_photo_uri is not null
     or new.material_photo_uri is not null
+    or new.cat_converter_photo_uri is not null
+    or new.cat_title_photo_uri is not null
     or new.signature_uri is not null
     then
       raise exception 'A PII purge may only clear identity fields, not alter them';
+    end if;
+    -- AND it must leave every other (compliance / business) column untouched.
+    -- Without this an admin could piggy-back arbitrary edits (subtotal,
+    -- is_catalytic, payment_method, receipt_number, …) onto the pii_purged_at
+    -- flip and defeat immutability for the whole record.
+    if new.receipt_number      is distinct from old.receipt_number
+    or new.type                is distinct from old.type
+    or new.subtotal            is distinct from old.subtotal
+    or new.worker_id           is distinct from old.worker_id
+    or new.notes               is distinct from old.notes
+    or new.created_at          is distinct from old.created_at
+    or new.customer_id         is distinct from old.customer_id
+    or new.vehicle_description  is distinct from old.vehicle_description
+    or new.seller_affirmed     is distinct from old.seller_affirmed
+    or new.vehicle_year        is distinct from old.vehicle_year
+    or new.vehicle_make        is distinct from old.vehicle_make
+    or new.vehicle_model       is distinct from old.vehicle_model
+    or new.vehicle_color       is distinct from old.vehicle_color
+    or new.company_id          is distinct from old.company_id
+    or new.payment_method      is distinct from old.payment_method
+    or new.is_catalytic        is distinct from old.is_catalytic
+    or new.hold_until          is distinct from old.hold_until
+    or new.disposed_at         is distinct from old.disposed_at
+    or new.reported_at         is distinct from old.reported_at
+    or new.created_by_session  is distinct from old.created_by_session
+    then
+      raise exception
+        'A PII purge may only clear identity fields, not alter other receipt data';
     end if;
     return new;
   end if;
@@ -128,7 +168,11 @@ as $$
   left join public.company_settings cs on cs.company_id = r.company_id
   where r.type = 'buy'
     and r.pii_purged_at is null
-    and r.company_id = coalesce(p_company, public.current_company_id())
+    -- A session is locked to its own company; only the no-session caller
+    -- (service-role/cron) may target a company via p_company. Prevents an
+    -- authenticated user enumerating another tenant's receipt IDs + private
+    -- storage object paths by passing someone else's company uuid.
+    and r.company_id = coalesce(public.current_company_id(), p_company)
     and r.created_at < now() - make_interval(years =>
       case when coalesce(r.is_catalytic, false)
         then coalesce(cs.cat_converter_retention_years, 3)
