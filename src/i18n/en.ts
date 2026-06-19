@@ -639,4 +639,22 @@ export default {
   syncIssuesTitle: 'Some offline items could not sync',
   syncIssuesMsg:
     '{n} queued transaction(s) were rejected on sync and need to be re-entered.',
+  // --- cash drawer ---
+  cashDrawer: 'Cash Drawer',
+  cashDrawerDesc: 'Open the till, track cash out, reconcile at close',
+  drawerOpen: 'Drawer open',
+  openDrawer: 'Open Drawer',
+  openDrawerHint: 'Enter the starting cash in the drawer to begin the shift.',
+  closeDrawer: 'Close Drawer',
+  openingFloat: 'Opening float',
+  cashPaidOut: 'Cash paid out (buys)',
+  expectedInDrawer: 'Expected in drawer',
+  countedCash: 'Counted cash',
+  drawerClosed: 'Drawer closed',
+  balanced: 'Balanced',
+  over: 'over',
+  short: 'short',
+  closeoutHistory: 'Recent closeouts',
+  noCloseouts: 'No closeouts yet',
+  expectedShort: 'expected',
 } as const;

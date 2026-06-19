@@ -17,6 +17,7 @@ import DailySummaryScreen from '../screens/reports/DailySummaryScreen';
 import InventoryValuationScreen from '../screens/reports/InventoryValuationScreen';
 import ProfitabilityScreen from '../screens/reports/ProfitabilityScreen';
 import ShrinkageScreen from '../screens/reports/ShrinkageScreen';
+import CashDrawerScreen from '../screens/reports/CashDrawerScreen';
 import ComplianceReportScreen from '../screens/reports/ComplianceReportScreen';
 import OnHoldScreen from '../screens/reports/OnHoldScreen';
 import ReportingStatusScreen from '../screens/reports/ReportingStatusScreen';
@@ -90,6 +91,7 @@ export type ReportsStackParamList = {
   ComplianceReport: undefined;
   OnHold: undefined;
   ReportingStatus: undefined;
+  CashDrawer: undefined;
 };
 
 export type AdminStackParamList = {
@@ -234,6 +236,11 @@ function ReportsNavigator() {
         name="ReportingStatus"
         component={ReportingStatusScreen}
         options={{ title: t.reportingStatus }}
+      />
+      <ReportsStack.Screen
+        name="CashDrawer"
+        component={CashDrawerScreen}
+        options={{ title: t.cashDrawer }}
       />
     </ReportsStack.Navigator>
   );

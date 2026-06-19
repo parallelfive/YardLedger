@@ -645,4 +645,24 @@ export default {
   syncIssuesTitle: 'Algunos elementos sin conexión no se sincronizaron',
   syncIssuesMsg:
     '{n} transacción(es) en cola fueron rechazadas al sincronizar y deben volver a ingresarse.',
+  // --- cash drawer ---
+  cashDrawer: 'Caja',
+  cashDrawerDesc:
+    'Abre la caja, registra el efectivo pagado y cuadra al cerrar',
+  drawerOpen: 'Caja abierta',
+  openDrawer: 'Abrir caja',
+  openDrawerHint:
+    'Ingresa el efectivo inicial en la caja para comenzar el turno.',
+  closeDrawer: 'Cerrar caja',
+  openingFloat: 'Fondo inicial',
+  cashPaidOut: 'Efectivo pagado (compras)',
+  expectedInDrawer: 'Esperado en caja',
+  countedCash: 'Efectivo contado',
+  drawerClosed: 'Caja cerrada',
+  balanced: 'Cuadrada',
+  over: 'de más',
+  short: 'de menos',
+  closeoutHistory: 'Cierres recientes',
+  noCloseouts: 'Aún no hay cierres',
+  expectedShort: 'esperado',
 } as const;
