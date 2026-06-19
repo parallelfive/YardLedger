@@ -48,16 +48,26 @@ function csvCell(value: unknown): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+// IMPORTANT: keep this column set IN SYNC with the in-app exporter
+// src/services/reports.ts (NMRLD_HEADERS + buildNmrldExportCsv) so the manual
+// export and this automated SFTP upload file the IDENTICAL record.
 const HEADERS = [
+  'nmrld_registration_number',
   'receipt_number',
   'transaction_datetime',
   'seller_name',
+  'seller_dob',
   'seller_address',
+  'seller_city',
+  'seller_state',
+  'seller_zip',
   'seller_dl_number',
   'seller_dl_state',
+  'seller_affirmed_ownership',
   'vehicle_year',
   'vehicle_make',
   'vehicle_model',
+  'vehicle_color',
   'vehicle_plate',
   'transport_vin',
   'material',
@@ -65,25 +75,34 @@ const HEADERS = [
   'amount_paid',
   'payment_method',
   'is_catalytic_converter',
+  'cat_converter_numbers',
+  'hold_until',
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildCsv(rows: any[]): string {
+function buildCsv(rows: any[], registrationNumber: string): string {
   const lines = [HEADERS.join(',')];
   for (const r of rows) {
     const items = r.line_items?.length ? r.line_items : [null];
     for (const li of items) {
       lines.push(
         [
+          registrationNumber,
           r.receipt_number,
           r.created_at,
           r.seller_name,
+          r.seller_dob,
           r.seller_address,
+          r.seller_city,
+          r.seller_state,
+          r.seller_zip,
           r.seller_dl_number,
           r.seller_state_of_issue,
+          r.seller_affirmed ? 'yes' : 'no',
           r.vehicle_year,
           r.vehicle_make,
           r.vehicle_model,
+          r.vehicle_color,
           r.vehicle_plate,
           r.transport_vin,
           li?.metal_name ?? '',
@@ -91,6 +110,8 @@ function buildCsv(rows: any[]): string {
           li ? li.total : r.subtotal,
           r.payment_method,
           r.is_catalytic ? 'yes' : 'no',
+          r.cat_converter_numbers,
+          r.hold_until,
         ]
           .map(csvCell)
           .join(',')
@@ -132,6 +153,14 @@ async function reportCompany(admin: any, companyId: string) {
     return { companyId, status: 'skipped', reason: 'not configured/enabled' };
   }
 
+  // Dealer registration number (identifies us in the state file).
+  const { data: settings } = await admin
+    .from('company_settings')
+    .select('nmrld_registration_number')
+    .eq('company_id', companyId)
+    .maybeSingle();
+  const registration = settings?.nmrld_registration_number ?? '';
+
   // Atomically CLAIM the unreported buys by stamping reported_at as part of the
   // same UPDATE that returns them. A concurrent invocation (cron racing a
   // manual "Send now") running the identical update matches zero already-claimed
@@ -155,7 +184,11 @@ async function reportCompany(admin: any, companyId: string) {
   const fileName = `yardledger_${companyId}_${stamp}.csv`;
 
   try {
-    await uploadViaSftp(cfg as ReportingConfig, fileName, buildCsv(rows));
+    await uploadViaSftp(
+      cfg as ReportingConfig,
+      fileName,
+      buildCsv(rows, registration)
+    );
   } catch (e) {
     // Upload failed — release the claim so these rows are retried next run.
     await admin.from('receipts').update({ reported_at: null }).in('id', ids);

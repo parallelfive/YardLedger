@@ -25,6 +25,7 @@ import DateRangeSelector, {
 import {
   fetchComplianceReport,
   buildNmrldExportCsv,
+  fetchNmrldRegistrationNumber,
   fetchUnreportedReceipts,
   markReceiptsReported,
   type ComplianceReceiptRow,
@@ -33,6 +34,7 @@ import { Tag, SectionLabel, fmtMoney, fmtLbs } from '../../components/foundry';
 import { TareHeader } from '../../components';
 import { fetchCompanySettings } from '../../services/companySettings';
 import { stateName } from '../../utils';
+import { isReportOverdue } from '../../utils/businessDays';
 import {
   type Palette,
   spacing,
@@ -48,7 +50,7 @@ const isRestricted = (r: ComplianceReceiptRow) =>
   !!r.is_catalytic || (r.line_items ?? []).some((li) => li.is_restricted);
 
 async function shareCsv(rows: ComplianceReceiptRow[], name: string) {
-  const csv = buildNmrldExportCsv(rows);
+  const csv = buildNmrldExportCsv(rows, await fetchNmrldRegistrationNumber());
   const file = new File(Paths.cache, name);
   file.write(csv);
   // These CSVs contain regulated seller PII (DL #, address, VIN). Purge the
@@ -108,6 +110,9 @@ export default function ReportsListScreen({ navigation }: Props) {
 
   const restrictedCount = rows.filter(isRestricted).length;
   const unreportedCount = rows.filter((r) => !r.reported_at).length;
+  const overdueCount = rows.filter(
+    (r) => !r.reported_at && isReportOverdue(r.created_at)
+  ).length;
 
   const handleStateUpload = async () => {
     try {
@@ -190,12 +195,18 @@ export default function ReportsListScreen({ navigation }: Props) {
         {/* Deadline strip */}
         {unreportedCount > 0 && (
           <View style={styles.deadline}>
-            <Ionicons name="time-outline" size={17} color={colors.rust} />
+            <Ionicons
+              name={overdueCount > 0 ? 'alert-circle' : 'time-outline'}
+              size={17}
+              color={colors.rust}
+            />
             <Text style={styles.deadlineText}>
               <Text style={styles.deadlineStrong}>
-                {unreportedCount} {t.statUnreported.toLowerCase()}
+                {overdueCount > 0
+                  ? `${overdueCount} ${t.overdueCount}`
+                  : `${unreportedCount} ${t.statUnreported.toLowerCase()}`}
               </Text>{' '}
-              · {t.unreportedDeadline}
+              · {overdueCount > 0 ? t.overdueStrip : t.unreportedDeadline}
             </Text>
           </View>
         )}

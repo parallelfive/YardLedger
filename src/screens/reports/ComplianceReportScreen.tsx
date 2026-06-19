@@ -21,6 +21,7 @@ import {
   exportNmrldCsv,
   fetchUnreportedReceipts,
   buildNmrldExportCsv,
+  fetchNmrldRegistrationNumber,
   markReceiptsReported,
 } from '../../services/reports';
 import { fetchCompanySettings } from '../../services/companySettings';
@@ -268,12 +269,15 @@ export default function ComplianceReportScreen() {
   // until the automated SFTP job is wired up.
   const handleReportUnreported = async () => {
     try {
-      const unreported = await fetchUnreportedReceipts();
+      const [unreported, registration] = await Promise.all([
+        fetchUnreportedReceipts(),
+        fetchNmrldRegistrationNumber(),
+      ]);
       if (unreported.length === 0) {
         Alert.alert(t.nmrldExport, t.noUnreported);
         return;
       }
-      const csv = buildNmrldExportCsv(unreported);
+      const csv = buildNmrldExportCsv(unreported, registration);
       const file = new File(Paths.cache, 'nmrld_unreported.csv');
       file.write(csv);
       await Sharing.shareAsync(file.uri, {

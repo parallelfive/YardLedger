@@ -657,4 +657,7 @@ export default {
   closeoutHistory: 'Recent closeouts',
   noCloseouts: 'No closeouts yet',
   expectedShort: 'expected',
+  // --- state-report overdue ---
+  overdueCount: 'overdue',
+  overdueStrip: 'past the 2-business-day state deadline',
 } as const;

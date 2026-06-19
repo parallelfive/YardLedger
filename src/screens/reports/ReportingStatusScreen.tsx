@@ -16,6 +16,7 @@ import {
   fetchReportingStatus,
   fetchUnreportedReceipts,
   buildNmrldExportCsv,
+  fetchNmrldRegistrationNumber,
   markReceiptsReported,
   type ReportingStatus,
 } from '../../services/reports';
@@ -42,7 +43,12 @@ export default function ReportingStatusScreen() {
     try {
       setStatus(await fetchReportingStatus());
     } catch {
-      setStatus({ pending: 0, lastUpload: null });
+      setStatus({
+        pending: 0,
+        overdue: 0,
+        oldestUnreportedAt: null,
+        lastUpload: null,
+      });
     } finally {
       setLoading(false);
     }
@@ -55,12 +61,15 @@ export default function ReportingStatusScreen() {
   const handleExport = async () => {
     setSending(true);
     try {
-      const unreported = await fetchUnreportedReceipts();
+      const [unreported, registration] = await Promise.all([
+        fetchUnreportedReceipts(),
+        fetchNmrldRegistrationNumber(),
+      ]);
       if (unreported.length === 0) {
         Alert.alert(t.stateReporting, t.noUnreported);
         return;
       }
-      const csv = buildNmrldExportCsv(unreported);
+      const csv = buildNmrldExportCsv(unreported, registration);
       const file = new File(Paths.cache, 'nmrld_unreported.csv');
       file.write(csv);
       await Sharing.shareAsync(file.uri, {
@@ -135,6 +144,15 @@ export default function ReportingStatusScreen() {
         />
       </View>
 
+      {status.overdue > 0 && (
+        <View style={styles.overdueStrip}>
+          <Ionicons name="alert-circle" size={18} color={colors.accentInk} />
+          <Text style={styles.overdueText}>
+            {status.overdue} {t.overdueCount} · {t.overdueStrip}
+          </Text>
+        </View>
+      )}
+
       <Text style={styles.note}>{t.reportDeadlineNote}</Text>
 
       {status.pending > 0 && (
@@ -187,6 +205,23 @@ const makeStyles = (colors: Palette) =>
       paddingHorizontal: spacing.lg,
       marginBottom: spacing.lg,
       lineHeight: 19,
+    },
+    overdueStrip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.rust,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: 10,
+    },
+    overdueText: {
+      color: colors.accentInk,
+      fontSize: 13,
+      fontFamily: fonts.sansSemiBold,
+      flex: 1,
     },
     button: {
       flexDirection: 'row',

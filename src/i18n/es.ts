@@ -665,4 +665,7 @@ export default {
   closeoutHistory: 'Cierres recientes',
   noCloseouts: 'Aún no hay cierres',
   expectedShort: 'esperado',
+  // --- state-report overdue ---
+  overdueCount: 'atrasados',
+  overdueStrip: 'fuera del plazo estatal de 2 días hábiles',
 } as const;
