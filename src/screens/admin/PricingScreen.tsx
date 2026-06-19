@@ -155,6 +155,15 @@ export default function PricingScreen() {
     setPriceHistory([]);
   };
 
+  // The edit/add form is itself a Modal; iOS can't present the elevation PIN
+  // Modal on top of it, so close this modal and let it finish dismissing before
+  // prompting. Values are captured first since closeModal() clears form state.
+  const dismissThenElevate = async (requireOwner = false): Promise<boolean> => {
+    closeModal();
+    await new Promise((r) => setTimeout(r, 350));
+    return ensureElevated(requireOwner);
+  };
+
   const handleSaveEdit = async () => {
     if (!editingMetal || !profile) return;
 
@@ -180,28 +189,27 @@ export default function PricingScreen() {
       return;
     }
 
-    if (!(await ensureElevated())) return;
+    // Capture before closing the modal (closeModal clears editingMetal/form).
+    const metalId = editingMetal.id;
+    const oldPrice = editingMetal.price_per_lb;
+    const userId = profile.id;
+    const updates: {
+      name?: string;
+      price_per_lb?: number;
+      is_restricted?: boolean;
+    } = {};
+    if (nameChanged) updates.name = trimmedName;
+    if (priceChanged) updates.price_per_lb = price;
+    if (restrictedChanged) updates.is_restricted = nextRestricted;
+
+    if (!(await dismissThenElevate())) return;
     setSaving(true);
     try {
-      const updates: {
-        name?: string;
-        price_per_lb?: number;
-        is_restricted?: boolean;
-      } = {};
-      if (nameChanged) updates.name = trimmedName;
-      if (priceChanged) updates.price_per_lb = price;
-      if (restrictedChanged) updates.is_restricted = nextRestricted;
-      await updateMetal(editingMetal.id, updates, profile.id);
+      await updateMetal(metalId, updates, userId);
       if (priceChanged) {
-        await logPriceChange(
-          editingMetal.id,
-          editingMetal.price_per_lb,
-          price,
-          profile.id
-        );
+        await logPriceChange(metalId, oldPrice, price, userId);
       }
       Alert.alert(t.success, t.metalUpdated);
-      closeModal();
       loadData();
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
@@ -225,12 +233,12 @@ export default function PricingScreen() {
       return;
     }
 
-    if (!(await ensureElevated())) return;
+    const categoryId = selectedCategoryId;
+    if (!(await dismissThenElevate())) return;
     setSaving(true);
     try {
-      await createMetal(trimmedName, price, selectedCategoryId);
+      await createMetal(trimmedName, price, categoryId);
       Alert.alert(t.success, t.metalAdded);
-      closeModal();
       loadData();
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
@@ -241,18 +249,18 @@ export default function PricingScreen() {
 
   const handleRemove = () => {
     if (!editingMetal) return;
+    const metalId = editingMetal.id;
     Alert.alert(t.removeMetal, t.removeMetalConfirm, [
       { text: t.cancel, style: 'cancel' },
       {
         text: t.delete,
         style: 'destructive',
         onPress: async () => {
-          if (!(await ensureElevated())) return;
+          if (!(await dismissThenElevate())) return;
           setSaving(true);
           try {
-            await deactivateMetal(editingMetal.id);
+            await deactivateMetal(metalId);
             Alert.alert(t.success, t.metalRemoved);
-            closeModal();
             loadData();
           } catch (err) {
             Alert.alert(t.error, (err as Error).message);
