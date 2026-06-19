@@ -11,3 +11,4 @@ export { useCurrentCompany } from './useCurrentCompany';
 export { useInviteCodes } from './useInviteCodes';
 export { useCustomers } from './useCustomers';
 export { useRole } from './useRole';
+export { useResponsive } from './useResponsive';

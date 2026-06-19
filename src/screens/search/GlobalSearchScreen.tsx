@@ -17,6 +17,7 @@ import { searchReceipts, type ReceiptSearchRow } from '../../services/receipts';
 import { searchCustomers, type Customer } from '../../services/customers';
 import { fetchMetals } from '../../services/metals';
 import { SectionLabel, fmtMoney } from '../../components/foundry';
+import { ResponsiveContainer } from '../../components';
 import { useT } from '../../hooks/useT';
 import { useTheme, useThemedStyles } from '../../theme';
 import { spacing, fonts, type Palette } from '../../constants';
@@ -116,125 +117,130 @@ export default function GlobalSearchScreen() {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        {receipts.length > 0 && (
-          <>
-            <SectionLabel>{t.receipts}</SectionLabel>
-            {receipts.map((r) => (
-              <TouchableOpacity
-                key={r.id}
-                style={styles.row}
-                onPress={() => {
-                  nav.goBack();
-                  nav.navigate('ReceiptDetail', { receiptId: r.id });
-                }}
-              >
-                <View
-                  style={[
-                    styles.rowIcon,
-                    { backgroundColor: colors.accentMuted },
-                  ]}
+        <ResponsiveContainer maxWidth={640}>
+          {receipts.length > 0 && (
+            <>
+              <SectionLabel>{t.receipts}</SectionLabel>
+              {receipts.map((r) => (
+                <TouchableOpacity
+                  key={r.id}
+                  style={styles.row}
+                  onPress={() => {
+                    nav.goBack();
+                    nav.navigate('ReceiptDetail', { receiptId: r.id });
+                  }}
                 >
-                  <Ionicons
-                    name="receipt-outline"
-                    size={18}
-                    color={colors.accent}
-                  />
-                </View>
-                <View style={styles.flex}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {r.customer_name}
+                  <View
+                    style={[
+                      styles.rowIcon,
+                      { backgroundColor: colors.accentMuted },
+                    ]}
+                  >
+                    <Ionicons
+                      name="receipt-outline"
+                      size={18}
+                      color={colors.accent}
+                    />
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.rowTitle} numberOfLines={1}>
+                      {r.customer_name}
+                    </Text>
+                    <Text style={styles.rowMeta}>{r.receipt_number}</Text>
+                  </View>
+                  <Text style={styles.rowRight}>
+                    {fmtMoney(Number(r.subtotal))}
                   </Text>
-                  <Text style={styles.rowMeta}>{r.receipt_number}</Text>
-                </View>
-                <Text style={styles.rowRight}>
-                  {fmtMoney(Number(r.subtotal))}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
 
-        {customers.length > 0 && (
-          <>
-            <SectionLabel>{t.customers}</SectionLabel>
-            {customers.map((c) => (
-              <TouchableOpacity
-                key={c.id}
-                style={styles.row}
-                onPress={() => {
-                  nav.goBack();
-                  nav.navigate('CustomersTab', {
-                    screen: 'CustomerProfile',
-                    params: { customerId: c.id },
-                  });
-                }}
-              >
-                <View
-                  style={[
-                    styles.rowIcon,
-                    { backgroundColor: colors.teal + '24' },
-                  ]}
+          {customers.length > 0 && (
+            <>
+              <SectionLabel>{t.customers}</SectionLabel>
+              {customers.map((c) => (
+                <TouchableOpacity
+                  key={c.id}
+                  style={styles.row}
+                  onPress={() => {
+                    nav.goBack();
+                    nav.navigate('CustomersTab', {
+                      screen: 'CustomerProfile',
+                      params: { customerId: c.id },
+                    });
+                  }}
                 >
-                  <Ionicons
-                    name="person-outline"
-                    size={18}
-                    color={colors.teal}
-                  />
-                </View>
-                <View style={styles.flex}>
-                  <Text style={styles.rowTitle} numberOfLines={1}>
-                    {c.name}
-                  </Text>
-                  {c.phone ? (
-                    <Text style={styles.rowMeta}>{c.phone}</Text>
+                  <View
+                    style={[
+                      styles.rowIcon,
+                      { backgroundColor: colors.teal + '24' },
+                    ]}
+                  >
+                    <Ionicons
+                      name="person-outline"
+                      size={18}
+                      color={colors.teal}
+                    />
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.rowTitle} numberOfLines={1}>
+                      {c.name}
+                    </Text>
+                    {c.phone ? (
+                      <Text style={styles.rowMeta}>{c.phone}</Text>
+                    ) : null}
+                  </View>
+                  {c.is_flagged ? (
+                    <Ionicons name="flag" size={16} color={colors.rust} />
                   ) : null}
-                </View>
-                {c.is_flagged ? (
-                  <Ionicons name="flag" size={16} color={colors.rust} />
-                ) : null}
-              </TouchableOpacity>
-            ))}
-          </>
-        )}
+                </TouchableOpacity>
+              ))}
+            </>
+          )}
 
-        {metals.length > 0 && (
-          <>
-            <SectionLabel>{t.metalsWord}</SectionLabel>
-            {metals.map((m) => (
-              <View key={m.id} style={styles.row}>
-                <View
-                  style={[
-                    styles.rowIcon,
-                    { backgroundColor: colors.gold + '24' },
-                  ]}
-                >
-                  <Ionicons
-                    name="layers-outline"
-                    size={18}
-                    color={colors.gold}
-                  />
+          {metals.length > 0 && (
+            <>
+              <SectionLabel>{t.metalsWord}</SectionLabel>
+              {metals.map((m) => (
+                <View key={m.id} style={styles.row}>
+                  <View
+                    style={[
+                      styles.rowIcon,
+                      { backgroundColor: colors.gold + '24' },
+                    ]}
+                  >
+                    <Ionicons
+                      name="layers-outline"
+                      size={18}
+                      color={colors.gold}
+                    />
+                  </View>
+                  <Text
+                    style={[styles.rowTitle, styles.flex]}
+                    numberOfLines={1}
+                  >
+                    {m.name}
+                  </Text>
+                  <Text style={styles.rowRight}>
+                    {fmtMoney(Number(m.price_per_lb))}/lb
+                  </Text>
                 </View>
-                <Text style={[styles.rowTitle, styles.flex]} numberOfLines={1}>
-                  {m.name}
-                </Text>
-                <Text style={styles.rowRight}>
-                  {fmtMoney(Number(m.price_per_lb))}/lb
-                </Text>
-              </View>
-            ))}
-          </>
-        )}
+              ))}
+            </>
+          )}
 
-        {empty ? (
-          <View style={styles.emptyWrap}>
-            <Ionicons
-              name="search-outline"
-              size={36}
-              color={colors.textTertiary}
-            />
-            <Text style={styles.emptyText}>{t.noResults}</Text>
-          </View>
-        ) : null}
+          {empty ? (
+            <View style={styles.emptyWrap}>
+              <Ionicons
+                name="search-outline"
+                size={36}
+                color={colors.textTertiary}
+              />
+              <Text style={styles.emptyText}>{t.noResults}</Text>
+            </View>
+          ) : null}
+        </ResponsiveContainer>
       </ScrollView>
     </View>
   );

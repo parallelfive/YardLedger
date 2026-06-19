@@ -13,6 +13,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/AuthNavigator';
+import { ResponsiveContainer } from '../../components';
 import { useAppDispatch } from '../../store';
 import { signUp } from '../../store/authStore';
 import { useT } from '../../hooks/useT';
@@ -82,118 +83,123 @@ export default function RegisterScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Brand */}
-        <View style={styles.brand}>
-          <View style={styles.logoWrap}>
-            <Ionicons
-              name="person-add-outline"
-              size={24}
-              color={colors.accent}
-            />
-          </View>
-          <Text style={styles.eyebrow}>{t.appName}</Text>
-          <Text style={styles.title}>{t.createAccount}</Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.formCard}>
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>{t.email}</Text>
-            <TextInput
-              style={[styles.input, focused === 'email' && styles.inputFocused]}
-              placeholder={t.email}
-              placeholderTextColor={colors.textTertiary}
-              value={email}
-              onChangeText={setEmail}
-              onFocus={() => setFocused('email')}
-              onBlur={() => setFocused(null)}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-            />
+        <ResponsiveContainer maxWidth={420}>
+          {/* Brand */}
+          <View style={styles.brand}>
+            <View style={styles.logoWrap}>
+              <Ionicons
+                name="person-add-outline"
+                size={24}
+                color={colors.accent}
+              />
+            </View>
+            <Text style={styles.eyebrow}>{t.appName}</Text>
+            <Text style={styles.title}>{t.createAccount}</Text>
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>{t.password}</Text>
-            <TextInput
-              style={[
-                styles.input,
-                focused === 'password' && styles.inputFocused,
-              ]}
-              placeholder={t.password}
-              placeholderTextColor={colors.textTertiary}
-              value={password}
-              onChangeText={setPassword}
-              onFocus={() => setFocused('password')}
-              onBlur={() => setFocused(null)}
-              secureTextEntry
-            />
+          {/* Form */}
+          <View style={styles.formCard}>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>{t.email}</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  focused === 'email' && styles.inputFocused,
+                ]}
+                placeholder={t.email}
+                placeholderTextColor={colors.textTertiary}
+                value={email}
+                onChangeText={setEmail}
+                onFocus={() => setFocused('email')}
+                onBlur={() => setFocused(null)}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>{t.password}</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  focused === 'password' && styles.inputFocused,
+                ]}
+                placeholder={t.password}
+                placeholderTextColor={colors.textTertiary}
+                value={password}
+                onChangeText={setPassword}
+                onFocus={() => setFocused('password')}
+                onBlur={() => setFocused(null)}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>{t.confirmPassword}</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  focused === 'confirm' && styles.inputFocused,
+                ]}
+                placeholder={t.confirmPassword}
+                placeholderTextColor={colors.textTertiary}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                onFocus={() => setFocused('confirm')}
+                onBlur={() => setFocused(null)}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={[styles.field, { marginBottom: 0 }]}>
+              <Text style={styles.fieldLabel}>{t.inviteCode}</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.inputCode,
+                  focused === 'code' && styles.inputFocused,
+                ]}
+                placeholder={t.inviteCode}
+                placeholderTextColor={colors.textTertiary}
+                value={inviteCode}
+                onChangeText={setInviteCode}
+                onFocus={() => setFocused('code')}
+                onBlur={() => setFocused(null)}
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={8}
+              />
+            </View>
           </View>
 
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>{t.confirmPassword}</Text>
-            <TextInput
-              style={[
-                styles.input,
-                focused === 'confirm' && styles.inputFocused,
-              ]}
-              placeholder={t.confirmPassword}
-              placeholderTextColor={colors.textTertiary}
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              onFocus={() => setFocused('confirm')}
-              onBlur={() => setFocused(null)}
-              secureTextEntry
-            />
-          </View>
+          {/* Submit */}
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleRegister}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? t.creatingAccount : t.register}
+            </Text>
+            {!loading && (
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.accentInk}
+              />
+            )}
+          </TouchableOpacity>
 
-          <View style={[styles.field, { marginBottom: 0 }]}>
-            <Text style={styles.fieldLabel}>{t.inviteCode}</Text>
-            <TextInput
-              style={[
-                styles.input,
-                styles.inputCode,
-                focused === 'code' && styles.inputFocused,
-              ]}
-              placeholder={t.inviteCode}
-              placeholderTextColor={colors.textTertiary}
-              value={inviteCode}
-              onChangeText={setInviteCode}
-              onFocus={() => setFocused('code')}
-              onBlur={() => setFocused(null)}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              maxLength={8}
-            />
-          </View>
-        </View>
-
-        {/* Submit */}
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleRegister}
-          disabled={loading}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? t.creatingAccount : t.register}
-          </Text>
-          {!loading && (
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={colors.accentInk}
-            />
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.linkWrap}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.linkText}>{t.alreadyHaveAccount}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.linkWrap}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.linkText}>{t.alreadyHaveAccount}</Text>
+          </TouchableOpacity>
+        </ResponsiveContainer>
       </ScrollView>
     </KeyboardAvoidingView>
   );

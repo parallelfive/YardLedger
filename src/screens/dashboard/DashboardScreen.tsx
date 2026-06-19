@@ -10,7 +10,7 @@ import {
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { Ionicons } from '@expo/vector-icons';
-import { TareHeader } from '../../components';
+import { TareHeader, ResponsiveContainer } from '../../components';
 import {
   fetchDailySummary,
   fetchInventoryValuation,
@@ -169,156 +169,160 @@ export default function DashboardScreen() {
         style={styles.container}
         contentContainerStyle={styles.content}
       >
-        {/* Hero — bought today */}
-        <View style={styles.hero}>
-          <View style={styles.heroHead}>
-            <Text style={styles.eyebrow}>{t.boughtToday}</Text>
-            {deltaPct !== 0 ? (
-              <DeltaTag up={deltaPct > 0}>
-                {`${Math.abs(deltaPct)}% ${t.vsAvg}`}
-              </DeltaTag>
-            ) : null}
-          </View>
-          <Text style={styles.heroValue}>
-            {fmtMoney0(boughtWhole)}
-            <Text style={styles.heroCents}>.{cents}</Text>
-          </Text>
-          <Text style={styles.heroSub}>
-            {fmtLbs(summary?.totalBoughtWeight ?? 0)} lb ·{' '}
-            {summary?.receiptCount ?? 0} {t.receipts.toLowerCase()}
-          </Text>
-          <View style={{ marginTop: 14 }}>
-            <Sparkline data={spark} />
-          </View>
-        </View>
-
-        {/* Mini stats */}
-        <View style={styles.statRow}>
-          <MiniStat
-            label={t.soldToday}
-            value={fmtMoney0(summary?.totalSoldRevenue ?? 0)}
-            sub={`${fmtLbs(summary?.totalSoldWeight ?? 0)} ${t.lbOut}`}
-            tone="steel"
-            icon="cube-outline"
-          />
-          <MiniStat
-            label={t.grossProfit}
-            value={fmtMoney0(summary?.grossProfit ?? 0)}
-            sub={`${margin}% ${t.margin.toLowerCase()}`}
-            tone="moss"
-            icon="trending-up-outline"
-          />
-          <MiniStat
-            label={t.onHandValue}
-            value={fmtMoney0(onHand.value)}
-            sub={`${onHand.count} ${t.metals}`}
-            tone="copper"
-            icon="layers-outline"
-          />
-        </View>
-
-        {/* Compliance strip — only managers can reach the Reports tab it links to */}
-        {isAdmin && unreported > 0 && (
-          <TouchableOpacity
-            style={styles.compliance}
-            activeOpacity={0.7}
-            onPress={() =>
-              navigation.navigate('ReportsTab', { screen: 'ComplianceReport' })
-            }
-          >
-            <View style={styles.complianceIcon}>
-              <Ionicons name="shield-outline" size={19} color={colors.rust} />
+        <ResponsiveContainer maxWidth={640}>
+          {/* Hero — bought today */}
+          <View style={styles.hero}>
+            <View style={styles.heroHead}>
+              <Text style={styles.eyebrow}>{t.boughtToday}</Text>
+              {deltaPct !== 0 ? (
+                <DeltaTag up={deltaPct > 0}>
+                  {`${Math.abs(deltaPct)}% ${t.vsAvg}`}
+                </DeltaTag>
+              ) : null}
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.complianceTitle}>
-                {unreported} {t.awaitingReport}
-              </Text>
-              <Text style={styles.complianceSub}>{t.recycledMetalsAct}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.rust} />
-          </TouchableOpacity>
-        )}
-
-        {/* Quick actions */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.action, styles.actionPrimary]}
-            activeOpacity={0.85}
-            onPress={() =>
-              navigation.navigate('TransactionsTab', {
-                screen: 'NewTransaction',
-              })
-            }
-          >
-            <Ionicons name="add" size={22} color={colors.accentInk} />
-            <Text style={[styles.actionLabel, { color: colors.accentInk }]}>
-              {t.newBuy}
+            <Text style={styles.heroValue}>
+              {fmtMoney0(boughtWhole)}
+              <Text style={styles.heroCents}>.{cents}</Text>
             </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.action}
-            activeOpacity={0.85}
-            onPress={() =>
-              navigation.navigate('SalesTab', { screen: 'NewSale' })
-            }
-          >
-            <Ionicons name="cube-outline" size={22} color={colors.teal} />
-            <Text style={styles.actionLabel}>{t.newSale}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.action}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate('Inventory')}
-          >
-            <Ionicons
-              name="layers-outline"
-              size={22}
-              color={colors.textSecondary}
-            />
-            <Text style={styles.actionLabel}>{t.stock}</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Metal mix */}
-        {mix.length > 0 && (
-          <View style={styles.mixCard}>
-            <View style={styles.mixHead}>
-              <Text style={styles.mixTitle}>{t.metalMix}</Text>
-              <Text style={styles.mixSub}>{t.onHandByWeight}</Text>
+            <Text style={styles.heroSub}>
+              {fmtLbs(summary?.totalBoughtWeight ?? 0)} lb ·{' '}
+              {summary?.receiptCount ?? 0} {t.receipts.toLowerCase()}
+            </Text>
+            <View style={{ marginTop: 14 }}>
+              <Sparkline data={spark} />
             </View>
-            <MetalMixBar data={mix} />
           </View>
-        )}
 
-        {/* Recent intake */}
-        {recent.length > 0 && (
-          <>
-            <SectionLabel
-              actionLabel={t.viewAll}
-              onAction={() => navigation.navigate('TransactionsTab')}
+          {/* Mini stats */}
+          <View style={styles.statRow}>
+            <MiniStat
+              label={t.soldToday}
+              value={fmtMoney0(summary?.totalSoldRevenue ?? 0)}
+              sub={`${fmtLbs(summary?.totalSoldWeight ?? 0)} ${t.lbOut}`}
+              tone="steel"
+              icon="cube-outline"
+            />
+            <MiniStat
+              label={t.grossProfit}
+              value={fmtMoney0(summary?.grossProfit ?? 0)}
+              sub={`${margin}% ${t.margin.toLowerCase()}`}
+              tone="moss"
+              icon="trending-up-outline"
+            />
+            <MiniStat
+              label={t.onHandValue}
+              value={fmtMoney0(onHand.value)}
+              sub={`${onHand.count} ${t.metals}`}
+              tone="copper"
+              icon="layers-outline"
+            />
+          </View>
+
+          {/* Compliance strip — only managers can reach the Reports tab it links to */}
+          {isAdmin && unreported > 0 && (
+            <TouchableOpacity
+              style={styles.compliance}
+              activeOpacity={0.7}
+              onPress={() =>
+                navigation.navigate('ReportsTab', {
+                  screen: 'ComplianceReport',
+                })
+              }
             >
-              {t.recentIntake}
-            </SectionLabel>
-            <View style={styles.ticketList}>
-              {recent.map((r) => (
-                <TicketRow
-                  key={r.id}
-                  customer={r.customer}
-                  meta={r.meta}
-                  total={r.total}
-                  sub={r.sub}
-                  restricted={r.restricted}
-                  onPress={() =>
-                    navigation.navigate('TransactionsTab', {
-                      screen: 'ReceiptDetail',
-                      params: { receiptId: r.id },
-                    })
-                  }
-                />
-              ))}
+              <View style={styles.complianceIcon}>
+                <Ionicons name="shield-outline" size={19} color={colors.rust} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.complianceTitle}>
+                  {unreported} {t.awaitingReport}
+                </Text>
+                <Text style={styles.complianceSub}>{t.recycledMetalsAct}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.rust} />
+            </TouchableOpacity>
+          )}
+
+          {/* Quick actions */}
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={[styles.action, styles.actionPrimary]}
+              activeOpacity={0.85}
+              onPress={() =>
+                navigation.navigate('TransactionsTab', {
+                  screen: 'NewTransaction',
+                })
+              }
+            >
+              <Ionicons name="add" size={22} color={colors.accentInk} />
+              <Text style={[styles.actionLabel, { color: colors.accentInk }]}>
+                {t.newBuy}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.action}
+              activeOpacity={0.85}
+              onPress={() =>
+                navigation.navigate('SalesTab', { screen: 'NewSale' })
+              }
+            >
+              <Ionicons name="cube-outline" size={22} color={colors.teal} />
+              <Text style={styles.actionLabel}>{t.newSale}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.action}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('Inventory')}
+            >
+              <Ionicons
+                name="layers-outline"
+                size={22}
+                color={colors.textSecondary}
+              />
+              <Text style={styles.actionLabel}>{t.stock}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Metal mix */}
+          {mix.length > 0 && (
+            <View style={styles.mixCard}>
+              <View style={styles.mixHead}>
+                <Text style={styles.mixTitle}>{t.metalMix}</Text>
+                <Text style={styles.mixSub}>{t.onHandByWeight}</Text>
+              </View>
+              <MetalMixBar data={mix} />
             </View>
-          </>
-        )}
+          )}
+
+          {/* Recent intake */}
+          {recent.length > 0 && (
+            <>
+              <SectionLabel
+                actionLabel={t.viewAll}
+                onAction={() => navigation.navigate('TransactionsTab')}
+              >
+                {t.recentIntake}
+              </SectionLabel>
+              <View style={styles.ticketList}>
+                {recent.map((r) => (
+                  <TicketRow
+                    key={r.id}
+                    customer={r.customer}
+                    meta={r.meta}
+                    total={r.total}
+                    sub={r.sub}
+                    restricted={r.restricted}
+                    onPress={() =>
+                      navigation.navigate('TransactionsTab', {
+                        screen: 'ReceiptDetail',
+                        params: { receiptId: r.id },
+                      })
+                    }
+                  />
+                ))}
+              </View>
+            </>
+          )}
+        </ResponsiveContainer>
       </ScrollView>
     </View>
   );

@@ -5,6 +5,7 @@ import type { SalesStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useResponsive } from '../../hooks';
 import { useSales } from '../../hooks/useSales';
 import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { DateRangeSelector } from '../../components';
@@ -35,6 +36,7 @@ export default function SalesScreen({ navigation }: Props) {
   const { t } = useT();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { isWide } = useResponsive();
   const [preset, setPreset] = useState<DatePreset>('month');
   const { start, end } = getDateRange(preset);
   const { sales, loading, error, refresh } = useSales(start, end);
@@ -72,7 +74,10 @@ export default function SalesScreen({ navigation }: Props) {
             tintColor={colors.accent}
           />
         }
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' },
+        ]}
         ListHeaderComponent={
           <>
             <DateRangeSelector selected={preset} onSelect={setPreset} />

@@ -19,7 +19,7 @@ import {
   deleteReceipt,
   markReceiptDisposed,
 } from '../../services/receipts';
-import { SignedImage } from '../../components';
+import { SignedImage, ResponsiveContainer } from '../../components';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { Tag, fmtMoney, fmtLbs } from '../../components/foundry';
 import { printReceipt, shareReceipt } from '../../utils/printReceipt';
@@ -234,368 +234,379 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
           { paddingTop: insets.top + spacing.lg },
         ]}
       >
-        {/* Centered big total + receipt number + customer · time */}
-        <View style={styles.heroBlock}>
-          <Text style={styles.heroNo}>{receipt.receipt_number}</Text>
-          <Text style={styles.heroTotal}>{fmtMoney(receipt.subtotal)}</Text>
-          <Text style={styles.heroMeta}>
-            {receipt.customer_name} · {time}
-          </Text>
-        </View>
-
-        {/* Restricted reporting notice */}
-        {restricted ? (
-          <View style={styles.restrictedNotice}>
-            <Ionicons name="shield-outline" size={18} color={colors.rust} />
-            <Text style={styles.noticeText}>
-              {reported ? t.reportedToState : t.awaitingStateReport}
+        <ResponsiveContainer maxWidth={640}>
+          {/* Centered big total + receipt number + customer · time */}
+          <View style={styles.heroBlock}>
+            <Text style={styles.heroNo}>{receipt.receipt_number}</Text>
+            <Text style={styles.heroTotal}>{fmtMoney(receipt.subtotal)}</Text>
+            <Text style={styles.heroMeta}>
+              {receipt.customer_name} · {time}
             </Text>
-            <Tag
-              label={reported ? t.sent : t.queued}
-              color={reported ? colors.moss : colors.gold}
-              soft={reported ? 'rgba(93, 122, 78, 0.16)' : colors.gold + '26'}
-            />
           </View>
-        ) : null}
 
-        {/* Hold notice (24h / 60-day) with held tag */}
-        {holdActive ? (
-          <View style={styles.holdNotice}>
-            <Ionicons name="time-outline" size={18} color={colors.gold} />
-            <Text style={styles.noticeText}>
-              {longHold ? t.disposalHold60 : t.hold24}
-              {heldUntilText ? ` · ${t.holdUntil} ${heldUntilText}` : ''}
-            </Text>
-            <Tag
-              label={t.held}
-              color={colors.gold}
-              soft={colors.gold + '26'}
-              icon="lock-closed"
-            />
-          </View>
-        ) : null}
-
-        {receipt.disposed_at ? (
-          <View style={styles.holdNotice}>
-            <Ionicons
-              name="checkmark-done-outline"
-              size={18}
-              color={colors.moss}
-            />
-            <Text style={styles.noticeText}>{t.disposed}</Text>
-          </View>
-        ) : null}
-
-        {/* Bordered detail table */}
-        <View style={styles.detailTable}>
-          <DetailRow label={t.weightLb} value={`${fmtLbs(totalWeight)} lb`} />
-          <DetailRow label={t.items} value={String(lineItems.length)} />
-          <DetailRow label={t.paymentMethodLabel} value={paymentLabel} />
-          <DetailRow
-            label={t.retention}
-            value={longHold ? t.retention3 : t.retention1}
-          />
-          <DetailRow label={t.worker} value={receipt.seller_name || '—'} last />
-        </View>
-
-        {/* Line items */}
-        <Section title={`${t.items} (${lineItems.length})`}>
-          {lineItems.map((item, index) => (
-            <View key={item.id ?? index} style={styles.lineItem}>
-              <View style={styles.lineItemLeft}>
-                <View style={styles.lineItemHeader}>
-                  <Text style={styles.metalName}>{item.metal_name}</Text>
-                  {item.is_price_override && (
-                    <View style={styles.overrideBadge}>
-                      <Text style={styles.overrideBadgeText}>
-                        {t.priceOverride}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-                {item.gross_weight != null && item.tare_weight != null ? (
-                  <>
-                    <Text style={styles.tareDetail}>
-                      {t.grossWeightLabel}:{' '}
-                      {Number(item.gross_weight).toFixed(2)} —{' '}
-                      {t.tareWeightLabel}: {Number(item.tare_weight).toFixed(2)}
-                    </Text>
-                    <Text style={styles.lineItemDetail}>
-                      {t.netWeightResult} {Number(item.weight).toFixed(2)} lbs @
-                      ${Number(item.price_per_lb).toFixed(4)}/lb
-                    </Text>
-                  </>
-                ) : (
-                  <Text style={styles.lineItemDetail}>
-                    {Number(item.weight).toFixed(2)} lbs @ $
-                    {Number(item.price_per_lb).toFixed(4)}/lb
-                  </Text>
-                )}
-                {item.is_price_override && item.original_price_per_lb && (
-                  <Text style={styles.originalPrice}>
-                    was ${Number(item.original_price_per_lb).toFixed(4)}/lb
-                  </Text>
-                )}
-              </View>
-              <Text style={styles.lineItemTotal}>
-                {fmtMoney(Number(item.total))}
+          {/* Restricted reporting notice */}
+          {restricted ? (
+            <View style={styles.restrictedNotice}>
+              <Ionicons name="shield-outline" size={18} color={colors.rust} />
+              <Text style={styles.noticeText}>
+                {reported ? t.reportedToState : t.awaitingStateReport}
               </Text>
-            </View>
-          ))}
-        </Section>
-
-        {/* Seller ID — regulated materials */}
-        {receipt.seller_name ? (
-          <Section title={t.sellerIdInfo}>
-            {receipt.seller_id_photo_uri ? (
-              <View style={styles.photoBox}>
-                <SignedImage
-                  value={receipt.seller_id_photo_uri}
-                  style={styles.photo}
-                  resizeMode="contain"
-                />
-              </View>
-            ) : null}
-            <Text style={styles.customerName}>{receipt.seller_name}</Text>
-            {receipt.seller_dl_number ? (
-              <Text style={styles.customerPhone}>
-                {t.sellerDlNumber}: {receipt.seller_dl_number}
-                {receipt.seller_state_of_issue
-                  ? ` (${receipt.seller_state_of_issue})`
-                  : ''}
-              </Text>
-            ) : null}
-            {receipt.seller_dob ? (
-              <Text style={styles.customerPhone}>
-                {t.sellerDateOfBirth}: {receipt.seller_dob}
-              </Text>
-            ) : null}
-            {receipt.seller_address ? (
-              <Text style={styles.customerPhone}>
-                {[
-                  receipt.seller_address,
-                  receipt.seller_city,
-                  receipt.seller_state
-                    ? `${receipt.seller_state} ${receipt.seller_zip ?? ''}`
-                    : receipt.seller_zip,
-                ]
-                  .filter(Boolean)
-                  .join(', ')}
-              </Text>
-            ) : null}
-          </Section>
-        ) : null}
-
-        {/* Vehicle Info */}
-        {(receipt.vehicle_plate || receipt.vehicle_year) && (
-          <Section title={t.vehicleInfo}>
-            {receipt.vehicle_plate ? (
-              <Text style={styles.customerPhone}>
-                {t.vehiclePlate}: {receipt.vehicle_plate}
-              </Text>
-            ) : null}
-            {(receipt.vehicle_year ||
-              receipt.vehicle_make ||
-              receipt.vehicle_model) && (
-              <Text style={styles.customerPhone}>
-                {[
-                  receipt.vehicle_year,
-                  receipt.vehicle_make,
-                  receipt.vehicle_model,
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              </Text>
-            )}
-            {receipt.vehicle_color ? (
-              <Text style={styles.customerPhone}>
-                {t.vehicleColor}: {receipt.vehicle_color}
-              </Text>
-            ) : null}
-          </Section>
-        )}
-
-        {/* Catalytic Converter Info */}
-        {(receipt.cat_converter_numbers || receipt.transport_vin) && (
-          <Section title={t.catConverterSection}>
-            {receipt.cat_converter_numbers ? (
-              <Text style={styles.customerPhone}>
-                {t.catConverterNumbers}: {receipt.cat_converter_numbers}
-              </Text>
-            ) : null}
-            {receipt.transport_vin ? (
-              <Text style={styles.customerPhone}>
-                {t.transportVin}: {receipt.transport_vin}
-              </Text>
-            ) : null}
-            {receipt.cat_converter_photo_uri ? (
-              <View style={styles.photoBox}>
-                <SignedImage
-                  value={receipt.cat_converter_photo_uri}
-                  style={styles.photo}
-                  resizeMode="contain"
-                />
-              </View>
-            ) : null}
-            {receipt.cat_title_photo_uri ? (
-              <View style={styles.photoBox}>
-                <SignedImage
-                  value={receipt.cat_title_photo_uri}
-                  style={styles.photo}
-                  resizeMode="contain"
-                />
-              </View>
-            ) : null}
-          </Section>
-        )}
-
-        {/* Seller & material photos (NM 57-30-5(C)) */}
-        {(receipt.seller_photo_uri || receipt.material_photo_uri) && (
-          <Section title={t.sellerIdInfo}>
-            {receipt.seller_photo_uri ? (
-              <>
-                <Text style={styles.customerPhone}>{t.sellerPhoto}</Text>
-                <View style={styles.photoBox}>
-                  <SignedImage
-                    value={receipt.seller_photo_uri}
-                    style={styles.photo}
-                    resizeMode="contain"
-                  />
-                </View>
-              </>
-            ) : null}
-            {receipt.material_photo_uri ? (
-              <>
-                <Text style={styles.customerPhone}>{t.materialPhoto}</Text>
-                <View style={styles.photoBox}>
-                  <SignedImage
-                    value={receipt.material_photo_uri}
-                    style={styles.photo}
-                    resizeMode="contain"
-                  />
-                </View>
-              </>
-            ) : null}
-          </Section>
-        )}
-
-        {/* Signature */}
-        {receipt.signature_uri && (
-          <Section title={t.customerSignature}>
-            <View style={styles.signatureBox}>
-              <Image
-                source={{ uri: receipt.signature_uri }}
-                style={styles.signatureImage}
-                resizeMode="contain"
+              <Tag
+                label={reported ? t.sent : t.queued}
+                color={reported ? colors.moss : colors.gold}
+                soft={reported ? 'rgba(93, 122, 78, 0.16)' : colors.gold + '26'}
               />
             </View>
+          ) : null}
+
+          {/* Hold notice (24h / 60-day) with held tag */}
+          {holdActive ? (
+            <View style={styles.holdNotice}>
+              <Ionicons name="time-outline" size={18} color={colors.gold} />
+              <Text style={styles.noticeText}>
+                {longHold ? t.disposalHold60 : t.hold24}
+                {heldUntilText ? ` · ${t.holdUntil} ${heldUntilText}` : ''}
+              </Text>
+              <Tag
+                label={t.held}
+                color={colors.gold}
+                soft={colors.gold + '26'}
+                icon="lock-closed"
+              />
+            </View>
+          ) : null}
+
+          {receipt.disposed_at ? (
+            <View style={styles.holdNotice}>
+              <Ionicons
+                name="checkmark-done-outline"
+                size={18}
+                color={colors.moss}
+              />
+              <Text style={styles.noticeText}>{t.disposed}</Text>
+            </View>
+          ) : null}
+
+          {/* Bordered detail table */}
+          <View style={styles.detailTable}>
+            <DetailRow label={t.weightLb} value={`${fmtLbs(totalWeight)} lb`} />
+            <DetailRow label={t.items} value={String(lineItems.length)} />
+            <DetailRow label={t.paymentMethodLabel} value={paymentLabel} />
+            <DetailRow
+              label={t.retention}
+              value={longHold ? t.retention3 : t.retention1}
+            />
+            <DetailRow
+              label={t.worker}
+              value={receipt.seller_name || '—'}
+              last
+            />
+          </View>
+
+          {/* Line items */}
+          <Section title={`${t.items} (${lineItems.length})`}>
+            {lineItems.map((item, index) => (
+              <View key={item.id ?? index} style={styles.lineItem}>
+                <View style={styles.lineItemLeft}>
+                  <View style={styles.lineItemHeader}>
+                    <Text style={styles.metalName}>{item.metal_name}</Text>
+                    {item.is_price_override && (
+                      <View style={styles.overrideBadge}>
+                        <Text style={styles.overrideBadgeText}>
+                          {t.priceOverride}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                  {item.gross_weight != null && item.tare_weight != null ? (
+                    <>
+                      <Text style={styles.tareDetail}>
+                        {t.grossWeightLabel}:{' '}
+                        {Number(item.gross_weight).toFixed(2)} —{' '}
+                        {t.tareWeightLabel}:{' '}
+                        {Number(item.tare_weight).toFixed(2)}
+                      </Text>
+                      <Text style={styles.lineItemDetail}>
+                        {t.netWeightResult} {Number(item.weight).toFixed(2)} lbs
+                        @ ${Number(item.price_per_lb).toFixed(4)}/lb
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.lineItemDetail}>
+                      {Number(item.weight).toFixed(2)} lbs @ $
+                      {Number(item.price_per_lb).toFixed(4)}/lb
+                    </Text>
+                  )}
+                  {item.is_price_override && item.original_price_per_lb && (
+                    <Text style={styles.originalPrice}>
+                      was ${Number(item.original_price_per_lb).toFixed(4)}/lb
+                    </Text>
+                  )}
+                </View>
+                <Text style={styles.lineItemTotal}>
+                  {fmtMoney(Number(item.total))}
+                </Text>
+              </View>
+            ))}
           </Section>
-        )}
 
-        {/* Statutory-locked footer note */}
-        <View style={styles.statutoryNote}>
-          <Ionicons name="lock-closed" size={11} color={colors.textTertiary} />
-          <Text style={styles.statutoryText}>{t.statutoryLocked}</Text>
-        </View>
+          {/* Seller ID — regulated materials */}
+          {receipt.seller_name ? (
+            <Section title={t.sellerIdInfo}>
+              {receipt.seller_id_photo_uri ? (
+                <View style={styles.photoBox}>
+                  <SignedImage
+                    value={receipt.seller_id_photo_uri}
+                    style={styles.photo}
+                    resizeMode="contain"
+                  />
+                </View>
+              ) : null}
+              <Text style={styles.customerName}>{receipt.seller_name}</Text>
+              {receipt.seller_dl_number ? (
+                <Text style={styles.customerPhone}>
+                  {t.sellerDlNumber}: {receipt.seller_dl_number}
+                  {receipt.seller_state_of_issue
+                    ? ` (${receipt.seller_state_of_issue})`
+                    : ''}
+                </Text>
+              ) : null}
+              {receipt.seller_dob ? (
+                <Text style={styles.customerPhone}>
+                  {t.sellerDateOfBirth}: {receipt.seller_dob}
+                </Text>
+              ) : null}
+              {receipt.seller_address ? (
+                <Text style={styles.customerPhone}>
+                  {[
+                    receipt.seller_address,
+                    receipt.seller_city,
+                    receipt.seller_state
+                      ? `${receipt.seller_state} ${receipt.seller_zip ?? ''}`
+                      : receipt.seller_zip,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}
+                </Text>
+              ) : null}
+            </Section>
+          ) : null}
 
-        {/* Secondary actions (preserved) — NM forms, share, dispose, delete */}
-        {receipt.seller_name ? (
-          <View style={styles.secondaryRow}>
-            <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={async () => {
-                try {
-                  await printNmPurchaseRecord(receipt);
-                } catch (err) {
-                  Alert.alert(t.error, (err as Error).message);
-                }
-              }}
-            >
-              <Text style={styles.secondaryButtonText}>{t.printNmForms}</Text>
-            </TouchableOpacity>
-            {(receipt.cat_converter_numbers || receipt.transport_vin) && (
+          {/* Vehicle Info */}
+          {(receipt.vehicle_plate || receipt.vehicle_year) && (
+            <Section title={t.vehicleInfo}>
+              {receipt.vehicle_plate ? (
+                <Text style={styles.customerPhone}>
+                  {t.vehiclePlate}: {receipt.vehicle_plate}
+                </Text>
+              ) : null}
+              {(receipt.vehicle_year ||
+                receipt.vehicle_make ||
+                receipt.vehicle_model) && (
+                <Text style={styles.customerPhone}>
+                  {[
+                    receipt.vehicle_year,
+                    receipt.vehicle_make,
+                    receipt.vehicle_model,
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                </Text>
+              )}
+              {receipt.vehicle_color ? (
+                <Text style={styles.customerPhone}>
+                  {t.vehicleColor}: {receipt.vehicle_color}
+                </Text>
+              ) : null}
+            </Section>
+          )}
+
+          {/* Catalytic Converter Info */}
+          {(receipt.cat_converter_numbers || receipt.transport_vin) && (
+            <Section title={t.catConverterSection}>
+              {receipt.cat_converter_numbers ? (
+                <Text style={styles.customerPhone}>
+                  {t.catConverterNumbers}: {receipt.cat_converter_numbers}
+                </Text>
+              ) : null}
+              {receipt.transport_vin ? (
+                <Text style={styles.customerPhone}>
+                  {t.transportVin}: {receipt.transport_vin}
+                </Text>
+              ) : null}
+              {receipt.cat_converter_photo_uri ? (
+                <View style={styles.photoBox}>
+                  <SignedImage
+                    value={receipt.cat_converter_photo_uri}
+                    style={styles.photo}
+                    resizeMode="contain"
+                  />
+                </View>
+              ) : null}
+              {receipt.cat_title_photo_uri ? (
+                <View style={styles.photoBox}>
+                  <SignedImage
+                    value={receipt.cat_title_photo_uri}
+                    style={styles.photo}
+                    resizeMode="contain"
+                  />
+                </View>
+              ) : null}
+            </Section>
+          )}
+
+          {/* Seller & material photos (NM 57-30-5(C)) */}
+          {(receipt.seller_photo_uri || receipt.material_photo_uri) && (
+            <Section title={t.sellerIdInfo}>
+              {receipt.seller_photo_uri ? (
+                <>
+                  <Text style={styles.customerPhone}>{t.sellerPhoto}</Text>
+                  <View style={styles.photoBox}>
+                    <SignedImage
+                      value={receipt.seller_photo_uri}
+                      style={styles.photo}
+                      resizeMode="contain"
+                    />
+                  </View>
+                </>
+              ) : null}
+              {receipt.material_photo_uri ? (
+                <>
+                  <Text style={styles.customerPhone}>{t.materialPhoto}</Text>
+                  <View style={styles.photoBox}>
+                    <SignedImage
+                      value={receipt.material_photo_uri}
+                      style={styles.photo}
+                      resizeMode="contain"
+                    />
+                  </View>
+                </>
+              ) : null}
+            </Section>
+          )}
+
+          {/* Signature */}
+          {receipt.signature_uri && (
+            <Section title={t.customerSignature}>
+              <View style={styles.signatureBox}>
+                <Image
+                  source={{ uri: receipt.signature_uri }}
+                  style={styles.signatureImage}
+                  resizeMode="contain"
+                />
+              </View>
+            </Section>
+          )}
+
+          {/* Statutory-locked footer note */}
+          <View style={styles.statutoryNote}>
+            <Ionicons
+              name="lock-closed"
+              size={11}
+              color={colors.textTertiary}
+            />
+            <Text style={styles.statutoryText}>{t.statutoryLocked}</Text>
+          </View>
+
+          {/* Secondary actions (preserved) — NM forms, share, dispose, delete */}
+          {receipt.seller_name ? (
+            <View style={styles.secondaryRow}>
               <TouchableOpacity
-                style={[styles.secondaryButton, { marginTop: spacing.sm }]}
+                style={styles.secondaryButton}
                 onPress={async () => {
                   try {
-                    await printNmCatConverterForm(receipt);
+                    await printNmPurchaseRecord(receipt);
                   } catch (err) {
                     Alert.alert(t.error, (err as Error).message);
                   }
                 }}
               >
-                <Text style={styles.secondaryButtonText}>
-                  {t.catConverterSection}
-                </Text>
+                <Text style={styles.secondaryButtonText}>{t.printNmForms}</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        ) : null}
+              {(receipt.cat_converter_numbers || receipt.transport_vin) && (
+                <TouchableOpacity
+                  style={[styles.secondaryButton, { marginTop: spacing.sm }]}
+                  onPress={async () => {
+                    try {
+                      await printNmCatConverterForm(receipt);
+                    } catch (err) {
+                      Alert.alert(t.error, (err as Error).message);
+                    }
+                  }}
+                >
+                  <Text style={styles.secondaryButtonText}>
+                    {t.catConverterSection}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : null}
 
-        <TouchableOpacity style={styles.shareLink} onPress={handleShare}>
-          <Ionicons
-            name="share-outline"
-            size={16}
-            color={colors.textSecondary}
-          />
-          <Text style={styles.shareLinkText}>{t.shareReceipt}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity style={styles.shareLink} onPress={handleShare}>
+            <Ionicons
+              name="share-outline"
+              size={16}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.shareLinkText}>{t.shareReceipt}</Text>
+          </TouchableOpacity>
 
-        {/* Mark material disposed (only once the mandatory hold has elapsed) */}
-        {receipt.hold_until && !receipt.disposed_at && (
+          {/* Mark material disposed (only once the mandatory hold has elapsed) */}
+          {receipt.hold_until && !receipt.disposed_at && (
+            <TouchableOpacity
+              style={styles.disposeButton}
+              onPress={async () => {
+                const heldUntil = receipt.hold_until
+                  ? new Date(receipt.hold_until)
+                  : null;
+                if (heldUntil && heldUntil > new Date()) {
+                  Alert.alert(
+                    t.materialOnHold,
+                    `${t.holdUntil}: ${heldUntil.toLocaleDateString()}`
+                  );
+                  return;
+                }
+                if (!(await ensureElevated())) return;
+                try {
+                  await markReceiptDisposed(receiptId);
+                  Alert.alert(t.success, t.materialDisposed);
+                  const updated = await fetchReceiptById(receiptId);
+                  setReceipt(updated as ReceiptDetail);
+                } catch (err) {
+                  Alert.alert(t.error, (err as Error).message);
+                }
+              }}
+            >
+              <Text style={styles.disposeButtonText}>{t.markDisposed}</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Delete */}
           <TouchableOpacity
-            style={styles.disposeButton}
-            onPress={async () => {
-              const heldUntil = receipt.hold_until
-                ? new Date(receipt.hold_until)
-                : null;
-              if (heldUntil && heldUntil > new Date()) {
-                Alert.alert(
-                  t.materialOnHold,
-                  `${t.holdUntil}: ${heldUntil.toLocaleDateString()}`
-                );
-                return;
-              }
-              if (!(await ensureElevated())) return;
-              try {
-                await markReceiptDisposed(receiptId);
-                Alert.alert(t.success, t.materialDisposed);
-                const updated = await fetchReceiptById(receiptId);
-                setReceipt(updated as ReceiptDetail);
-              } catch (err) {
-                Alert.alert(t.error, (err as Error).message);
-              }
+            style={styles.deleteButton}
+            onPress={() => {
+              Alert.alert(t.deleteReceipt, t.deleteReceiptConfirm, [
+                { text: t.cancel, style: 'cancel' },
+                {
+                  text: t.deleteReceipt,
+                  style: 'destructive',
+                  onPress: async () => {
+                    if (!(await ensureElevated())) return;
+                    try {
+                      await deleteReceipt(receiptId);
+                      Alert.alert(t.success, t.receiptDeleted);
+                      navigation.goBack();
+                    } catch (err) {
+                      Alert.alert(t.error, (err as Error).message);
+                    }
+                  },
+                },
+              ]);
             }}
           >
-            <Text style={styles.disposeButtonText}>{t.markDisposed}</Text>
+            <Text style={styles.deleteButtonText}>{t.deleteReceipt}</Text>
           </TouchableOpacity>
-        )}
-
-        {/* Delete */}
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => {
-            Alert.alert(t.deleteReceipt, t.deleteReceiptConfirm, [
-              { text: t.cancel, style: 'cancel' },
-              {
-                text: t.deleteReceipt,
-                style: 'destructive',
-                onPress: async () => {
-                  if (!(await ensureElevated())) return;
-                  try {
-                    await deleteReceipt(receiptId);
-                    Alert.alert(t.success, t.receiptDeleted);
-                    navigation.goBack();
-                  } catch (err) {
-                    Alert.alert(t.error, (err as Error).message);
-                  }
-                },
-              },
-            ]);
-          }}
-        >
-          <Text style={styles.deleteButtonText}>{t.deleteReceipt}</Text>
-        </TouchableOpacity>
+        </ResponsiveContainer>
       </ScrollView>
 
       {/* Footer: Reprint + Done */}

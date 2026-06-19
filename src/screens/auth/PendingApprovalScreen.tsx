@@ -9,6 +9,7 @@ import {
 import { useAppDispatch, useAppSelector, type RootState } from '../../store';
 import { fetchProfile, signOut } from '../../store/authStore';
 import { Ionicons } from '@expo/vector-icons';
+import { ResponsiveContainer } from '../../components';
 import { useT } from '../../hooks/useT';
 import { useTheme, useThemedStyles } from '../../theme';
 import { type Palette, spacing, fontSize, fonts } from '../../constants';
@@ -40,27 +41,29 @@ export default function PendingApprovalScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.iconCircle}>
-        <Ionicons name="lock-closed" size={36} color={colors.warning} />
-      </View>
-      <Text style={styles.title}>{t.accountPending}</Text>
-      <Text style={styles.message}>{t.pendingMessage}</Text>
+      <ResponsiveContainer maxWidth={420} style={styles.body}>
+        <View style={styles.iconCircle}>
+          <Ionicons name="lock-closed" size={36} color={colors.warning} />
+        </View>
+        <Text style={styles.title}>{t.accountPending}</Text>
+        <Text style={styles.message}>{t.pendingMessage}</Text>
 
-      <TouchableOpacity
-        style={styles.checkButton}
-        onPress={handleCheckStatus}
-        disabled={checking}
-      >
-        {checking ? (
-          <ActivityIndicator color={colors.background} />
-        ) : (
-          <Text style={styles.checkButtonText}>{t.checkStatus}</Text>
-        )}
-      </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.checkButton}
+          onPress={handleCheckStatus}
+          disabled={checking}
+        >
+          {checking ? (
+            <ActivityIndicator color={colors.background} />
+          ) : (
+            <Text style={styles.checkButtonText}>{t.checkStatus}</Text>
+          )}
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutButtonText}>{t.signOut}</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <Text style={styles.signOutButtonText}>{t.signOut}</Text>
+        </TouchableOpacity>
+      </ResponsiveContainer>
     </View>
   );
 }
@@ -73,6 +76,9 @@ const makeStyles = (colors: Palette) =>
       justifyContent: 'center',
       alignItems: 'center',
       paddingHorizontal: spacing.xl,
+    },
+    body: {
+      alignItems: 'center',
     },
     iconCircle: {
       width: 72,

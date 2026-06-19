@@ -18,6 +18,7 @@ import {
   type DailySummary,
 } from '../../services/reports';
 import { Sparkline, SectionLabel, fmtMoney0 } from '../../components/foundry';
+import { ResponsiveContainer } from '../../components';
 import { useT } from '../../hooks/useT';
 import { type Palette, spacing, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
@@ -57,27 +58,29 @@ export default function DailySummaryScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <DateRangeSelector selected={preset} onSelect={setPreset} />
+      <ResponsiveContainer maxWidth={640}>
+        <DateRangeSelector selected={preset} onSelect={setPreset} />
 
-      {loading ? (
-        <ActivityIndicator
-          color={colors.accent}
-          size="large"
-          style={styles.loader}
-        />
-      ) : data ? (
-        <>
-          {trend.length > 0 && (
-            <View style={styles.trendCard}>
-              <SectionLabel>{t.intakeTrend}</SectionLabel>
-              <Text style={styles.trendValue}>{fmtMoney0(trendTotal)}</Text>
-              <Text style={styles.trendSub}>{t.totalLast14}</Text>
-              <Sparkline data={trend} height={56} color={colors.accent} />
-            </View>
-          )}
-          <SummaryCards data={data} />
-        </>
-      ) : null}
+        {loading ? (
+          <ActivityIndicator
+            color={colors.accent}
+            size="large"
+            style={styles.loader}
+          />
+        ) : data ? (
+          <>
+            {trend.length > 0 && (
+              <View style={styles.trendCard}>
+                <SectionLabel>{t.intakeTrend}</SectionLabel>
+                <Text style={styles.trendValue}>{fmtMoney0(trendTotal)}</Text>
+                <Text style={styles.trendSub}>{t.totalLast14}</Text>
+                <Sparkline data={trend} height={56} color={colors.accent} />
+              </View>
+            )}
+            <SummaryCards data={data} />
+          </>
+        ) : null}
+      </ResponsiveContainer>
     </ScrollView>
   );
 }

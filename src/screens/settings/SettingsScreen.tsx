@@ -18,7 +18,7 @@ import { signOut, lockTerminal } from '../../store/authStore';
 import { setLanguage } from '../../store/settingsStore';
 import { type Palette, spacing, fonts, borderRadius } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
-import { SetPinModal } from '../../components';
+import { SetPinModal, ResponsiveContainer } from '../../components';
 
 // ── grouped card (design "Group") ───────────────────────────
 function Group({
@@ -213,150 +213,154 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView style={styles.flex} contentContainerStyle={styles.content}>
-        {/* Account */}
-        <Group title={t.account}>
-          <Row
-            label={shiftName}
-            sub={profile?.email}
-            icon="person-outline"
-            right={
-              role ? (
-                <View style={styles.rolePill}>
-                  <Text style={styles.rolePillText}>
-                    {roleLabel(role, t).toUpperCase()}
-                  </Text>
-                </View>
-              ) : undefined
-            }
-            last={false}
-          />
-          <Row
-            label={t.setShiftPin}
-            sub={t.setShiftPinDesc}
-            icon="keypad-outline"
-            iconColor={colors.accent}
-            onPress={() => setPinOpen(true)}
-            last={!company}
-          />
-          {company ? (
+        <ResponsiveContainer maxWidth={640}>
+          {/* Account */}
+          <Group title={t.account}>
             <Row
-              label={company.name}
-              sub={company.prefix}
-              icon="business-outline"
-              iconColor={colors.teal}
-              last
+              label={shiftName}
+              sub={profile?.email}
+              icon="person-outline"
+              right={
+                role ? (
+                  <View style={styles.rolePill}>
+                    <Text style={styles.rolePillText}>
+                      {roleLabel(role, t).toUpperCase()}
+                    </Text>
+                  </View>
+                ) : undefined
+              }
+              last={false}
             />
-          ) : null}
-        </Group>
-
-        {/* Appearance */}
-        <Group title={t.appearance}>
-          <Row
-            label={t.theme}
-            sub={t.themeHint}
-            last
-            right={
-              <Segmented
-                value={isLight ? 'light' : 'dark'}
-                options={[
-                  { value: 'light', label: t.lightMode },
-                  { value: 'dark', label: t.darkMode },
-                ]}
-                onSelect={onTheme}
-              />
-            }
-          />
-        </Group>
-
-        {/* Language */}
-        <Group title={t.language}>
-          <Row
-            label={t.language}
-            sub={t.languageHint}
-            last
-            right={
-              <Segmented
-                value={language}
-                options={[
-                  { value: 'en', label: t.english },
-                  { value: 'es', label: t.spanish },
-                ]}
-                onSelect={(v) => dispatch(setLanguage(v))}
-              />
-            }
-          />
-        </Group>
-
-        {/* Manage / quick links */}
-        <Group title={t.manage}>
-          <Row
-            label={t.customers}
-            icon="people-outline"
-            right={<Chev />}
-            onPress={() => nav.navigate('CustomersTab')}
-            last={!isAdmin}
-          />
-          {isAdmin ? (
-            <>
+            <Row
+              label={t.setShiftPin}
+              sub={t.setShiftPinDesc}
+              icon="keypad-outline"
+              iconColor={colors.accent}
+              onPress={() => setPinOpen(true)}
+              last={!company}
+            />
+            {company ? (
               <Row
-                label={t.pricing}
-                icon="pricetag-outline"
-                right={<Chev />}
-                onPress={() => nav.navigate('AdminTab', { screen: 'Pricing' })}
-              />
-              <Row
-                label={t.tabUsers}
-                icon="shield-outline"
-                right={<Chev />}
-                onPress={() => nav.navigate('AdminTab', { screen: 'Users' })}
-              />
-              <Row
-                label={t.companyProfile}
+                label={company.name}
+                sub={company.prefix}
                 icon="business-outline"
-                right={<Chev />}
-                onPress={() =>
-                  nav.navigate('AdminTab', { screen: 'CompanyProfile' })
-                }
+                iconColor={colors.teal}
                 last
               />
-            </>
-          ) : null}
-        </Group>
+            ) : null}
+          </Group>
 
-        {/* About */}
-        <Group title={t.about}>
-          <Row
-            label={t.appVersion}
-            icon="information-circle-outline"
-            iconColor={colors.textTertiary}
-            right={<Text style={styles.valueMono}>{appVersion}</Text>}
-            last
-          />
-        </Group>
+          {/* Appearance */}
+          <Group title={t.appearance}>
+            <Row
+              label={t.theme}
+              sub={t.themeHint}
+              last
+              right={
+                <Segmented
+                  value={isLight ? 'light' : 'dark'}
+                  options={[
+                    { value: 'light', label: t.lightMode },
+                    { value: 'dark', label: t.darkMode },
+                  ]}
+                  onSelect={onTheme}
+                />
+              }
+            />
+          </Group>
 
-        {/* Lock to the passcode pad */}
-        <Group title={t.terminalSection}>
-          <Row
-            label={t.lockTerminal}
-            sub={t.lockTerminalDesc}
-            icon="lock-closed-outline"
-            iconColor={colors.accent}
-            onPress={() => dispatch(lockTerminal())}
-            last
-          />
-        </Group>
+          {/* Language */}
+          <Group title={t.language}>
+            <Row
+              label={t.language}
+              sub={t.languageHint}
+              last
+              right={
+                <Segmented
+                  value={language}
+                  options={[
+                    { value: 'en', label: t.english },
+                    { value: 'es', label: t.spanish },
+                  ]}
+                  onSelect={(v) => dispatch(setLanguage(v))}
+                />
+              }
+            />
+          </Group>
 
-        {/* Sign out */}
-        <TouchableOpacity
-          style={styles.signOutBtn}
-          onPress={onSignOut}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="log-out-outline" size={19} color={colors.danger} />
-          <Text style={styles.signOutText}>{t.signOut}</Text>
-        </TouchableOpacity>
+          {/* Manage / quick links */}
+          <Group title={t.manage}>
+            <Row
+              label={t.customers}
+              icon="people-outline"
+              right={<Chev />}
+              onPress={() => nav.navigate('CustomersTab')}
+              last={!isAdmin}
+            />
+            {isAdmin ? (
+              <>
+                <Row
+                  label={t.pricing}
+                  icon="pricetag-outline"
+                  right={<Chev />}
+                  onPress={() =>
+                    nav.navigate('AdminTab', { screen: 'Pricing' })
+                  }
+                />
+                <Row
+                  label={t.tabUsers}
+                  icon="shield-outline"
+                  right={<Chev />}
+                  onPress={() => nav.navigate('AdminTab', { screen: 'Users' })}
+                />
+                <Row
+                  label={t.companyProfile}
+                  icon="business-outline"
+                  right={<Chev />}
+                  onPress={() =>
+                    nav.navigate('AdminTab', { screen: 'CompanyProfile' })
+                  }
+                  last
+                />
+              </>
+            ) : null}
+          </Group>
 
-        <Text style={styles.footnote}>tare · {appVersion}</Text>
+          {/* About */}
+          <Group title={t.about}>
+            <Row
+              label={t.appVersion}
+              icon="information-circle-outline"
+              iconColor={colors.textTertiary}
+              right={<Text style={styles.valueMono}>{appVersion}</Text>}
+              last
+            />
+          </Group>
+
+          {/* Lock to the passcode pad */}
+          <Group title={t.terminalSection}>
+            <Row
+              label={t.lockTerminal}
+              sub={t.lockTerminalDesc}
+              icon="lock-closed-outline"
+              iconColor={colors.accent}
+              onPress={() => dispatch(lockTerminal())}
+              last
+            />
+          </Group>
+
+          {/* Sign out */}
+          <TouchableOpacity
+            style={styles.signOutBtn}
+            onPress={onSignOut}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="log-out-outline" size={19} color={colors.danger} />
+            <Text style={styles.signOutText}>{t.signOut}</Text>
+          </TouchableOpacity>
+
+          <Text style={styles.footnote}>tare · {appVersion}</Text>
+        </ResponsiveContainer>
       </ScrollView>
 
       <SetPinModal visible={pinOpen} onClose={() => setPinOpen(false)} />

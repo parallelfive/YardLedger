@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { TareMark, Wordmark } from '../../components';
+import { TareMark, Wordmark, ResponsiveContainer } from '../../components';
 import { useT } from '../../hooks/useT';
 import { useTheme, useThemedStyles } from '../../theme';
 import { spacing, fonts, type Palette } from '../../constants';
@@ -119,155 +119,157 @@ export default function PasscodeLoginScreen({
     <View style={[styles.container, { paddingTop: insets.top + 48 }]}>
       <View style={styles.ambient} />
 
-      {/* Brand lockup */}
-      <TareMark size={62} radius={18} />
-      <View style={{ marginTop: spacing.lg }}>
-        <Wordmark size={32} />
-      </View>
+      <ResponsiveContainer maxWidth={420} style={styles.body}>
+        {/* Brand lockup */}
+        <TareMark size={62} radius={18} />
+        <View style={{ marginTop: spacing.lg }}>
+          <Wordmark size={32} />
+        </View>
 
-      {/* Yard context */}
-      <View style={styles.companyChip}>
-        <View style={styles.companyAvatar}>
-          <Text style={styles.companyAvatarText}>
-            {companyName.slice(0, 2).toUpperCase()}
+        {/* Yard context */}
+        <View style={styles.companyChip}>
+          <View style={styles.companyAvatar}>
+            <Text style={styles.companyAvatarText}>
+              {companyName.slice(0, 2).toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.companyName} numberOfLines={1}>
+            {companyName}
           </Text>
         </View>
-        <Text style={styles.companyName} numberOfLines={1}>
-          {companyName}
-        </Text>
-      </View>
 
-      {/* Identity slot — neutral until a valid PIN resolves a person */}
-      <View style={styles.identity}>
-        <View
-          style={[
-            styles.idAvatar,
-            {
-              backgroundColor: ok ? ring + '28' : colors.surface,
-              borderColor: ok ? ring : colors.borderStrong,
-            },
-          ]}
-        >
-          {ok ? (
-            <Text style={[styles.idInitials, { color: ring }]}>
-              {initialsOf(resolved.name)}
-            </Text>
-          ) : (
-            <Ionicons
-              name="lock-closed"
-              size={24}
-              color={colors.textTertiary}
-            />
-          )}
-        </View>
-        <Text style={styles.idName}>
-          {ok ? resolved.name : t.terminalLocked}
-        </Text>
-        <Text
-          style={[
-            styles.idSub,
-            ok
-              ? {
-                  color: ring,
-                  textTransform: 'uppercase',
-                  fontFamily: fonts.monoSemiBold,
-                }
-              : null,
-          ]}
-        >
-          {ok ? roleLabel(resolved.role, t) : t.enterPasscodeToSignIn}
-        </Text>
-      </View>
-
-      {/* PIN dots */}
-      <Animated.View
-        style={[
-          styles.dotsRow,
-          {
-            transform: [
+        {/* Identity slot — neutral until a valid PIN resolves a person */}
+        <View style={styles.identity}>
+          <View
+            style={[
+              styles.idAvatar,
               {
-                translateX: shake.interpolate({
-                  inputRange: [-1, 1],
-                  outputRange: [-9, 9],
-                }),
+                backgroundColor: ok ? ring + '28' : colors.surface,
+                borderColor: ok ? ring : colors.borderStrong,
               },
-            ],
-          },
-        ]}
-      >
-        {[0, 1, 2, 3].map((i) => {
-          const filled = i < pin.length;
-          const c = error ? colors.rust : ring;
-          return (
-            <View
-              key={i}
-              style={[
-                styles.dot,
-                {
-                  backgroundColor: filled ? c : 'transparent',
-                  borderColor: filled ? c : colors.borderStrong,
-                },
-              ]}
-            />
-          );
-        })}
-      </Animated.View>
-      <Text style={[styles.hint, error ? { color: colors.rust } : null]}>
-        {busy ? '' : error ? error : ' '}
-      </Text>
-
-      {/* Keypad */}
-      <View style={[styles.keypad, { paddingBottom: insets.bottom + 12 }]}>
-        <View style={styles.keyGrid}>
-          {keys.map((n) => (
-            <TouchableOpacity
-              key={n}
-              style={styles.key}
-              onPress={() => press(n)}
-              disabled={busy || ok}
-            >
-              <Text style={styles.keyText}>{n}</Text>
-            </TouchableOpacity>
-          ))}
-          <View style={styles.key} />
-          <TouchableOpacity
-            style={styles.key}
-            onPress={() => press('0')}
-            disabled={busy || ok}
+            ]}
           >
-            <Text style={styles.keyText}>0</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.key, styles.keyGhost]}
-            onPress={back}
-            disabled={busy || ok}
-          >
-            {busy ? (
-              <ActivityIndicator color={colors.accent} />
+            {ok ? (
+              <Text style={[styles.idInitials, { color: ring }]}>
+                {initialsOf(resolved.name)}
+              </Text>
             ) : (
               <Ionicons
-                name="backspace-outline"
-                size={26}
+                name="lock-closed"
+                size={24}
                 color={colors.textTertiary}
               />
             )}
-          </TouchableOpacity>
-        </View>
-        {onSignOut ? (
-          <TouchableOpacity
-            style={styles.signOut}
-            onPress={onSignOut}
-            disabled={busy}
+          </View>
+          <Text style={styles.idName}>
+            {ok ? resolved.name : t.terminalLocked}
+          </Text>
+          <Text
+            style={[
+              styles.idSub,
+              ok
+                ? {
+                    color: ring,
+                    textTransform: 'uppercase',
+                    fontFamily: fonts.monoSemiBold,
+                  }
+                : null,
+            ]}
           >
-            <Ionicons
-              name="log-out-outline"
-              size={14}
-              color={colors.textTertiary}
-            />
-            <Text style={styles.signOutText}>{t.signOutDevice}</Text>
-          </TouchableOpacity>
-        ) : null}
-      </View>
+            {ok ? roleLabel(resolved.role, t) : t.enterPasscodeToSignIn}
+          </Text>
+        </View>
+
+        {/* PIN dots */}
+        <Animated.View
+          style={[
+            styles.dotsRow,
+            {
+              transform: [
+                {
+                  translateX: shake.interpolate({
+                    inputRange: [-1, 1],
+                    outputRange: [-9, 9],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {[0, 1, 2, 3].map((i) => {
+            const filled = i < pin.length;
+            const c = error ? colors.rust : ring;
+            return (
+              <View
+                key={i}
+                style={[
+                  styles.dot,
+                  {
+                    backgroundColor: filled ? c : 'transparent',
+                    borderColor: filled ? c : colors.borderStrong,
+                  },
+                ]}
+              />
+            );
+          })}
+        </Animated.View>
+        <Text style={[styles.hint, error ? { color: colors.rust } : null]}>
+          {busy ? '' : error ? error : ' '}
+        </Text>
+
+        {/* Keypad */}
+        <View style={[styles.keypad, { paddingBottom: insets.bottom + 12 }]}>
+          <View style={styles.keyGrid}>
+            {keys.map((n) => (
+              <TouchableOpacity
+                key={n}
+                style={styles.key}
+                onPress={() => press(n)}
+                disabled={busy || ok}
+              >
+                <Text style={styles.keyText}>{n}</Text>
+              </TouchableOpacity>
+            ))}
+            <View style={styles.key} />
+            <TouchableOpacity
+              style={styles.key}
+              onPress={() => press('0')}
+              disabled={busy || ok}
+            >
+              <Text style={styles.keyText}>0</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.key, styles.keyGhost]}
+              onPress={back}
+              disabled={busy || ok}
+            >
+              {busy ? (
+                <ActivityIndicator color={colors.accent} />
+              ) : (
+                <Ionicons
+                  name="backspace-outline"
+                  size={26}
+                  color={colors.textTertiary}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
+          {onSignOut ? (
+            <TouchableOpacity
+              style={styles.signOut}
+              onPress={onSignOut}
+              disabled={busy}
+            >
+              <Ionicons
+                name="log-out-outline"
+                size={14}
+                color={colors.textTertiary}
+              />
+              <Text style={styles.signOutText}>{t.signOutDevice}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+      </ResponsiveContainer>
     </View>
   );
 }
@@ -279,6 +281,10 @@ const makeStyles = (colors: Palette) =>
       backgroundColor: colors.background,
       alignItems: 'center',
       paddingHorizontal: 28,
+    },
+    body: {
+      flex: 1,
+      alignItems: 'center',
     },
     ambient: {
       position: 'absolute',

@@ -22,6 +22,7 @@ import {
   type ComplianceReceiptRow,
 } from '../../services/reports';
 import { MiniStat, SectionLabel, fmtMoney } from '../../components/foundry';
+import { ResponsiveContainer } from '../../components';
 import { isReportOverdue } from '../../utils/businessDays';
 import { useT } from '../../hooks/useT';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
@@ -136,82 +137,84 @@ export default function ReportingStatusScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.statRow}>
-        <MiniStat
-          label={t.pendingReports}
-          value={String(status.pending)}
-          sub={t.awaitingReport}
-          tone={status.pending > 0 ? 'rust' : 'moss'}
-          icon="cloud-upload-outline"
-        />
-        <MiniStat
-          label={t.lastUpload}
-          value={lastDate}
-          sub={last ? `${last.receipt_count} · ${last.status}` : ''}
-          tone="steel"
-          icon="time-outline"
-        />
-      </View>
-
-      {status.overdue > 0 && (
-        <View style={styles.overdueStrip}>
-          <Ionicons name="alert-circle" size={18} color={colors.accentInk} />
-          <Text style={styles.overdueText}>
-            {status.overdue} {t.overdueCount} · {t.overdueStrip}
-          </Text>
+      <ResponsiveContainer maxWidth={640}>
+        <View style={styles.statRow}>
+          <MiniStat
+            label={t.pendingReports}
+            value={String(status.pending)}
+            sub={t.awaitingReport}
+            tone={status.pending > 0 ? 'rust' : 'moss'}
+            icon="cloud-upload-outline"
+          />
+          <MiniStat
+            label={t.lastUpload}
+            value={lastDate}
+            sub={last ? `${last.receipt_count} · ${last.status}` : ''}
+            tone="steel"
+            icon="time-outline"
+          />
         </View>
-      )}
 
-      <Text style={styles.note}>{t.reportDeadlineNote}</Text>
+        {status.overdue > 0 && (
+          <View style={styles.overdueStrip}>
+            <Ionicons name="alert-circle" size={18} color={colors.accentInk} />
+            <Text style={styles.overdueText}>
+              {status.overdue} {t.overdueCount} · {t.overdueStrip}
+            </Text>
+          </View>
+        )}
 
-      {status.pending > 0 && (
-        <TouchableOpacity
-          style={[styles.button, sending && styles.buttonDisabled]}
-          onPress={handleExport}
-          disabled={sending}
-        >
-          {sending ? (
-            <ActivityIndicator color={colors.accentInk} />
-          ) : (
-            <>
-              <Ionicons
-                name="cloud-upload-outline"
-                size={20}
-                color={colors.accentInk}
-              />
-              <Text style={styles.buttonText}>{t.reportUnreported}</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      )}
+        <Text style={styles.note}>{t.reportDeadlineNote}</Text>
 
-      {unreported.length > 0 && (
-        <>
-          <SectionLabel>{t.unreportedReceipts}</SectionLabel>
-          {unreported.map((r) => {
-            const overdue = isReportOverdue(r.created_at);
-            return (
-              <View key={r.id} style={styles.listRow}>
-                <View style={styles.listRowLeft}>
-                  <Text style={styles.rowNum}>{r.receipt_number}</Text>
-                  <Text style={styles.rowSub}>
-                    {new Date(r.created_at).toLocaleDateString()} ·{' '}
-                    {fmtMoney(r.subtotal)}
-                  </Text>
-                </View>
-                {overdue && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{t.overdueCount}</Text>
+        {status.pending > 0 && (
+          <TouchableOpacity
+            style={[styles.button, sending && styles.buttonDisabled]}
+            onPress={handleExport}
+            disabled={sending}
+          >
+            {sending ? (
+              <ActivityIndicator color={colors.accentInk} />
+            ) : (
+              <>
+                <Ionicons
+                  name="cloud-upload-outline"
+                  size={20}
+                  color={colors.accentInk}
+                />
+                <Text style={styles.buttonText}>{t.reportUnreported}</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+
+        {unreported.length > 0 && (
+          <>
+            <SectionLabel>{t.unreportedReceipts}</SectionLabel>
+            {unreported.map((r) => {
+              const overdue = isReportOverdue(r.created_at);
+              return (
+                <View key={r.id} style={styles.listRow}>
+                  <View style={styles.listRowLeft}>
+                    <Text style={styles.rowNum}>{r.receipt_number}</Text>
+                    <Text style={styles.rowSub}>
+                      {new Date(r.created_at).toLocaleDateString()} ·{' '}
+                      {fmtMoney(r.subtotal)}
+                    </Text>
                   </View>
-                )}
-              </View>
-            );
-          })}
-        </>
-      )}
+                  {overdue && (
+                    <View style={styles.badge}>
+                      <Text style={styles.badgeText}>{t.overdueCount}</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </>
+        )}
 
-      <SectionLabel>{t.stateReporting}</SectionLabel>
-      <Text style={styles.body}>{t.reportingHowto}</Text>
+        <SectionLabel>{t.stateReporting}</SectionLabel>
+        <Text style={styles.body}>{t.reportingHowto}</Text>
+      </ResponsiveContainer>
     </ScrollView>
   );
 }

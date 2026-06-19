@@ -18,6 +18,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { AccessCodeModal, SignaturePad } from '../../components';
+import { useResponsive } from '../../hooks';
 import AddMaterialKeypad from '../../components/AddMaterialKeypad';
 import type { SignaturePadHandle } from '../../components/SignaturePad';
 import {
@@ -63,6 +64,13 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
+  const { isWide } = useResponsive();
+  // On desktop/tablet, cap the scroll body and footer to a centered column so
+  // the form and the Save & Print button don't stretch edge-to-edge. The
+  // colored header stays full-bleed.
+  const wideColumn = isWide
+    ? { maxWidth: 640, alignSelf: 'center' as const, width: '100%' as const }
+    : null;
   const signaturePadRef = useRef<SignaturePadHandle>(null);
   const tx = useNewTransaction(signaturePadRef);
   const { scanning: scanningId, scanAndRecognize } = useIdScanner();
@@ -391,7 +399,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, wideColumn]}
         keyboardShouldPersistTaps="handled"
       >
         {/* ── Compliance banner (live read of what the cart requires) ── */}
@@ -964,6 +972,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
       <View
         style={[
           styles.footer,
+          wideColumn,
           { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
         ]}
       >

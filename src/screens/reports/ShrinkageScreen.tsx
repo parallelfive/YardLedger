@@ -14,6 +14,7 @@ import {
   type ShrinkageRow,
 } from '../../services/reports';
 import { useT } from '../../hooks/useT';
+import { useResponsive } from '../../hooks';
 import { Tag, MetalDot, type Tone } from '../../components/foundry';
 import { type Palette, spacing, fontSize, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
@@ -36,6 +37,7 @@ export default function ShrinkageScreen() {
   const { t } = useT();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { isWide } = useResponsive();
   const [data, setData] = useState<ShrinkageRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -71,7 +73,10 @@ export default function ShrinkageScreen() {
   return (
     <FlatList
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' },
+      ]}
       data={data}
       keyExtractor={(item) => item.metalName}
       refreshControl={

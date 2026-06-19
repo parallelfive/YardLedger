@@ -13,6 +13,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import type { AuthStackParamList } from '../../navigation/AuthNavigator';
+import { ResponsiveContainer } from '../../components';
 import { useAppDispatch } from '../../store';
 import { signIn } from '../../store/authStore';
 import { useT } from '../../hooks/useT';
@@ -65,78 +66,80 @@ export default function LoginScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Brand */}
-        <View style={styles.brand}>
-          <View style={styles.logoWrap}>
-            <Ionicons
-              name="hardware-chip-outline"
-              size={28}
-              color={colors.accent}
-            />
-          </View>
-          <Text style={styles.eyebrow}>{t.appTagline}</Text>
-          <Text style={styles.title}>{t.appName}</Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.formCard}>
-          <View style={styles.field}>
-            <Text style={styles.fieldLabel}>{t.email}</Text>
-            <TextInput
-              style={[styles.input, emailFocused && styles.inputFocused]}
-              placeholder={t.email}
-              placeholderTextColor={colors.textTertiary}
-              value={email}
-              onChangeText={setEmail}
-              onFocus={() => setEmailFocused(true)}
-              onBlur={() => setEmailFocused(false)}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="email-address"
-            />
+        <ResponsiveContainer maxWidth={420}>
+          {/* Brand */}
+          <View style={styles.brand}>
+            <View style={styles.logoWrap}>
+              <Ionicons
+                name="hardware-chip-outline"
+                size={28}
+                color={colors.accent}
+              />
+            </View>
+            <Text style={styles.eyebrow}>{t.appTagline}</Text>
+            <Text style={styles.title}>{t.appName}</Text>
           </View>
 
-          <View style={[styles.field, { marginBottom: 0 }]}>
-            <Text style={styles.fieldLabel}>{t.password}</Text>
-            <TextInput
-              style={[styles.input, passwordFocused && styles.inputFocused]}
-              placeholder={t.password}
-              placeholderTextColor={colors.textTertiary}
-              value={password}
-              onChangeText={setPassword}
-              onFocus={() => setPasswordFocused(true)}
-              onBlur={() => setPasswordFocused(false)}
-              secureTextEntry
-            />
+          {/* Form */}
+          <View style={styles.formCard}>
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>{t.email}</Text>
+              <TextInput
+                style={[styles.input, emailFocused && styles.inputFocused]}
+                placeholder={t.email}
+                placeholderTextColor={colors.textTertiary}
+                value={email}
+                onChangeText={setEmail}
+                onFocus={() => setEmailFocused(true)}
+                onBlur={() => setEmailFocused(false)}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={[styles.field, { marginBottom: 0 }]}>
+              <Text style={styles.fieldLabel}>{t.password}</Text>
+              <TextInput
+                style={[styles.input, passwordFocused && styles.inputFocused]}
+                placeholder={t.password}
+                placeholderTextColor={colors.textTertiary}
+                value={password}
+                onChangeText={setPassword}
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
+                secureTextEntry
+              />
+            </View>
           </View>
-        </View>
 
-        {/* Submit */}
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? t.signingIn : t.signIn}
-          </Text>
-          {!loading && (
-            <Ionicons
-              name="chevron-forward"
-              size={18}
-              color={colors.accentInk}
-            />
-          )}
-        </TouchableOpacity>
+          {/* Submit */}
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleLogin}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.buttonText}>
+              {loading ? t.signingIn : t.signIn}
+            </Text>
+            {!loading && (
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color={colors.accentInk}
+              />
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.linkWrap}
-          onPress={() => navigation.navigate('Register')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.linkText}>{t.noAccountRegister}</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.linkWrap}
+            onPress={() => navigation.navigate('Register')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.linkText}>{t.noAccountRegister}</Text>
+          </TouchableOpacity>
+        </ResponsiveContainer>
       </ScrollView>
     </KeyboardAvoidingView>
   );

@@ -15,6 +15,7 @@ import {
   type InventoryValuationRow,
 } from '../../services/reports';
 import { useT } from '../../hooks/useT';
+import { useResponsive } from '../../hooks';
 import {
   SectionLabel,
   MetalDot,
@@ -47,6 +48,7 @@ export default function InventoryValuationScreen() {
   const { t } = useT();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { isWide } = useResponsive();
   const [data, setData] = useState<InventoryValuationReport | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -86,7 +88,10 @@ export default function InventoryValuationScreen() {
   return (
     <FlatList
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' },
+      ]}
       data={data.rows}
       keyExtractor={(item) => item.metalName}
       refreshControl={
