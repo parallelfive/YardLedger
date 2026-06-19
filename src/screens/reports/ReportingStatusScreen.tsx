@@ -9,8 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import * as Sharing from 'expo-sharing';
-import { File, Paths } from 'expo-file-system';
+import { shareTextFile } from '../../utils/shareFile';
 import { Ionicons } from '@expo/vector-icons';
 import {
   fetchReportingStatus,
@@ -80,18 +79,14 @@ export default function ReportingStatusScreen() {
         return;
       }
       const csv = buildNmrldExportCsv(unreported, registration);
-      const file = new File(Paths.cache, 'nmrld_unreported.csv');
-      file.write(csv);
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'text/csv',
-        UTI: 'public.comma-separated-values-text',
-      });
-      // Regulated PII — purge the cached export after sharing.
-      try {
-        file.delete();
-      } catch {
-        /* best effort */
-      }
+      // Regulated PII — shareTextFile purges the native cache copy after
+      // sharing (web triggers a browser download instead).
+      await shareTextFile(
+        'nmrld_unreported.csv',
+        csv,
+        'text/csv',
+        'public.comma-separated-values-text'
+      );
       Alert.alert(
         t.markReportedTitle,
         t.markReportedConfirm.replace('{n}', String(unreported.length)),

@@ -12,8 +12,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ReportsStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Sharing from 'expo-sharing';
-import { File, Paths } from 'expo-file-system';
+import { shareTextFile } from '../../utils/shareFile';
 import { useT } from '../../hooks/useT';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useRole } from '../../hooks';
@@ -51,22 +50,14 @@ const isRestricted = (r: ComplianceReceiptRow) =>
 
 async function shareCsv(rows: ComplianceReceiptRow[], name: string) {
   const csv = buildNmrldExportCsv(rows, await fetchNmrldRegistrationNumber());
-  const file = new File(Paths.cache, name);
-  file.write(csv);
-  // These CSVs contain regulated seller PII (DL #, address, VIN). Purge the
-  // cached copy once the share sheet closes so it doesn't linger at rest.
-  try {
-    await Sharing.shareAsync(file.uri, {
-      mimeType: 'text/csv',
-      UTI: 'public.comma-separated-values-text',
-    });
-  } finally {
-    try {
-      file.delete();
-    } catch {
-      /* best effort */
-    }
-  }
+  // These CSVs contain regulated seller PII (DL #, address, VIN); shareTextFile
+  // purges the native cache copy after sharing and never holds it at rest.
+  await shareTextFile(
+    name,
+    csv,
+    'text/csv',
+    'public.comma-separated-values-text'
+  );
 }
 
 export default function ReportsListScreen({ navigation }: Props) {

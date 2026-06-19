@@ -10,8 +10,7 @@ import {
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
-import { File, Paths } from 'expo-file-system';
+import { shareTextFile } from '../../utils/shareFile';
 import DateRangeSelector, {
   type DatePreset,
   getDateRange,
@@ -224,18 +223,14 @@ export default function ComplianceReportScreen() {
         )
         .join('\n');
 
-      const file = new File(Paths.cache, 'purchase_records.csv');
-      file.write(header + csvRows);
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'text/csv',
-        UTI: 'public.comma-separated-values-text',
-      });
-      // Regulated PII — don't leave the export lingering in the cache dir.
-      try {
-        file.delete();
-      } catch {
-        /* best effort */
-      }
+      // Regulated PII — shareTextFile purges the native cache copy after the
+      // share sheet closes (web triggers a browser download instead).
+      await shareTextFile(
+        'purchase_records.csv',
+        header + csvRows,
+        'text/csv',
+        'public.comma-separated-values-text'
+      );
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }
@@ -248,18 +243,12 @@ export default function ComplianceReportScreen() {
     try {
       const { start, end } = getDateRange(preset);
       const csv = await exportNmrldCsv(start, end);
-      const file = new File(Paths.cache, 'nmrld_upload.csv');
-      file.write(csv);
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'text/csv',
-        UTI: 'public.comma-separated-values-text',
-      });
-      // Regulated PII — don't leave the export lingering in the cache dir.
-      try {
-        file.delete();
-      } catch {
-        /* best effort */
-      }
+      await shareTextFile(
+        'nmrld_upload.csv',
+        csv,
+        'text/csv',
+        'public.comma-separated-values-text'
+      );
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }
@@ -279,18 +268,12 @@ export default function ComplianceReportScreen() {
         return;
       }
       const csv = buildNmrldExportCsv(unreported, registration);
-      const file = new File(Paths.cache, 'nmrld_unreported.csv');
-      file.write(csv);
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'text/csv',
-        UTI: 'public.comma-separated-values-text',
-      });
-      // Regulated PII — don't leave the export lingering in the cache dir.
-      try {
-        file.delete();
-      } catch {
-        /* best effort */
-      }
+      await shareTextFile(
+        'nmrld_unreported.csv',
+        csv,
+        'text/csv',
+        'public.comma-separated-values-text'
+      );
       Alert.alert(
         t.markReportedTitle,
         t.markReportedConfirm.replace('{n}', String(unreported.length)),
