@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -79,47 +80,52 @@ export default function NewSaleScreen({ navigation }: Props) {
   const [salePrice, setSalePrice] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const data = await fetchInventory();
-        if (!active) return;
-        const rows: InvRow[] = (data as unknown[])
-          .map((raw) => {
-            const item = raw as Record<string, unknown>;
-            const metals = (
-              Array.isArray(item.metals) ? item.metals[0] : item.metals
-            ) as Record<string, unknown> | undefined;
-            const mc = metals?.metal_categories as
-              | { name?: string }
-              | { name?: string }[]
-              | undefined;
-            const category = (Array.isArray(mc) ? mc[0]?.name : mc?.name) as
-              | string
-              | undefined;
-            const restricted = Boolean(metals?.is_restricted);
-            return {
-              id: String(item.id),
-              metalId: String(item.metal_id),
-              metalName: String(item.metal_name ?? metals?.name ?? ''),
-              weight: Number(item.weight),
-              avgCost: Number(item.avg_cost_per_lb),
-              tone: toneFor(category, restricted),
-            };
-          })
-          .filter((r) => r.weight > 0);
-        setInventory(rows);
-      } catch {
-        if (active) setInventory([]);
-      } finally {
-        if (active) setLoadingInventory(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+  // Refresh on focus (not just mount) so re-opening the screen after a sale
+  // shows the updated on-hand weights instead of stale data.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setLoadingInventory(true);
+      (async () => {
+        try {
+          const data = await fetchInventory();
+          if (!active) return;
+          const rows: InvRow[] = (data as unknown[])
+            .map((raw) => {
+              const item = raw as Record<string, unknown>;
+              const metals = (
+                Array.isArray(item.metals) ? item.metals[0] : item.metals
+              ) as Record<string, unknown> | undefined;
+              const mc = metals?.metal_categories as
+                | { name?: string }
+                | { name?: string }[]
+                | undefined;
+              const category = (Array.isArray(mc) ? mc[0]?.name : mc?.name) as
+                | string
+                | undefined;
+              const restricted = Boolean(metals?.is_restricted);
+              return {
+                id: String(item.id),
+                metalId: String(item.metal_id),
+                metalName: String(item.metal_name ?? metals?.name ?? ''),
+                weight: Number(item.weight),
+                avgCost: Number(item.avg_cost_per_lb),
+                tone: toneFor(category, restricted),
+              };
+            })
+            .filter((r) => r.weight > 0);
+          setInventory(rows);
+        } catch {
+          if (active) setInventory([]);
+        } finally {
+          if (active) setLoadingInventory(false);
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const selected = useMemo(
     () => inventory.find((r) => r.id === selectedId) ?? null,
