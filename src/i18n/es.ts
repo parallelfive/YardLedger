@@ -668,4 +668,5 @@ export default {
   // --- state-report overdue ---
   overdueCount: 'atrasados',
   overdueStrip: 'fuera del plazo estatal de 2 días hábiles',
+  unreportedReceipts: 'Recibos sin reportar',
 } as const;

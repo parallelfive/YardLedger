@@ -19,8 +19,10 @@ import {
   fetchNmrldRegistrationNumber,
   markReceiptsReported,
   type ReportingStatus,
+  type ComplianceReceiptRow,
 } from '../../services/reports';
-import { MiniStat, SectionLabel } from '../../components/foundry';
+import { MiniStat, SectionLabel, fmtMoney } from '../../components/foundry';
+import { isReportOverdue } from '../../utils/businessDays';
 import { useT } from '../../hooks/useT';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useAppSelector, type RootState } from '../../store';
@@ -35,13 +37,19 @@ export default function ReportingStatusScreen() {
   const isFocused = useIsFocused();
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const [status, setStatus] = useState<ReportingStatus | null>(null);
+  const [unreported, setUnreported] = useState<ComplianceReceiptRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setStatus(await fetchReportingStatus());
+      const [st, list] = await Promise.all([
+        fetchReportingStatus(),
+        fetchUnreportedReceipts(),
+      ]);
+      setStatus(st);
+      setUnreported(list);
     } catch {
       setStatus({
         pending: 0,
@@ -49,6 +57,7 @@ export default function ReportingStatusScreen() {
         oldestUnreportedAt: null,
         lastUpload: null,
       });
+      setUnreported([]);
     } finally {
       setLoading(false);
     }
@@ -176,6 +185,31 @@ export default function ReportingStatusScreen() {
         </TouchableOpacity>
       )}
 
+      {unreported.length > 0 && (
+        <>
+          <SectionLabel>{t.unreportedReceipts}</SectionLabel>
+          {unreported.map((r) => {
+            const overdue = isReportOverdue(r.created_at);
+            return (
+              <View key={r.id} style={styles.listRow}>
+                <View style={styles.listRowLeft}>
+                  <Text style={styles.rowNum}>{r.receipt_number}</Text>
+                  <Text style={styles.rowSub}>
+                    {new Date(r.created_at).toLocaleDateString()} ·{' '}
+                    {fmtMoney(r.subtotal)}
+                  </Text>
+                </View>
+                {overdue && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{t.overdueCount}</Text>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </>
+      )}
+
       <SectionLabel>{t.stateReporting}</SectionLabel>
       <Text style={styles.body}>{t.reportingHowto}</Text>
     </ScrollView>
@@ -222,6 +256,43 @@ const makeStyles = (colors: Palette) =>
       fontSize: 13,
       fontFamily: fonts.sansSemiBold,
       flex: 1,
+    },
+    listRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    listRowLeft: { flex: 1 },
+    rowNum: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.sansSemiBold,
+    },
+    rowSub: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontFamily: fonts.sans,
+      marginTop: 2,
+    },
+    badge: {
+      backgroundColor: colors.rust,
+      borderRadius: borderRadius.pill,
+      paddingVertical: 3,
+      paddingHorizontal: spacing.sm,
+    },
+    badgeText: {
+      color: colors.accentInk,
+      fontSize: 11,
+      fontFamily: fonts.sansBold,
+      textTransform: 'uppercase',
     },
     button: {
       flexDirection: 'row',

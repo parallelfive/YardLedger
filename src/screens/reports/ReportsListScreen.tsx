@@ -192,9 +192,12 @@ export default function ReportsListScreen({ navigation }: Props) {
           />
         </View>
 
-        {/* Deadline strip */}
+        {/* Deadline strip — tap to see/upload the unreported receipts */}
         {unreportedCount > 0 && (
-          <View style={styles.deadline}>
+          <TouchableOpacity
+            style={styles.deadline}
+            onPress={() => navigation.navigate('ReportingStatus')}
+          >
             <Ionicons
               name={overdueCount > 0 ? 'alert-circle' : 'time-outline'}
               size={17}
@@ -208,7 +211,12 @@ export default function ReportsListScreen({ navigation }: Props) {
               </Text>{' '}
               · {overdueCount > 0 ? t.overdueStrip : t.unreportedDeadline}
             </Text>
-          </View>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
         )}
 
         {/* Export actions */}

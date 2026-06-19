@@ -660,4 +660,5 @@ export default {
   // --- state-report overdue ---
   overdueCount: 'overdue',
   overdueStrip: 'past the 2-business-day state deadline',
+  unreportedReceipts: 'Unreported receipts',
 } as const;
