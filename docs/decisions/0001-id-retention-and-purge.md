@@ -91,6 +91,37 @@ data-minimization sweet spot.
   license-swipe/retention statute, and whether photo retention has stricter
   rules than field retention.
 
+## Repeat sellers — one person, many records
+
+A regulated seller often sells to us repeatedly. **We snapshot the seller ID onto
+each receipt** (`seller_*` fields + a per-receipt `seller_id_photo_uri`), and keep
+a single `customers` roster row updated to their latest photo. So N regulated buys
+= **N receipt-level ID snapshots + 1 roster row**, not one shared capture.
+
+This is deliberate:
+
+- The compliance record must reflect the ID **as presented at that purchase**, not
+  whatever is on file now. IDs change (renewal, address, photo).
+- Each receipt is immutable and **ages out on its own retention clock**, which is
+  what makes the purge correct: an old buy from a person redacts while their recent
+  buy is retained.
+
+Two consequences this creates:
+
+1. **Roster purge must be reference-aware (follow-up).** The `customers` row may
+   still be needed by in-window receipts, so it may only be scrubbed when the
+   person has **no in-window receipts left**. Naively purging the roster by age
+   would delete ID we're still legally required to hold. (This is the documented
+   `customers`-purge follow-up above.)
+2. **Photo: re-capture vs reuse (product decision).** Today we re-capture the ID
+   photo each regulated buy — safest and fully self-contained, at the cost of
+   duplicate storage. If we later optimize to _reuse_ a repeat customer's on-file
+   photo within a freshness window, that shared object's retention becomes "the
+   newest receipt referencing it," and we lose a bit of self-containment.
+   **Decision:** always snapshot the ID _fields_ per receipt (keeps each record
+   independently purgeable); keep photo re-capture the default and only reuse if
+   storage/friction warrants it.
+
 ## Related: desktop / peripheral capture (future)
 
 On a desktop/web station we intend to capture via **connected hardware** rather
