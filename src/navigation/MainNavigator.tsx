@@ -17,7 +17,10 @@ import DailySummaryScreen from '../screens/reports/DailySummaryScreen';
 import InventoryValuationScreen from '../screens/reports/InventoryValuationScreen';
 import ProfitabilityScreen from '../screens/reports/ProfitabilityScreen';
 import ShrinkageScreen from '../screens/reports/ShrinkageScreen';
-import CashDrawerScreen from '../screens/reports/CashDrawerScreen';
+// CashDrawerScreen built but unwired for MVP — re-add this import + the
+// ReportsStack.Screen + the 'CashDrawer' param + the Reports list entry to
+// re-enable. Code and migration (20260619000001) are retained.
+// import CashDrawerScreen from '../screens/reports/CashDrawerScreen';
 import ComplianceReportScreen from '../screens/reports/ComplianceReportScreen';
 import OnHoldScreen from '../screens/reports/OnHoldScreen';
 import ReportingStatusScreen from '../screens/reports/ReportingStatusScreen';
@@ -91,7 +94,6 @@ export type ReportsStackParamList = {
   ComplianceReport: undefined;
   OnHold: undefined;
   ReportingStatus: undefined;
-  CashDrawer: undefined;
 };
 
 export type AdminStackParamList = {
@@ -236,11 +238,6 @@ function ReportsNavigator() {
         name="ReportingStatus"
         component={ReportingStatusScreen}
         options={{ title: t.reportingStatus }}
-      />
-      <ReportsStack.Screen
-        name="CashDrawer"
-        component={CashDrawerScreen}
-        options={{ title: t.cashDrawer }}
       />
     </ReportsStack.Navigator>
   );

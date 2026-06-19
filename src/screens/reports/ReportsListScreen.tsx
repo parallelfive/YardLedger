@@ -150,7 +150,6 @@ export default function ReportsListScreen({ navigation }: Props) {
     screen: keyof ReportsStackParamList;
   }[] = [
     { title: t.dailySummary, screen: 'DailySummary' },
-    { title: t.cashDrawer, screen: 'CashDrawer' },
     { title: t.inventoryValuation, screen: 'InventoryValuation' },
     { title: t.profitability, screen: 'Profitability' },
     { title: t.shrinkage, screen: 'Shrinkage' },
