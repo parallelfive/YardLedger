@@ -235,28 +235,22 @@ export default function NewTransactionScreen({ navigation }: Props) {
     [tx]
   );
 
+  // Side effects live OUTSIDE setSnack so a double-invoked updater (StrictMode /
+  // concurrent) can't navigate twice. Capture the snack value, then act.
   const handleSnackView = useCallback(() => {
-    setSnack((s) => {
-      if (s) {
-        navigation.navigate('ReceiptDetail', {
-          receiptId: s.receiptId,
-          printOnLoad: false,
-        });
-      }
-      return null;
-    });
-  }, [navigation]);
+    if (!snack) return;
+    const receiptId = snack.receiptId;
+    setSnack(null);
+    navigation.navigate('ReceiptDetail', { receiptId, printOnLoad: false });
+  }, [snack, navigation]);
 
   const handleSnackSameSeller = useCallback(() => {
-    setSnack((s) => {
-      if (s) {
-        tx.setCustomerName(s.customerName);
-        tx.setCustomerPhone(s.customerPhone);
-        setSelectedCustomerId(s.customerId || undefined);
-      }
-      return null;
-    });
-  }, [tx]);
+    if (!snack) return;
+    tx.setCustomerName(snack.customerName);
+    tx.setCustomerPhone(snack.customerPhone);
+    setSelectedCustomerId(snack.customerId || undefined);
+    setSnack(null);
+  }, [snack, tx]);
 
   // Offline: the buy was queued locally (the hook already reset the form). Give
   // feedback and return to a fresh ticket — there's no server receipt to view.
