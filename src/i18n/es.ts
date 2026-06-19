@@ -11,7 +11,26 @@ export default {
 
   // Auth - Login
   appName: 'YardLedger',
-  appTagline: 'Gestión de Metales de Desecho',
+  appTagline: 'Llega al neto verdadero',
+  enterPasscode: 'Ingresa el código',
+  terminalLocked: 'Terminal bloqueado',
+  switchStaffer: 'Cambiar de personal',
+  outbound: 'Salientes',
+  compliance: 'Cumplimiento',
+  searchComingSoon: 'La búsqueda global llegará pronto.',
+  searchPlaceholder: 'Recibos, clientes, metales…',
+  noResults: 'Sin resultados',
+  enterPasscodeToSignIn: 'Ingresa tu código para entrar',
+  signOutDevice: '¿No eres tú? Cerrar sesión',
+  lockTerminal: 'Bloquear terminal',
+  lockTerminalDesc: 'Volver al teclado de código',
+  terminalSection: 'Terminal',
+  dayBook: 'Diario',
+  setShiftPin: 'PIN de turno',
+  setShiftPinDesc: 'Configura un PIN de 4 dígitos para entrar en el mostrador',
+  enterNewPin: 'Ingresa nuevo PIN',
+  confirmPin: 'Confirma el PIN',
+  pinsDontMatch: 'Los PIN no coinciden',
   email: 'Correo Electrónico',
   password: 'Contraseña',
   signIn: 'Iniciar Sesión',
@@ -604,4 +623,50 @@ export default {
   unrealizedGain: 'ganancia no realizada',
   unrealizedLoss: 'pérdida no realizada',
   tapToSign: 'Toca para firmar',
+  // --- admin elevation ---
+  ownerAuthorization: 'Autorización de propietario',
+  enterPinToAuthorize: 'Ingresa tu PIN para autorizar',
+  setPinTitle: 'Configura tu PIN de administrador',
+  setPinSubtitle:
+    'Necesitas un PIN de 4 dígitos para autorizar acciones de administrador en esta terminal.',
+  confirmPinLabel: 'Confirma el PIN',
+  pinMismatch: 'Los PIN no coinciden',
+  savePin: 'Guardar PIN',
+  // --- offline ---
+  offlineBanner:
+    'Sin conexión — guardado en este dispositivo, se sincronizará al reconectar',
+  syncingQueued: 'Sincronizando transacciones en cola',
+  queuedSuffix: 'en cola',
+  savedOffline: 'Guardado sin conexión',
+  willSyncMsg:
+    'Guardado en este dispositivo — se sincronizará automáticamente al reconectar.',
+  noOverridesOffline:
+    'Los ajustes de precio requieren conexión. Usa el precio de mercado para guardar sin conexión.',
+  syncIssuesTitle: 'Algunos elementos sin conexión no se sincronizaron',
+  syncIssuesMsg:
+    '{n} transacción(es) en cola fueron rechazadas al sincronizar y deben volver a ingresarse.',
+  // --- cash drawer ---
+  cashDrawer: 'Caja',
+  cashDrawerDesc:
+    'Abre la caja, registra el efectivo pagado y cuadra al cerrar',
+  drawerOpen: 'Caja abierta',
+  openDrawer: 'Abrir caja',
+  openDrawerHint:
+    'Ingresa el efectivo inicial en la caja para comenzar el turno.',
+  closeDrawer: 'Cerrar caja',
+  openingFloat: 'Fondo inicial',
+  cashPaidOut: 'Efectivo pagado (compras)',
+  expectedInDrawer: 'Esperado en caja',
+  countedCash: 'Efectivo contado',
+  drawerClosed: 'Caja cerrada',
+  balanced: 'Cuadrada',
+  over: 'de más',
+  short: 'de menos',
+  closeoutHistory: 'Cierres recientes',
+  noCloseouts: 'Aún no hay cierres',
+  expectedShort: 'esperado',
+  // --- state-report overdue ---
+  overdueCount: 'atrasados',
+  overdueStrip: 'fuera del plazo estatal de 2 días hábiles',
+  unreportedReceipts: 'Recibos sin reportar',
 } as const;

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -16,9 +17,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { SalesStackParamList } from '../../navigation/MainNavigator';
 import { useT } from '../../hooks/useT';
-import { useAppSelector, type RootState } from '../../store';
+import { useAppDispatch, useAppSelector, type RootState } from '../../store';
+import { setPendingOutbox } from '../../store/appStore';
 import { fetchInventory } from '../../services/inventory';
 import { createSale } from '../../services/sales';
+import { enqueueSale } from '../../services/outbox';
 import {
   MetalDot,
   fmtMoney,
@@ -62,6 +65,12 @@ export default function NewSaleScreen({ navigation }: Props) {
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
+  // Attribute the sale to the staffer on shift (PIN'd in), not the device user.
+  const activeIdentity = useAppSelector(
+    (state: RootState) => state.auth.activeIdentity
+  );
+  const isOnline = useAppSelector((state: RootState) => state.app.isOnline);
+  const dispatch = useAppDispatch();
 
   const [buyerName, setBuyerName] = useState('');
   const [inventory, setInventory] = useState<InvRow[]>([]);
@@ -71,47 +80,52 @@ export default function NewSaleScreen({ navigation }: Props) {
   const [salePrice, setSalePrice] = useState('');
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const data = await fetchInventory();
-        if (!active) return;
-        const rows: InvRow[] = (data as unknown[])
-          .map((raw) => {
-            const item = raw as Record<string, unknown>;
-            const metals = (
-              Array.isArray(item.metals) ? item.metals[0] : item.metals
-            ) as Record<string, unknown> | undefined;
-            const mc = metals?.metal_categories as
-              | { name?: string }
-              | { name?: string }[]
-              | undefined;
-            const category = (Array.isArray(mc) ? mc[0]?.name : mc?.name) as
-              | string
-              | undefined;
-            const restricted = Boolean(metals?.is_restricted);
-            return {
-              id: String(item.id),
-              metalId: String(item.metal_id),
-              metalName: String(item.metal_name ?? metals?.name ?? ''),
-              weight: Number(item.weight),
-              avgCost: Number(item.avg_cost_per_lb),
-              tone: toneFor(category, restricted),
-            };
-          })
-          .filter((r) => r.weight > 0);
-        setInventory(rows);
-      } catch {
-        if (active) setInventory([]);
-      } finally {
-        if (active) setLoadingInventory(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+  // Refresh on focus (not just mount) so re-opening the screen after a sale
+  // shows the updated on-hand weights instead of stale data.
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setLoadingInventory(true);
+      (async () => {
+        try {
+          const data = await fetchInventory();
+          if (!active) return;
+          const rows: InvRow[] = (data as unknown[])
+            .map((raw) => {
+              const item = raw as Record<string, unknown>;
+              const metals = (
+                Array.isArray(item.metals) ? item.metals[0] : item.metals
+              ) as Record<string, unknown> | undefined;
+              const mc = metals?.metal_categories as
+                | { name?: string }
+                | { name?: string }[]
+                | undefined;
+              const category = (Array.isArray(mc) ? mc[0]?.name : mc?.name) as
+                | string
+                | undefined;
+              const restricted = Boolean(metals?.is_restricted);
+              return {
+                id: String(item.id),
+                metalId: String(item.metal_id),
+                metalName: String(item.metal_name ?? metals?.name ?? ''),
+                weight: Number(item.weight),
+                avgCost: Number(item.avg_cost_per_lb),
+                tone: toneFor(category, restricted),
+              };
+            })
+            .filter((r) => r.weight > 0);
+          setInventory(rows);
+        } catch {
+          if (active) setInventory([]);
+        } finally {
+          if (active) setLoadingInventory(false);
+        }
+      })();
+      return () => {
+        active = false;
+      };
+    }, [])
+  );
 
   const selected = useMemo(
     () => inventory.find((r) => r.id === selectedId) ?? null,
@@ -128,22 +142,36 @@ export default function NewSaleScreen({ navigation }: Props) {
 
   const selectMetal = (row: InvRow) => {
     setSelectedId(row.id);
-    setSalePrice(row.avgCost.toFixed(2));
+    // Leave the price blank so the operator must enter a real sale price.
+    // Pre-filling with avg COST silently booked every default sale at cost,
+    // i.e. profit = $0 — the whole point of profit tracking was lost.
+    setSalePrice('');
   };
 
   const handleSave = async () => {
     if (!selected || !canRecord || !profile) return;
+    const saleParams = {
+      metalId: selected.metalId,
+      metalName: selected.metalName,
+      weight,
+      salePricePerLb: price,
+      costBasisPerLb: selected.avgCost,
+      buyerName: buyerName.trim() || undefined,
+      workerId: activeIdentity?.user_id ?? profile.id,
+    };
     setSaving(true);
     try {
-      await createSale({
-        metalId: selected.metalId,
-        metalName: selected.metalName,
-        weight,
-        salePricePerLb: price,
-        costBasisPerLb: selected.avgCost,
-        buyerName: buyerName.trim() || undefined,
-        workerId: profile.id,
-      });
+      if (!isOnline) {
+        // Queue the sale; the server validates oversell on replay (best-effort
+        // check happened in the UI against cached inventory).
+        const n = await enqueueSale(saleParams);
+        dispatch(setPendingOutbox(n));
+        Alert.alert(t.savedOffline, t.willSyncMsg, [
+          { text: t.ok, onPress: () => navigation.navigate('SalesList') },
+        ]);
+        return;
+      }
+      await createSale(saleParams);
       Alert.alert(t.success, t.saleSaved, [
         { text: t.ok, onPress: () => navigation.navigate('SalesList') },
       ]);

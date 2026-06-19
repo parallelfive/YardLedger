@@ -21,11 +21,13 @@ import {
   exportNmrldCsv,
   fetchUnreportedReceipts,
   buildNmrldExportCsv,
+  fetchNmrldRegistrationNumber,
   markReceiptsReported,
 } from '../../services/reports';
 import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useAppSelector, type RootState } from '../../store';
 import { Tag, SectionLabel, fmtMoney } from '../../components/foundry';
 import { type Palette, spacing, fontSize, fonts } from '../../constants';
@@ -52,6 +54,7 @@ interface PurchaseRecordRow {
 
 export default function ComplianceReportScreen() {
   const { t } = useT();
+  const { ensureElevated } = useAdminElevation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((s: RootState) => s.auth.profile);
@@ -266,12 +269,15 @@ export default function ComplianceReportScreen() {
   // until the automated SFTP job is wired up.
   const handleReportUnreported = async () => {
     try {
-      const unreported = await fetchUnreportedReceipts();
+      const [unreported, registration] = await Promise.all([
+        fetchUnreportedReceipts(),
+        fetchNmrldRegistrationNumber(),
+      ]);
       if (unreported.length === 0) {
         Alert.alert(t.nmrldExport, t.noUnreported);
         return;
       }
-      const csv = buildNmrldExportCsv(unreported);
+      const csv = buildNmrldExportCsv(unreported, registration);
       const file = new File(Paths.cache, 'nmrld_unreported.csv');
       file.write(csv);
       await Sharing.shareAsync(file.uri, {
@@ -292,6 +298,7 @@ export default function ComplianceReportScreen() {
           {
             text: t.confirm,
             onPress: async () => {
+              if (!(await ensureElevated())) return;
               try {
                 await markReceiptsReported(
                   unreported.map((r) => r.id),

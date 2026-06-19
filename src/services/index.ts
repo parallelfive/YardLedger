@@ -8,3 +8,5 @@ export * as reportsService from './reports';
 export * as companySettingsService from './companySettings';
 export * as companiesService from './companies';
 export * as inviteCodesService from './inviteCodes';
+export { setPin, validatePin, type PinIdentity } from './pin';
+export * as adminService from './admin';

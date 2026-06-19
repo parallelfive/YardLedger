@@ -8,14 +8,17 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
 import { useAppDispatch, useAppSelector, type RootState } from '../../store';
-import { signOut } from '../../store/authStore';
+import { signOut, lockTerminal } from '../../store/authStore';
 import { setLanguage } from '../../store/settingsStore';
 import { type Palette, spacing, fonts, borderRadius } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
+import { SetPinModal } from '../../components';
 
 // ── grouped card (design "Group") ───────────────────────────
 function Group({
@@ -145,6 +148,7 @@ export default function SettingsScreen() {
   const { t, language } = useT();
   const { colors, isLight, toggle } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const insets = useSafeAreaInsets();
   const dispatch = useAppDispatch();
   const navigation = useNavigation();
   const nav = navigation as {
@@ -155,7 +159,14 @@ export default function SettingsScreen() {
 
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const company = useAppSelector((s: RootState) => s.auth.company);
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const activeIdentity = useAppSelector(
+    (s: RootState) => s.auth.activeIdentity
+  );
+  const { isAdmin, role } = useRole();
+  // Who's on shift (PIN'd in), falling back to the device's session profile.
+  const shiftName = activeIdentity?.name || profile?.name || t.account;
+
+  const [pinOpen, setPinOpen] = useState(false);
 
   // Theme toggle reloads the app (see utils/themeMode); guard double-taps.
   const [switching, setSwitching] = useState(false);
@@ -187,7 +198,7 @@ export default function SettingsScreen() {
   return (
     <View style={styles.container}>
       {/* header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
         <View style={styles.flex}>
           <Text style={styles.eyebrow}>{t.settingsEyebrow}</Text>
           <Text style={styles.title}>{t.settings}</Text>
@@ -205,18 +216,26 @@ export default function SettingsScreen() {
         {/* Account */}
         <Group title={t.account}>
           <Row
-            label={profile?.name || t.account}
+            label={shiftName}
             sub={profile?.email}
             icon="person-outline"
             right={
-              profile?.role ? (
+              role ? (
                 <View style={styles.rolePill}>
                   <Text style={styles.rolePillText}>
-                    {roleLabel(profile.role, t).toUpperCase()}
+                    {roleLabel(role, t).toUpperCase()}
                   </Text>
                 </View>
               ) : undefined
             }
+            last={false}
+          />
+          <Row
+            label={t.setShiftPin}
+            sub={t.setShiftPinDesc}
+            icon="keypad-outline"
+            iconColor={colors.accent}
+            onPress={() => setPinOpen(true)}
             last={!company}
           />
           {company ? (
@@ -315,6 +334,18 @@ export default function SettingsScreen() {
           />
         </Group>
 
+        {/* Lock to the passcode pad */}
+        <Group title={t.terminalSection}>
+          <Row
+            label={t.lockTerminal}
+            sub={t.lockTerminalDesc}
+            icon="lock-closed-outline"
+            iconColor={colors.accent}
+            onPress={() => dispatch(lockTerminal())}
+            last
+          />
+        </Group>
+
         {/* Sign out */}
         <TouchableOpacity
           style={styles.signOutBtn}
@@ -325,8 +356,10 @@ export default function SettingsScreen() {
           <Text style={styles.signOutText}>{t.signOut}</Text>
         </TouchableOpacity>
 
-        <Text style={styles.footnote}>YardLedger · {appVersion}</Text>
+        <Text style={styles.footnote}>tare · {appVersion}</Text>
       </ScrollView>
+
+      <SetPinModal visible={pinOpen} onClose={() => setPinOpen(false)} />
     </View>
   );
 }

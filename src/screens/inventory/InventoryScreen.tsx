@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useInventory } from '../../hooks/useInventory';
+import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import {
   Tag,
   DeltaTag,
@@ -19,6 +20,7 @@ import {
   fmtLbs,
   type Tone,
 } from '../../components/foundry';
+import { TareHeader } from '../../components';
 import {
   type Palette,
   spacing,
@@ -67,6 +69,7 @@ export default function InventoryScreen() {
       refresh();
     }, [refresh])
   );
+  useRefreshOnReconnect(refresh);
 
   const rows = useMemo<Row[]>(() => {
     return (inventory as unknown[]).map((raw) => {
@@ -114,6 +117,10 @@ export default function InventoryScreen() {
 
   return (
     <View style={styles.container}>
+      <TareHeader
+        title={t.tabInventory}
+        rightLabel={`${rows.length} ${t.metalsWord}`}
+      />
       <FlatList
         data={filtered}
         keyExtractor={(r) => r.id}

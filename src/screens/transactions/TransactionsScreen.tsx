@@ -9,7 +9,9 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
 import { useReceipts } from '../../hooks/useReceipts';
 import { useSales } from '../../hooks/useSales';
 import { useAppSelector, type RootState } from '../../store';
@@ -42,7 +44,7 @@ export default function TransactionsScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const { isAdmin } = useRole();
   const [preset, setPreset] = useState<DatePreset>('today');
   const { start, end } = getDateRange(preset);
   const { receipts, loading, refresh } = useReceipts(
@@ -55,12 +57,12 @@ export default function TransactionsScreen({ navigation }: Props) {
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
 
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-      refreshSales();
-    }, [refresh, refreshSales])
-  );
+  const refreshAll = useCallback(() => {
+    refresh();
+    refreshSales();
+  }, [refresh, refreshSales]);
+  useFocusEffect(refreshAll);
+  useRefreshOnReconnect(refreshAll);
 
   const filteredReceipts = useMemo(() => {
     if (!appliedSearch) return receipts;

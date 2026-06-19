@@ -5,7 +5,6 @@ import {
   type BottomTabBarProps,
 } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import TransactionsScreen from '../screens/transactions/TransactionsScreen';
 import NewTransactionScreen from '../screens/transactions/NewTransactionScreen';
@@ -18,21 +17,24 @@ import DailySummaryScreen from '../screens/reports/DailySummaryScreen';
 import InventoryValuationScreen from '../screens/reports/InventoryValuationScreen';
 import ProfitabilityScreen from '../screens/reports/ProfitabilityScreen';
 import ShrinkageScreen from '../screens/reports/ShrinkageScreen';
+// CashDrawerScreen built but unwired for MVP — re-add this import + the
+// ReportsStack.Screen + the 'CashDrawer' param + the Reports list entry to
+// re-enable. Code and migration (20260619000001) are retained.
+// import CashDrawerScreen from '../screens/reports/CashDrawerScreen';
 import ComplianceReportScreen from '../screens/reports/ComplianceReportScreen';
 import OnHoldScreen from '../screens/reports/OnHoldScreen';
 import ReportingStatusScreen from '../screens/reports/ReportingStatusScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SettingsScreen from '../screens/settings/SettingsScreen';
+import GlobalSearchScreen from '../screens/search/GlobalSearchScreen';
 import CustomerListScreen from '../screens/customers/CustomerListScreen';
 import CustomerProfileScreen from '../screens/customers/CustomerProfileScreen';
 import MarketPricesScreen from '../screens/admin/MarketPricesScreen';
 import UserApprovalScreen from '../screens/admin/UserApprovalScreen';
 import PricingScreen from '../screens/admin/PricingScreen';
 import CompanyProfileScreen from '../screens/admin/CompanyProfileScreen';
-import { useAppSelector, useAppDispatch, type RootState } from '../store';
-import { signOut } from '../store/authStore';
-import { toggleLanguage } from '../store/settingsStore';
 import { useT } from '../hooks/useT';
+import { useRole } from '../hooks';
 import { useTheme, useThemedStyles } from '../theme';
 import {
   fontSize,
@@ -70,6 +72,7 @@ export type TransactionsStackParamList = {
   NewTransaction: undefined;
   ReceiptDetail: { receiptId: string; printOnLoad?: boolean };
   Settings: undefined;
+  Search: undefined;
 };
 
 export type SalesStackParamList = {
@@ -108,166 +111,6 @@ const CustomersStack = createNativeStackNavigator<CustomersStackParamList>();
 const ReportsStack = createNativeStackNavigator<ReportsStackParamList>();
 const AdminStack = createNativeStackNavigator<AdminStackParamList>();
 
-// Top-bar controls: a quick theme toggle + an overflow menu. The menu is the
-// home for areas the design keeps off the tab bar (Customers, Admin, Pricing…).
-function SettingsButton() {
-  const { t, language } = useT();
-  const dispatch = useAppDispatch();
-  const navigation = useNavigation();
-  const { colors, isLight, toggle } = useTheme();
-  const navStyles = useThemedStyles(makeNavStyles);
-  const profile = useAppSelector((state: RootState) => state.auth.profile);
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
-  const [visible, setVisible] = useState(false);
-
-  const go = (target: () => void) => {
-    setVisible(false);
-    target();
-  };
-  const nav = navigation as {
-    navigate: (name: string, params?: object) => void;
-  };
-
-  return (
-    <View style={navStyles.headerRight}>
-      <TouchableOpacity style={navStyles.headerIconButton} onPress={toggle}>
-        <Ionicons
-          name={isLight ? 'sunny-outline' : 'moon-outline'}
-          size={21}
-          color={colors.accent}
-        />
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={navStyles.headerIconButton}
-        onPress={() => setVisible(true)}
-      >
-        <Ionicons
-          name="ellipsis-horizontal"
-          size={22}
-          color={colors.textSecondary}
-        />
-      </TouchableOpacity>
-      <Modal
-        visible={visible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setVisible(false)}
-      >
-        <TouchableOpacity
-          style={navStyles.settingsOverlay}
-          activeOpacity={1}
-          onPress={() => setVisible(false)}
-        >
-          <View style={navStyles.settingsModal}>
-            <TouchableOpacity
-              style={navStyles.settingsRow}
-              onPress={() =>
-                go(() =>
-                  nav.navigate('TransactionsTab', { screen: 'Settings' })
-                )
-              }
-            >
-              <Ionicons
-                name="settings-outline"
-                size={22}
-                color={colors.accent}
-              />
-              <Text style={navStyles.settingsRowText}>{t.settings}</Text>
-            </TouchableOpacity>
-            <View style={navStyles.settingsDivider} />
-            <TouchableOpacity
-              style={navStyles.settingsRow}
-              onPress={() => go(() => nav.navigate('CustomersTab'))}
-            >
-              <Ionicons name="people-outline" size={22} color={colors.accent} />
-              <Text style={navStyles.settingsRowText}>{t.customers}</Text>
-            </TouchableOpacity>
-            {isAdmin && (
-              <>
-                <View style={navStyles.settingsDivider} />
-                <TouchableOpacity
-                  style={navStyles.settingsRow}
-                  onPress={() =>
-                    go(() => nav.navigate('AdminTab', { screen: 'Pricing' }))
-                  }
-                >
-                  <Ionicons
-                    name="pricetag-outline"
-                    size={22}
-                    color={colors.accent}
-                  />
-                  <Text style={navStyles.settingsRowText}>{t.pricing}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={navStyles.settingsRow}
-                  onPress={() =>
-                    go(() => nav.navigate('AdminTab', { screen: 'Users' }))
-                  }
-                >
-                  <Ionicons
-                    name="shield-outline"
-                    size={22}
-                    color={colors.accent}
-                  />
-                  <Text style={navStyles.settingsRowText}>{t.tabUsers}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={navStyles.settingsRow}
-                  onPress={() =>
-                    go(() =>
-                      nav.navigate('AdminTab', { screen: 'CompanyProfile' })
-                    )
-                  }
-                >
-                  <Ionicons
-                    name="business-outline"
-                    size={22}
-                    color={colors.accent}
-                  />
-                  <Text style={navStyles.settingsRowText}>
-                    {t.companyProfile}
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-            <View style={navStyles.settingsDivider} />
-            <TouchableOpacity
-              style={navStyles.settingsRow}
-              onPress={() => go(() => dispatch(toggleLanguage()))}
-            >
-              <Ionicons
-                name="language-outline"
-                size={22}
-                color={colors.accent}
-              />
-              <Text style={navStyles.settingsRowText}>{t.language}</Text>
-              <Text style={navStyles.settingsRowValue}>
-                {language === 'en' ? t.english : t.spanish}
-              </Text>
-            </TouchableOpacity>
-            <View style={navStyles.settingsDivider} />
-            <TouchableOpacity
-              style={navStyles.settingsRow}
-              onPress={() => go(() => dispatch(signOut()))}
-            >
-              <Ionicons
-                name="log-out-outline"
-                size={22}
-                color={colors.danger}
-              />
-              <Text
-                style={[navStyles.settingsRowText, { color: colors.danger }]}
-              >
-                {t.signOut}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
-}
-
 function TransactionsNavigator() {
   const { t } = useT();
   const { colors } = useTheme();
@@ -278,7 +121,6 @@ function TransactionsNavigator() {
         component={TransactionsScreen}
         options={{
           title: t.transactions,
-          headerRight: () => <SettingsButton />,
         }}
       />
       <TransactionsStack.Screen
@@ -300,19 +142,23 @@ function TransactionsNavigator() {
         component={SettingsScreen}
         options={{ headerShown: false, presentation: 'modal' }}
       />
+      <TransactionsStack.Screen
+        name="Search"
+        component={GlobalSearchScreen}
+        options={{ headerShown: false, presentation: 'modal' }}
+      />
     </TransactionsStack.Navigator>
   );
 }
 
 function SalesNavigator() {
-  const { t } = useT();
   const { colors } = useTheme();
   return (
     <SalesStack.Navigator screenOptions={stackOpts(colors)}>
       <SalesStack.Screen
         name="SalesList"
         component={SalesScreen}
-        options={{ title: t.tabSales, headerRight: () => <SettingsButton /> }}
+        options={{ headerShown: false }}
       />
       <SalesStack.Screen
         name="NewSale"
@@ -355,8 +201,7 @@ function ReportsNavigator() {
         name="ReportsList"
         component={ReportsListScreen}
         options={{
-          title: t.tabReports,
-          headerRight: () => <SettingsButton />,
+          headerShown: false,
         }}
       />
       <ReportsStack.Screen
@@ -575,8 +420,7 @@ function YLTabBar({ state, navigation }: BottomTabBarProps) {
 export default function MainNavigator() {
   const { t } = useT();
   const { colors } = useTheme();
-  const profile = useAppSelector((state: RootState) => state.auth.profile);
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'owner';
+  const { isAdmin } = useRole();
 
   return (
     <Tab.Navigator
@@ -595,18 +439,17 @@ export default function MainNavigator() {
           fontFamily: fonts.sansBold,
           fontSize: fontSize.xl,
         },
-        headerRight: () => <SettingsButton />,
       }}
     >
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
-        options={{ title: t.tabHome }}
+        options={{ title: t.tabHome, headerShown: false }}
       />
       <Tab.Screen
         name="Inventory"
         component={InventoryScreen}
-        options={{ title: t.tabStock }}
+        options={{ title: t.tabStock, headerShown: false }}
       />
       <Tab.Screen
         name="SalesTab"

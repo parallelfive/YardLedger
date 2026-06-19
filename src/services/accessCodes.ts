@@ -11,6 +11,10 @@ export async function validateAccessCode(code: string): Promise<boolean> {
     p_code: code,
   });
 
-  if (error) return false;
+  // Distinguish a clean rejection (wrong code → data false) from a real error
+  // such as the brute-force lockout, which validate_access_code raises. The old
+  // `return false` collapsed the lockout into a generic "invalid code", hiding
+  // the security state from the operator. Surface it so the caller can show it.
+  if (error) throw new Error(error.message);
   return data === true;
 }

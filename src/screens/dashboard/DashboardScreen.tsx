@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { Ionicons } from '@expo/vector-icons';
+import { TareHeader } from '../../components';
 import {
   fetchDailySummary,
   fetchInventoryValuation,
@@ -31,6 +33,7 @@ import {
   type Tone,
 } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
 import { type Palette, spacing, borderRadius, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
 
@@ -55,8 +58,11 @@ const MIX_TONES: Tone[] = ['copper', 'steel', 'gold', 'moss', 'ink3'];
 export default function DashboardScreen() {
   const { t } = useT();
   const { colors } = useTheme();
+  const { isAdmin } = useRole();
   const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation() as unknown as Nav;
+  const today = new Date();
+  const dateStr = `${today.toLocaleDateString('en-US', { weekday: 'short' })} · ${today.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [spark, setSpark] = useState<number[]>([]);
   const [onHand, setOnHand] = useState({ value: 0, count: 0 });
@@ -127,6 +133,7 @@ export default function DashboardScreen() {
       load();
     }, [load])
   );
+  useRefreshOnReconnect(load);
 
   if (loading) {
     return (
@@ -156,154 +163,164 @@ export default function DashboardScreen() {
   const deltaPct = avg > 0 ? Math.round(((last - avg) / avg) * 100) : 0;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Hero — bought today */}
-      <View style={styles.hero}>
-        <View style={styles.heroHead}>
-          <Text style={styles.eyebrow}>{t.boughtToday}</Text>
-          {deltaPct !== 0 ? (
-            <DeltaTag up={deltaPct > 0}>
-              {`${Math.abs(deltaPct)}% ${t.vsAvg}`}
-            </DeltaTag>
-          ) : null}
-        </View>
-        <Text style={styles.heroValue}>
-          {fmtMoney0(boughtWhole)}
-          <Text style={styles.heroCents}>.{cents}</Text>
-        </Text>
-        <Text style={styles.heroSub}>
-          {fmtLbs(summary?.totalBoughtWeight ?? 0)} lb ·{' '}
-          {summary?.receiptCount ?? 0} {t.receipts.toLowerCase()}
-        </Text>
-        <View style={{ marginTop: 14 }}>
-          <Sparkline data={spark} />
-        </View>
-      </View>
-
-      {/* Mini stats */}
-      <View style={styles.statRow}>
-        <MiniStat
-          label={t.soldToday}
-          value={fmtMoney0(summary?.totalSoldRevenue ?? 0)}
-          sub={`${fmtLbs(summary?.totalSoldWeight ?? 0)} ${t.lbOut}`}
-          tone="steel"
-          icon="cube-outline"
-        />
-        <MiniStat
-          label={t.grossProfit}
-          value={fmtMoney0(summary?.grossProfit ?? 0)}
-          sub={`${margin}% ${t.margin.toLowerCase()}`}
-          tone="moss"
-          icon="trending-up-outline"
-        />
-        <MiniStat
-          label={t.onHandValue}
-          value={fmtMoney0(onHand.value)}
-          sub={`${onHand.count} ${t.metals}`}
-          tone="copper"
-          icon="layers-outline"
-        />
-      </View>
-
-      {/* Compliance strip */}
-      {unreported > 0 && (
-        <TouchableOpacity
-          style={styles.compliance}
-          activeOpacity={0.7}
-          onPress={() =>
-            navigation.navigate('ReportsTab', { screen: 'ComplianceReport' })
-          }
-        >
-          <View style={styles.complianceIcon}>
-            <Ionicons name="shield-outline" size={19} color={colors.rust} />
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <TareHeader title={t.dayBook} rightLabel={dateStr} />
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+      >
+        {/* Hero — bought today */}
+        <View style={styles.hero}>
+          <View style={styles.heroHead}>
+            <Text style={styles.eyebrow}>{t.boughtToday}</Text>
+            {deltaPct !== 0 ? (
+              <DeltaTag up={deltaPct > 0}>
+                {`${Math.abs(deltaPct)}% ${t.vsAvg}`}
+              </DeltaTag>
+            ) : null}
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.complianceTitle}>
-              {unreported} {t.awaitingReport}
-            </Text>
-            <Text style={styles.complianceSub}>{t.recycledMetalsAct}</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={18} color={colors.rust} />
-        </TouchableOpacity>
-      )}
-
-      {/* Quick actions */}
-      <View style={styles.actionsRow}>
-        <TouchableOpacity
-          style={[styles.action, styles.actionPrimary]}
-          activeOpacity={0.85}
-          onPress={() =>
-            navigation.navigate('TransactionsTab', { screen: 'NewTransaction' })
-          }
-        >
-          <Ionicons name="add" size={22} color={colors.accentInk} />
-          <Text style={[styles.actionLabel, { color: colors.accentInk }]}>
-            {t.newBuy}
+          <Text style={styles.heroValue}>
+            {fmtMoney0(boughtWhole)}
+            <Text style={styles.heroCents}>.{cents}</Text>
           </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.action}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('SalesTab', { screen: 'NewSale' })}
-        >
-          <Ionicons name="cube-outline" size={22} color={colors.teal} />
-          <Text style={styles.actionLabel}>{t.newSale}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.action}
-          activeOpacity={0.85}
-          onPress={() => navigation.navigate('InventoryTab')}
-        >
-          <Ionicons
-            name="layers-outline"
-            size={22}
-            color={colors.textSecondary}
-          />
-          <Text style={styles.actionLabel}>{t.stock}</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Metal mix */}
-      {mix.length > 0 && (
-        <View style={styles.mixCard}>
-          <View style={styles.mixHead}>
-            <Text style={styles.mixTitle}>{t.metalMix}</Text>
-            <Text style={styles.mixSub}>{t.onHandByWeight}</Text>
+          <Text style={styles.heroSub}>
+            {fmtLbs(summary?.totalBoughtWeight ?? 0)} lb ·{' '}
+            {summary?.receiptCount ?? 0} {t.receipts.toLowerCase()}
+          </Text>
+          <View style={{ marginTop: 14 }}>
+            <Sparkline data={spark} />
           </View>
-          <MetalMixBar data={mix} />
         </View>
-      )}
 
-      {/* Recent intake */}
-      {recent.length > 0 && (
-        <>
-          <SectionLabel
-            actionLabel={t.viewAll}
-            onAction={() => navigation.navigate('TransactionsTab')}
+        {/* Mini stats */}
+        <View style={styles.statRow}>
+          <MiniStat
+            label={t.soldToday}
+            value={fmtMoney0(summary?.totalSoldRevenue ?? 0)}
+            sub={`${fmtLbs(summary?.totalSoldWeight ?? 0)} ${t.lbOut}`}
+            tone="steel"
+            icon="cube-outline"
+          />
+          <MiniStat
+            label={t.grossProfit}
+            value={fmtMoney0(summary?.grossProfit ?? 0)}
+            sub={`${margin}% ${t.margin.toLowerCase()}`}
+            tone="moss"
+            icon="trending-up-outline"
+          />
+          <MiniStat
+            label={t.onHandValue}
+            value={fmtMoney0(onHand.value)}
+            sub={`${onHand.count} ${t.metals}`}
+            tone="copper"
+            icon="layers-outline"
+          />
+        </View>
+
+        {/* Compliance strip — only managers can reach the Reports tab it links to */}
+        {isAdmin && unreported > 0 && (
+          <TouchableOpacity
+            style={styles.compliance}
+            activeOpacity={0.7}
+            onPress={() =>
+              navigation.navigate('ReportsTab', { screen: 'ComplianceReport' })
+            }
           >
-            {t.recentIntake}
-          </SectionLabel>
-          <View style={styles.ticketList}>
-            {recent.map((r) => (
-              <TicketRow
-                key={r.id}
-                customer={r.customer}
-                meta={r.meta}
-                total={r.total}
-                sub={r.sub}
-                restricted={r.restricted}
-                onPress={() =>
-                  navigation.navigate('TransactionsTab', {
-                    screen: 'ReceiptDetail',
-                    params: { receiptId: r.id },
-                  })
-                }
-              />
-            ))}
+            <View style={styles.complianceIcon}>
+              <Ionicons name="shield-outline" size={19} color={colors.rust} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.complianceTitle}>
+                {unreported} {t.awaitingReport}
+              </Text>
+              <Text style={styles.complianceSub}>{t.recycledMetalsAct}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.rust} />
+          </TouchableOpacity>
+        )}
+
+        {/* Quick actions */}
+        <View style={styles.actionsRow}>
+          <TouchableOpacity
+            style={[styles.action, styles.actionPrimary]}
+            activeOpacity={0.85}
+            onPress={() =>
+              navigation.navigate('TransactionsTab', {
+                screen: 'NewTransaction',
+              })
+            }
+          >
+            <Ionicons name="add" size={22} color={colors.accentInk} />
+            <Text style={[styles.actionLabel, { color: colors.accentInk }]}>
+              {t.newBuy}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.action}
+            activeOpacity={0.85}
+            onPress={() =>
+              navigation.navigate('SalesTab', { screen: 'NewSale' })
+            }
+          >
+            <Ionicons name="cube-outline" size={22} color={colors.teal} />
+            <Text style={styles.actionLabel}>{t.newSale}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.action}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate('Inventory')}
+          >
+            <Ionicons
+              name="layers-outline"
+              size={22}
+              color={colors.textSecondary}
+            />
+            <Text style={styles.actionLabel}>{t.stock}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Metal mix */}
+        {mix.length > 0 && (
+          <View style={styles.mixCard}>
+            <View style={styles.mixHead}>
+              <Text style={styles.mixTitle}>{t.metalMix}</Text>
+              <Text style={styles.mixSub}>{t.onHandByWeight}</Text>
+            </View>
+            <MetalMixBar data={mix} />
           </View>
-        </>
-      )}
-    </ScrollView>
+        )}
+
+        {/* Recent intake */}
+        {recent.length > 0 && (
+          <>
+            <SectionLabel
+              actionLabel={t.viewAll}
+              onAction={() => navigation.navigate('TransactionsTab')}
+            >
+              {t.recentIntake}
+            </SectionLabel>
+            <View style={styles.ticketList}>
+              {recent.map((r) => (
+                <TicketRow
+                  key={r.id}
+                  customer={r.customer}
+                  meta={r.meta}
+                  total={r.total}
+                  sub={r.sub}
+                  restricted={r.restricted}
+                  onPress={() =>
+                    navigation.navigate('TransactionsTab', {
+                      screen: 'ReceiptDetail',
+                      params: { receiptId: r.id },
+                    })
+                  }
+                />
+              ))}
+            </View>
+          </>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -311,6 +328,76 @@ const makeStyles = (colors: Palette) =>
   StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
     content: { paddingTop: spacing.md, paddingBottom: spacing.xxxl },
+    tareHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+    },
+    brandLockup: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    companyChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 7,
+      maxWidth: 150,
+      paddingVertical: 6,
+      paddingLeft: 7,
+      paddingRight: 11,
+      borderRadius: 99,
+      backgroundColor: colors.chip,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    companyAvatar: {
+      width: 22,
+      height: 22,
+      borderRadius: 7,
+      backgroundColor: colors.textPrimary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    companyAvatarText: {
+      color: colors.background,
+      fontSize: 10,
+      fontFamily: fonts.display,
+    },
+    companyName: {
+      flexShrink: 1,
+      fontSize: 12.5,
+      fontFamily: fonts.sansSemiBold,
+      color: colors.textSecondary,
+    },
+    iconBtn: {
+      width: 38,
+      height: 38,
+      borderRadius: 11,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    dayBookRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      paddingHorizontal: spacing.lg,
+      marginBottom: spacing.lg,
+    },
+    dayBook: {
+      fontSize: 30,
+      fontFamily: fonts.display,
+      letterSpacing: -0.8,
+      color: colors.textPrimary,
+    },
+    dayBookDate: {
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
+      color: colors.textTertiary,
+      paddingBottom: 5,
+    },
     centered: {
       flex: 1,
       justifyContent: 'center',

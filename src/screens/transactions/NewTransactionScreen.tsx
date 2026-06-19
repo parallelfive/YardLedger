@@ -221,6 +221,15 @@ export default function NewTransactionScreen({ navigation }: Props) {
     [printAfterSave, tx, navigation]
   );
 
+  // Offline: the buy was queued locally (the hook already reset the form). Give
+  // feedback and return to a fresh ticket — there's no server receipt to view.
+  const handleSaveQueued = useCallback(() => {
+    setSavedReceipt(null);
+    setSelectedCustomerId(undefined);
+    setStep(0);
+    Alert.alert(t.savedOffline, t.willSyncMsg);
+  }, [t]);
+
   const handleNewTicket = useCallback(
     (keepCustomer: boolean) => {
       tx.resetForm(keepCustomer);
@@ -979,7 +988,11 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 ]}
                 onPress={() => {
                   setPrintAfterSave(false);
-                  tx.saveReceipt(handleSaveSuccess, selectedCustomerId);
+                  tx.saveReceipt(
+                    handleSaveSuccess,
+                    selectedCustomerId,
+                    handleSaveQueued
+                  );
                 }}
                 disabled={!canAdvance('review') || tx.saving}
               >
@@ -1000,7 +1013,11 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 ]}
                 onPress={() => {
                   setPrintAfterSave(true);
-                  tx.saveReceipt(handleSaveSuccess, selectedCustomerId);
+                  tx.saveReceipt(
+                    handleSaveSuccess,
+                    selectedCustomerId,
+                    handleSaveQueued
+                  );
                 }}
                 disabled={!canAdvance('review') || tx.saving}
               >

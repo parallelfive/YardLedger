@@ -1,4 +1,6 @@
 import { supabase } from '../config/supabase';
+import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
+import { isReportOverdue } from '../utils/businessDays';
 
 // ---------- Daily Summary ----------
 
@@ -40,8 +42,8 @@ export async function fetchDailySummary(
   startDate: string,
   endDate: string
 ): Promise<DailySummary> {
-  const rangeStart = `${startDate}T00:00:00`;
-  const rangeEnd = `${endDate}T23:59:59`;
+  const rangeStart = startOfLocalDayUtc(startDate);
+  const rangeEnd = endOfLocalDayUtc(endDate);
 
   // Fetch buy receipts with line items in range
   const { data: receipts, error: receiptsError } = await supabase
@@ -194,8 +196,8 @@ export async function fetchProfitabilityReport(
   startDate: string,
   endDate: string
 ): Promise<ProfitabilityReport> {
-  const rangeStart = `${startDate}T00:00:00`;
-  const rangeEnd = `${endDate}T23:59:59`;
+  const rangeStart = startOfLocalDayUtc(startDate);
+  const rangeEnd = endOfLocalDayUtc(endDate);
 
   // Fetch buy line items in range
   const { data: buyData, error: buyError } = await supabase
@@ -422,6 +424,7 @@ export interface ComplianceReceiptRow {
   created_at: string;
   customer_name: string;
   seller_name: string | null;
+  seller_dob: string | null;
   seller_dl_number: string | null;
   seller_state_of_issue: string | null;
   seller_address: string | null;
@@ -457,8 +460,8 @@ export async function fetchComplianceReport(
     .from('receipts')
     .select('*, line_items(metal_name, weight, total, is_restricted)')
     .eq('type', 'buy')
-    .gte('created_at', `${startDate}T00:00:00`)
-    .lte('created_at', `${endDate}T23:59:59`)
+    .gte('created_at', startOfLocalDayUtc(startDate))
+    .lte('created_at', endOfLocalDayUtc(endDate))
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -475,10 +478,15 @@ function csvCell(value: unknown): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+// IMPORTANT: keep this column set IN SYNC with the edge function
+// supabase/functions/report-to-state/index.ts (HEADERS + buildCsv) so the manual
+// export and the automated SFTP upload file the IDENTICAL record.
 const NMRLD_HEADERS = [
+  'nmrld_registration_number',
   'receipt_number',
   'transaction_datetime',
   'seller_name',
+  'seller_dob',
   'seller_address',
   'seller_city',
   'seller_state',
@@ -501,16 +509,21 @@ const NMRLD_HEADERS = [
   'hold_until',
 ];
 
-export function buildNmrldExportCsv(rows: ComplianceReceiptRow[]): string {
+export function buildNmrldExportCsv(
+  rows: ComplianceReceiptRow[],
+  registrationNumber = ''
+): string {
   const lines: string[] = [NMRLD_HEADERS.join(',')];
   for (const r of rows) {
     const items = r.line_items?.length ? r.line_items : [null];
     for (const li of items) {
       lines.push(
         [
+          registrationNumber,
           r.receipt_number,
           r.created_at,
           r.seller_name,
+          r.seller_dob,
           r.seller_address,
           r.seller_city,
           r.seller_state,
@@ -540,12 +553,26 @@ export function buildNmrldExportCsv(rows: ComplianceReceiptRow[]): string {
   return lines.join('\n');
 }
 
+// The company's NMRLD dealer registration number (identifies the dealer in the
+// state file). Stored on company_settings; '' if not yet configured.
+export async function fetchNmrldRegistrationNumber(): Promise<string> {
+  const { data } = await supabase
+    .from('company_settings')
+    .select('nmrld_registration_number')
+    .limit(1)
+    .maybeSingle();
+  return (data?.nmrld_registration_number as string | null) ?? '';
+}
+
 export async function exportNmrldCsv(
   startDate: string,
   endDate: string
 ): Promise<string> {
-  const rows = await fetchComplianceReport(startDate, endDate);
-  return buildNmrldExportCsv(rows);
+  const [rows, registration] = await Promise.all([
+    fetchComplianceReport(startDate, endDate),
+    fetchNmrldRegistrationNumber(),
+  ]);
+  return buildNmrldExportCsv(rows, registration);
 }
 
 // ---------- Reporting queue (state / LeadsOnline upload) ----------
@@ -594,6 +621,10 @@ export async function markReceiptsReported(
 // ---------- Reporting status (for the State Reporting screen) ----------
 export interface ReportingStatus {
   pending: number;
+  // Unreported buys already past the NM 2-business-day deadline (compliance risk).
+  overdue: number;
+  // Purchase date of the oldest unreported buy (drives the urgency message).
+  oldestUnreportedAt: string | null;
   lastUpload: {
     created_at: string;
     receipt_count: number;
@@ -603,12 +634,19 @@ export interface ReportingStatus {
 }
 
 export async function fetchReportingStatus(): Promise<ReportingStatus> {
-  const { count, error } = await supabase
+  // Pull the unreported buys' purchase dates so we can flag which are past the
+  // 2-business-day deadline (business-day math is simplest in JS).
+  const { data: pending, error } = await supabase
     .from('receipts')
-    .select('id', { count: 'exact', head: true })
+    .select('created_at')
     .eq('type', 'buy')
-    .is('reported_at', null);
+    .is('reported_at', null)
+    .order('created_at', { ascending: true });
   if (error) throw error;
+  const rows = pending ?? [];
+  const overdue = rows.filter((r) =>
+    isReportOverdue(r.created_at as string)
+  ).length;
 
   const { data: log, error: logError } = await supabase
     .from('compliance_upload_log')
@@ -618,7 +656,9 @@ export async function fetchReportingStatus(): Promise<ReportingStatus> {
   if (logError) throw logError;
 
   return {
-    pending: count ?? 0,
+    pending: rows.length,
+    overdue,
+    oldestUnreportedAt: rows.length ? (rows[0].created_at as string) : null,
     lastUpload: (log?.[0] as ReportingStatus['lastUpload']) ?? null,
   };
 }

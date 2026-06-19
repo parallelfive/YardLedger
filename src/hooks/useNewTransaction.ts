@@ -1,10 +1,12 @@
-import { useState, type RefObject } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { Alert } from 'react-native';
 import type { LineItemInput, Metal } from '../types';
 import type { SignaturePadHandle } from '../components/SignaturePad';
-import { useAppSelector, type RootState } from '../store';
+import { useAppDispatch, useAppSelector, type RootState } from '../store';
+import { setPendingOutbox } from '../store/appStore';
 import { useT } from './useT';
-import { createReceipt } from '../services/receipts';
+import { createReceipt, type CreateReceiptParams } from '../services/receipts';
+import { enqueueReceipt } from '../services/outbox';
 import {
   calculateLineItemTotal,
   calculateReceiptTotal,
@@ -15,6 +17,13 @@ export function useNewTransaction(
 ) {
   const { t } = useT();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
+  // Attribute the buy to the staffer on shift (PIN'd in), not the device's
+  // session user. Falls back to the session profile when no PIN is in use.
+  const activeIdentity = useAppSelector(
+    (state: RootState) => state.auth.activeIdentity
+  );
+  const isOnline = useAppSelector((state: RootState) => state.app.isOnline);
+  const dispatch = useAppDispatch();
 
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -22,6 +31,10 @@ export function useNewTransaction(
   const [lineItems, setLineItems] = useState<LineItemInput[]>([]);
   const [signature, setSignature] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  // Synchronous re-entry guard. `saving` state updates asynchronously, so a
+  // fast double-tap can fire saveReceipt twice before the button re-renders as
+  // disabled — each firing an RPC, producing duplicate receipts + inventory.
+  const savingRef = useRef(false);
   const [sellerAffirmed, setSellerAffirmed] = useState(false);
   // Payment method. NM prohibits cash for catalytic converters (57-30-2.4),
   // so a converter transaction is forced to check below.
@@ -134,6 +147,9 @@ export function useNewTransaction(
   const approveOverride = () => {
     if (overrideIndex === null) return;
     const newPrice = parseFloat(overridePrice);
+    // Guard against a NaN/zero price slipping through to the line total (this is
+    // also wired directly to the access-code modal's onSuccess, so re-validate).
+    if (!Number.isFinite(newPrice) || newPrice <= 0) return;
 
     setLineItems((prev) =>
       prev.map((item, i) =>
@@ -207,8 +223,10 @@ export function useNewTransaction(
       customerId: string,
       sellerIdPhotoUrl: string | null
     ) => void,
-    customerId?: string
+    customerId?: string,
+    onQueued?: () => void
   ) => {
+    if (savingRef.current) return; // already submitting — ignore re-entry
     if (!customerName.trim()) {
       Alert.alert(t.error, t.enterCustomerName);
       return;
@@ -247,12 +265,19 @@ export function useNewTransaction(
       return;
     }
 
+    // Lock before the first await so a double-tap during the async signature
+    // read can't fire a second createReceipt.
+    savingRef.current = true;
+    setSaving(true);
+
     // Read signature imperatively to avoid async race condition
     let signatureData = signature;
     if (signaturePadRef?.current) {
       signatureData = await signaturePadRef.current.readSignature();
     }
     if (!signatureData) {
+      savingRef.current = false;
+      setSaving(false);
       Alert.alert(t.error, t.signatureRequired);
       return;
     }
@@ -262,42 +287,65 @@ export function useNewTransaction(
       ? 'check'
       : paymentMethod;
 
-    setSaving(true);
+    const receiptParams: CreateReceiptParams = {
+      customerName,
+      customerPhone,
+      customerId,
+      type: 'buy',
+      subtotal: receiptTotal,
+      signatureUri: signatureData,
+      workerId: activeIdentity?.user_id ?? profile.id,
+      notes: '',
+      vehiclePlate,
+      vehicleYear,
+      vehicleMake,
+      vehicleModel,
+      vehicleColor,
+      sellerAffirmed,
+      sellerName,
+      sellerDlNumber,
+      sellerStateOfIssue,
+      sellerDob,
+      sellerAddress,
+      sellerCity,
+      sellerState,
+      sellerZip,
+      sellerIdPhotoUri,
+      catConverterNumbers,
+      transportVin,
+      catConverterPhotoUri,
+      catTitlePhotoUri,
+      sellerPhotoUri,
+      materialPhotoUri,
+      paymentMethod: effectivePaymentMethod,
+      isCatalytic: hasCatalyticConverter,
+      lineItems,
+    };
+
+    // Offline: queue the buy locally and replay on reconnect. Price overrides
+    // need server validation (an admin code), so offline buys must be at market
+    // price — block any override rather than have it rejected silently on sync.
+    if (!isOnline) {
+      if (lineItems.some((li) => li.isPriceOverride)) {
+        savingRef.current = false;
+        setSaving(false);
+        Alert.alert(t.error, t.noOverridesOffline);
+        return;
+      }
+      try {
+        const n = await enqueueReceipt(receiptParams);
+        dispatch(setPendingOutbox(n));
+        resetForm();
+        onQueued?.();
+      } finally {
+        savingRef.current = false;
+        setSaving(false);
+      }
+      return;
+    }
+
     try {
-      const receipt = await createReceipt({
-        customerName,
-        customerPhone,
-        customerId,
-        type: 'buy',
-        subtotal: receiptTotal,
-        signatureUri: signatureData,
-        workerId: profile.id,
-        notes: '',
-        vehiclePlate,
-        vehicleYear,
-        vehicleMake,
-        vehicleModel,
-        vehicleColor,
-        sellerAffirmed,
-        sellerName,
-        sellerDlNumber,
-        sellerStateOfIssue,
-        sellerDob,
-        sellerAddress,
-        sellerCity,
-        sellerState,
-        sellerZip,
-        sellerIdPhotoUri,
-        catConverterNumbers,
-        transportVin,
-        catConverterPhotoUri,
-        catTitlePhotoUri,
-        sellerPhotoUri,
-        materialPhotoUri,
-        paymentMethod: effectivePaymentMethod,
-        isCatalytic: hasCatalyticConverter,
-        lineItems,
-      });
+      const receipt = await createReceipt(receiptParams);
       onSuccess(
         receipt.id,
         receipt.customer_id,
@@ -309,6 +357,7 @@ export function useNewTransaction(
       console.error('[saveReceipt] Error:', (err as Error).message);
       Alert.alert(t.error, (err as Error).message);
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   };

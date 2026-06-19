@@ -16,31 +16,48 @@ import {
   fetchReportingStatus,
   fetchUnreportedReceipts,
   buildNmrldExportCsv,
+  fetchNmrldRegistrationNumber,
   markReceiptsReported,
   type ReportingStatus,
+  type ComplianceReceiptRow,
 } from '../../services/reports';
-import { MiniStat, SectionLabel } from '../../components/foundry';
+import { MiniStat, SectionLabel, fmtMoney } from '../../components/foundry';
+import { isReportOverdue } from '../../utils/businessDays';
 import { useT } from '../../hooks/useT';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useAppSelector, type RootState } from '../../store';
 import { type Palette, spacing, borderRadius, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
 
 export default function ReportingStatusScreen() {
   const { t } = useT();
+  const { ensureElevated } = useAdminElevation();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const isFocused = useIsFocused();
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const [status, setStatus] = useState<ReportingStatus | null>(null);
+  const [unreported, setUnreported] = useState<ComplianceReceiptRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setStatus(await fetchReportingStatus());
+      const [st, list] = await Promise.all([
+        fetchReportingStatus(),
+        fetchUnreportedReceipts(),
+      ]);
+      setStatus(st);
+      setUnreported(list);
     } catch {
-      setStatus({ pending: 0, lastUpload: null });
+      setStatus({
+        pending: 0,
+        overdue: 0,
+        oldestUnreportedAt: null,
+        lastUpload: null,
+      });
+      setUnreported([]);
     } finally {
       setLoading(false);
     }
@@ -53,12 +70,15 @@ export default function ReportingStatusScreen() {
   const handleExport = async () => {
     setSending(true);
     try {
-      const unreported = await fetchUnreportedReceipts();
+      const [unreported, registration] = await Promise.all([
+        fetchUnreportedReceipts(),
+        fetchNmrldRegistrationNumber(),
+      ]);
       if (unreported.length === 0) {
         Alert.alert(t.stateReporting, t.noUnreported);
         return;
       }
-      const csv = buildNmrldExportCsv(unreported);
+      const csv = buildNmrldExportCsv(unreported, registration);
       const file = new File(Paths.cache, 'nmrld_unreported.csv');
       file.write(csv);
       await Sharing.shareAsync(file.uri, {
@@ -79,6 +99,7 @@ export default function ReportingStatusScreen() {
           {
             text: t.confirm,
             onPress: async () => {
+              if (!(await ensureElevated())) return;
               try {
                 await markReceiptsReported(
                   unreported.map((r) => r.id),
@@ -132,6 +153,15 @@ export default function ReportingStatusScreen() {
         />
       </View>
 
+      {status.overdue > 0 && (
+        <View style={styles.overdueStrip}>
+          <Ionicons name="alert-circle" size={18} color={colors.accentInk} />
+          <Text style={styles.overdueText}>
+            {status.overdue} {t.overdueCount} · {t.overdueStrip}
+          </Text>
+        </View>
+      )}
+
       <Text style={styles.note}>{t.reportDeadlineNote}</Text>
 
       {status.pending > 0 && (
@@ -153,6 +183,31 @@ export default function ReportingStatusScreen() {
             </>
           )}
         </TouchableOpacity>
+      )}
+
+      {unreported.length > 0 && (
+        <>
+          <SectionLabel>{t.unreportedReceipts}</SectionLabel>
+          {unreported.map((r) => {
+            const overdue = isReportOverdue(r.created_at);
+            return (
+              <View key={r.id} style={styles.listRow}>
+                <View style={styles.listRowLeft}>
+                  <Text style={styles.rowNum}>{r.receipt_number}</Text>
+                  <Text style={styles.rowSub}>
+                    {new Date(r.created_at).toLocaleDateString()} ·{' '}
+                    {fmtMoney(r.subtotal)}
+                  </Text>
+                </View>
+                {overdue && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{t.overdueCount}</Text>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </>
       )}
 
       <SectionLabel>{t.stateReporting}</SectionLabel>
@@ -184,6 +239,60 @@ const makeStyles = (colors: Palette) =>
       paddingHorizontal: spacing.lg,
       marginBottom: spacing.lg,
       lineHeight: 19,
+    },
+    overdueStrip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      backgroundColor: colors.rust,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.md,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: 10,
+    },
+    overdueText: {
+      color: colors.accentInk,
+      fontSize: 13,
+      fontFamily: fonts.sansSemiBold,
+      flex: 1,
+    },
+    listRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      backgroundColor: colors.card,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      marginHorizontal: spacing.lg,
+      marginBottom: spacing.sm,
+    },
+    listRowLeft: { flex: 1 },
+    rowNum: {
+      color: colors.textPrimary,
+      fontSize: 14,
+      fontFamily: fonts.sansSemiBold,
+    },
+    rowSub: {
+      color: colors.textSecondary,
+      fontSize: 12,
+      fontFamily: fonts.sans,
+      marginTop: 2,
+    },
+    badge: {
+      backgroundColor: colors.rust,
+      borderRadius: borderRadius.pill,
+      paddingVertical: 3,
+      paddingHorizontal: spacing.sm,
+    },
+    badgeText: {
+      color: colors.accentInk,
+      fontSize: 11,
+      fontFamily: fonts.sansBold,
+      textTransform: 'uppercase',
     },
     button: {
       flexDirection: 'row',

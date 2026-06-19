@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useSales } from '../../hooks/useSales';
+import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { DateRangeSelector } from '../../components';
 import {
   SectionLabel,
@@ -14,6 +15,7 @@ import {
   fmtMoney0,
   fmtLbs,
 } from '../../components/foundry';
+import { TareHeader } from '../../components';
 import {
   type DatePreset,
   getDateRange,
@@ -42,6 +44,7 @@ export default function SalesScreen({ navigation }: Props) {
       refresh();
     }, [refresh])
   );
+  useRefreshOnReconnect(refresh);
 
   const { revenue, profit, weight } = useMemo(() => {
     return sales.reduce(
@@ -58,6 +61,7 @@ export default function SalesScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
+      <TareHeader title={t.tabSales} rightLabel={t.outbound} />
       <FlatList
         data={sales}
         keyExtractor={(item) => item.id}

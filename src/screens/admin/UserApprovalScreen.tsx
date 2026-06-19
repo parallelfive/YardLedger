@@ -8,12 +8,14 @@ import {
   Alert,
 } from 'react-native';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
 import { useUserApproval } from '../../hooks/useUserApproval';
 import { useInviteCodes } from '../../hooks/useInviteCodes';
 import { useCurrentCompany } from '../../hooks/useCurrentCompany';
 import { useAppSelector, useAppDispatch, type RootState } from '../../store';
 import { toggleLanguage } from '../../store/settingsStore';
 import { createAccessCode } from '../../services/accessCodes';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AdminStackParamList } from '../../navigation/MainNavigator';
 import type { PendingUser, UserRole } from '../../types';
@@ -37,6 +39,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
   const dispatch = useAppDispatch();
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const company = useCurrentCompany();
+  const { ensureElevated } = useAdminElevation();
   const {
     pendingUsers,
     activeUsers,
@@ -58,7 +61,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
   const [generatedInvite, setGeneratedInvite] = useState<string | null>(null);
   const [generatingInvite, setGeneratingInvite] = useState(false);
 
-  const callerIsOwner = profile?.role === 'owner';
+  const { isOwner: callerIsOwner } = useRole();
 
   const roleLabel = (role: UserRole): string => {
     switch (role) {
@@ -85,6 +88,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
 
   const onGenerateCode = async () => {
     if (!profile) return;
+    if (!(await ensureElevated())) return;
     setGenerating(true);
     try {
       const code = await createAccessCode();
@@ -100,7 +104,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
     setGeneratingInvite(true);
     try {
       const code = await generateInviteCode(inviteRole);
-      setGeneratedInvite(code);
+      if (code) setGeneratedInvite(code);
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     } finally {

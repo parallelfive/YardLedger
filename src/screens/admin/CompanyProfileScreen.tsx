@@ -15,6 +15,8 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useRole } from '../../hooks';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useAppSelector, type RootState } from '../../store';
 import { useCurrentCompany } from '../../hooks/useCurrentCompany';
 import {
@@ -129,6 +131,7 @@ export default function CompanyProfileScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
+  const { ensureElevated } = useAdminElevation();
   const company = useCurrentCompany();
 
   const [loading, setLoading] = useState(true);
@@ -149,7 +152,7 @@ export default function CompanyProfileScreen() {
   const [catCheckOnly, setCatCheckOnly] = useState(true);
 
   // State-reporting (LeadsOnline SFTP) credentials — owner only.
-  const isOwner = profile?.role === 'owner';
+  const { isOwner } = useRole();
   const [repEnabled, setRepEnabled] = useState(false);
   const [repHost, setRepHost] = useState('');
   const [repPort, setRepPort] = useState('22');
@@ -175,7 +178,7 @@ export default function CompanyProfileScreen() {
         setCatHoldDays(String(data.cat_converter_hold_days ?? 60));
         setCatCheckOnly(data.cat_converter_check_only ?? true);
       }
-      if (profile?.role === 'owner') {
+      if (isOwner) {
         const rep = await getReportingConfig();
         if (rep) {
           setRepEnabled(rep.enabled);
@@ -191,13 +194,14 @@ export default function CompanyProfileScreen() {
     } finally {
       setLoading(false);
     }
-  }, [profile?.role]);
+  }, [isOwner]);
 
   useEffect(() => {
     loadSettings();
   }, [loadSettings]);
 
   const handleSaveReporting = async () => {
+    if (!(await ensureElevated(true))) return;
     setSavingReporting(true);
     try {
       await saveReportingConfig({
@@ -232,6 +236,7 @@ export default function CompanyProfileScreen() {
 
   const handleSave = async () => {
     if (!profile) return;
+    if (!(await ensureElevated(true))) return;
     setSaving(true);
     try {
       const result = await updateCompanySettings(
@@ -270,6 +275,7 @@ export default function CompanyProfileScreen() {
     if (result.canceled) return;
 
     if (!settingsId) return;
+    if (!(await ensureElevated(true))) return;
     setUploading(true);
     try {
       const url = await uploadCompanyLogo(

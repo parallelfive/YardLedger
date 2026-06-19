@@ -9,6 +9,7 @@ import {
   StyleSheet,
   Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
@@ -18,7 +19,8 @@ import {
   deleteReceipt,
   markReceiptDisposed,
 } from '../../services/receipts';
-import { AccessCodeModal, SignedImage } from '../../components';
+import { SignedImage } from '../../components';
+import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { Tag, fmtMoney, fmtLbs } from '../../components/foundry';
 import { printReceipt, shareReceipt } from '../../utils/printReceipt';
 import {
@@ -128,12 +130,12 @@ function Section({
 export default function ReceiptDetailScreen({ route, navigation }: Props) {
   const { t } = useT();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const styles = useThemedStyles(makeStyles);
+  const { ensureElevated } = useAdminElevation();
   const { receiptId, printOnLoad } = route.params;
   const [receipt, setReceipt] = useState<ReceiptDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showDeleteAuth, setShowDeleteAuth] = useState(false);
-  const [showDisposeAuth, setShowDisposeAuth] = useState(false);
 
   const handlePrint = useCallback(
     async (data?: ReceiptDetail) => {
@@ -225,7 +227,13 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + spacing.lg },
+        ]}
+      >
         {/* Centered big total + receipt number + customer · time */}
         <View style={styles.heroBlock}>
           <Text style={styles.heroNo}>{receipt.receipt_number}</Text>
@@ -537,7 +545,7 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
         {receipt.hold_until && !receipt.disposed_at && (
           <TouchableOpacity
             style={styles.disposeButton}
-            onPress={() => {
+            onPress={async () => {
               const heldUntil = receipt.hold_until
                 ? new Date(receipt.hold_until)
                 : null;
@@ -548,7 +556,15 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
                 );
                 return;
               }
-              setShowDisposeAuth(true);
+              if (!(await ensureElevated())) return;
+              try {
+                await markReceiptDisposed(receiptId);
+                Alert.alert(t.success, t.materialDisposed);
+                const updated = await fetchReceiptById(receiptId);
+                setReceipt(updated as ReceiptDetail);
+              } catch (err) {
+                Alert.alert(t.error, (err as Error).message);
+              }
             }}
           >
             <Text style={styles.disposeButtonText}>{t.markDisposed}</Text>
@@ -564,7 +580,16 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
               {
                 text: t.deleteReceipt,
                 style: 'destructive',
-                onPress: () => setShowDeleteAuth(true),
+                onPress: async () => {
+                  if (!(await ensureElevated())) return;
+                  try {
+                    await deleteReceipt(receiptId);
+                    Alert.alert(t.success, t.receiptDeleted);
+                    navigation.goBack();
+                  } catch (err) {
+                    Alert.alert(t.error, (err as Error).message);
+                  }
+                },
               },
             ]);
           }}
@@ -589,37 +614,6 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
           <Text style={styles.doneButtonText}>{t.done}</Text>
         </TouchableOpacity>
       </View>
-
-      <AccessCodeModal
-        visible={showDeleteAuth}
-        onSuccess={async () => {
-          setShowDeleteAuth(false);
-          try {
-            await deleteReceipt(receiptId);
-            Alert.alert(t.success, t.receiptDeleted);
-            navigation.goBack();
-          } catch (err) {
-            Alert.alert(t.error, (err as Error).message);
-          }
-        }}
-        onCancel={() => setShowDeleteAuth(false)}
-      />
-
-      <AccessCodeModal
-        visible={showDisposeAuth}
-        onSuccess={async () => {
-          setShowDisposeAuth(false);
-          try {
-            await markReceiptDisposed(receiptId);
-            Alert.alert(t.success, t.materialDisposed);
-            const updated = await fetchReceiptById(receiptId);
-            setReceipt(updated as ReceiptDetail);
-          } catch (err) {
-            Alert.alert(t.error, (err as Error).message);
-          }
-        }}
-        onCancel={() => setShowDisposeAuth(false)}
-      />
     </View>
   );
 }

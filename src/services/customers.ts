@@ -65,13 +65,15 @@ export async function upsertCustomer(
   name: string,
   phone: string
 ): Promise<Customer> {
-  // Try to find an existing customer with the same name (case-insensitive)
+  // Try to find an existing customer with the same name (case-insensitive).
+  // maybeSingle() returns null (not a thrown PGRST116) when there's no match,
+  // so the "create new" path below is reached cleanly instead of by accident.
   const { data: existing } = await supabase
     .from('customers')
     .select('*')
     .ilike('name', name)
     .limit(1)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     // Update phone if it changed

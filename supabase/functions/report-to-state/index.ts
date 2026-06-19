@@ -31,21 +31,43 @@ interface ReportingConfig {
   enabled: boolean;
 }
 
+// Constant-time string compare so the cron-secret check can't be probed byte
+// by byte via response timing.
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+  return diff === 0;
+}
+
 function csvCell(value: unknown): string {
   const s = value === null || value === undefined ? '' : String(value);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+// IMPORTANT: keep this column set IN SYNC with the in-app exporter
+// src/services/reports.ts (NMRLD_HEADERS + buildNmrldExportCsv) so the manual
+// export and this automated SFTP upload file the IDENTICAL record.
 const HEADERS = [
+  'nmrld_registration_number',
   'receipt_number',
   'transaction_datetime',
   'seller_name',
+  'seller_dob',
   'seller_address',
+  'seller_city',
+  'seller_state',
+  'seller_zip',
   'seller_dl_number',
   'seller_dl_state',
+  'seller_affirmed_ownership',
   'vehicle_year',
   'vehicle_make',
   'vehicle_model',
+  'vehicle_color',
   'vehicle_plate',
   'transport_vin',
   'material',
@@ -53,25 +75,34 @@ const HEADERS = [
   'amount_paid',
   'payment_method',
   'is_catalytic_converter',
+  'cat_converter_numbers',
+  'hold_until',
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildCsv(rows: any[]): string {
+function buildCsv(rows: any[], registrationNumber: string): string {
   const lines = [HEADERS.join(',')];
   for (const r of rows) {
     const items = r.line_items?.length ? r.line_items : [null];
     for (const li of items) {
       lines.push(
         [
+          registrationNumber,
           r.receipt_number,
           r.created_at,
           r.seller_name,
+          r.seller_dob,
           r.seller_address,
+          r.seller_city,
+          r.seller_state,
+          r.seller_zip,
           r.seller_dl_number,
           r.seller_state_of_issue,
+          r.seller_affirmed ? 'yes' : 'no',
           r.vehicle_year,
           r.vehicle_make,
           r.vehicle_model,
+          r.vehicle_color,
           r.vehicle_plate,
           r.transport_vin,
           li?.metal_name ?? '',
@@ -79,6 +110,8 @@ function buildCsv(rows: any[]): string {
           li ? li.total : r.subtotal,
           r.payment_method,
           r.is_catalytic ? 'yes' : 'no',
+          r.cat_converter_numbers,
+          r.hold_until,
         ]
           .map(csvCell)
           .join(',')
@@ -120,24 +153,45 @@ async function reportCompany(admin: any, companyId: string) {
     return { companyId, status: 'skipped', reason: 'not configured/enabled' };
   }
 
+  // Dealer registration number (identifies us in the state file).
+  const { data: settings } = await admin
+    .from('company_settings')
+    .select('nmrld_registration_number')
+    .eq('company_id', companyId)
+    .maybeSingle();
+  const registration = settings?.nmrld_registration_number ?? '';
+
+  // Atomically CLAIM the unreported buys by stamping reported_at as part of the
+  // same UPDATE that returns them. A concurrent invocation (cron racing a
+  // manual "Send now") running the identical update matches zero already-claimed
+  // rows, so the same receipts can never be uploaded to the state twice.
+  const claimedAt = new Date().toISOString();
   const { data: rows, error } = await admin
     .from('receipts')
-    .select('*, line_items(metal_name, weight, total)')
+    .update({ reported_at: claimedAt })
     .eq('company_id', companyId)
     .eq('type', 'buy')
     .is('reported_at', null)
+    .select('*, line_items(metal_name, weight, total)')
     .order('created_at', { ascending: true });
   if (error) return { companyId, status: 'error', reason: error.message };
   if (!rows || rows.length === 0) {
     return { companyId, status: 'nothing-to-report', count: 0 };
   }
 
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const ids = rows.map((r: { id: string }) => r.id);
+  const stamp = claimedAt.replace(/[:.]/g, '-');
   const fileName = `yardledger_${companyId}_${stamp}.csv`;
 
   try {
-    await uploadViaSftp(cfg as ReportingConfig, fileName, buildCsv(rows));
+    await uploadViaSftp(
+      cfg as ReportingConfig,
+      fileName,
+      buildCsv(rows, registration)
+    );
   } catch (e) {
+    // Upload failed — release the claim so these rows are retried next run.
+    await admin.from('receipts').update({ reported_at: null }).in('id', ids);
     await admin.from('compliance_upload_log').insert({
       company_id: companyId,
       method: 'sftp',
@@ -148,11 +202,6 @@ async function reportCompany(admin: any, companyId: string) {
     return { companyId, status: 'error', reason: (e as Error).message };
   }
 
-  const ids = rows.map((r: { id: string }) => r.id);
-  await admin
-    .from('receipts')
-    .update({ reported_at: new Date().toISOString() })
-    .in('id', ids);
   await admin.from('compliance_upload_log').insert({
     company_id: companyId,
     method: 'sftp',
@@ -173,7 +222,13 @@ Deno.serve(async (req: Request) => {
   let companyIds: string[] = [];
 
   const cronHeader = req.headers.get('x-cron-secret');
-  if (CRON_SECRET && cronHeader === CRON_SECRET) {
+  if (cronHeader !== null) {
+    // Cron mode: require a configured, high-entropy secret and a constant-time
+    // match. Fail closed — never fall through to another path when a cron
+    // header is present but unverified.
+    if (!CRON_SECRET || !timingSafeEqual(cronHeader, CRON_SECRET)) {
+      return new Response('Unauthorized', { status: 401 });
+    }
     const { data } = await admin
       .from('company_reporting_config')
       .select('company_id')
