@@ -156,6 +156,7 @@ export default {
   approvedBy: 'Aprobado por admin',
   print: 'Imprimir',
   saveAndPrint: 'Guardar e Imprimir',
+  saveWithoutPrinting: 'Guardar sin imprimir',
 
   // Add Line Item Modal
   addLineItem: '+ Agregar Artículo',

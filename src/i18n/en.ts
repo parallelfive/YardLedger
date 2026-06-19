@@ -155,6 +155,7 @@ export default {
   approvedBy: 'Approved by admin',
   print: 'Print',
   saveAndPrint: 'Save & Print',
+  saveWithoutPrinting: 'Save without printing',
 
   // Add Line Item Modal
   addLineItem: '+ Add Line Item',

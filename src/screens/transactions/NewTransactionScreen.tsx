@@ -978,63 +978,59 @@ export default function NewTransactionScreen({ navigation }: Props) {
         )}
         {isLast ? (
           <View style={styles.flex}>
-            <View style={styles.payRow}>
-              <TouchableOpacity
-                style={[
-                  styles.payButton,
-                  styles.payButtonOutline,
-                  (!canAdvance('review') || tx.saving) &&
-                    styles.payButtonDisabled,
-                ]}
-                onPress={() => {
-                  setPrintAfterSave(false);
-                  tx.saveReceipt(
-                    handleSaveSuccess,
-                    selectedCustomerId,
-                    handleSaveQueued
-                  );
-                }}
-                disabled={!canAdvance('review') || tx.saving}
-              >
-                {tx.saving && !printAfterSave ? (
-                  <ActivityIndicator color={colors.accent} />
-                ) : (
-                  <Text style={styles.payButtonOutlineText}>
-                    {t.pay} {fmtMoney(tx.receiptTotal)}
+            <TouchableOpacity
+              style={[
+                styles.payButton,
+                styles.payButtonSolo,
+                styles.payButtonPrimary,
+                (!canAdvance('review') || tx.saving) &&
+                  styles.payButtonDisabled,
+              ]}
+              onPress={() => {
+                setPrintAfterSave(true);
+                tx.saveReceipt(
+                  handleSaveSuccess,
+                  selectedCustomerId,
+                  handleSaveQueued
+                );
+              }}
+              disabled={!canAdvance('review') || tx.saving}
+            >
+              {tx.saving && printAfterSave ? (
+                <ActivityIndicator color={colors.accentInk} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="print-outline"
+                    size={18}
+                    color={colors.accentInk}
+                  />
+                  <Text style={styles.payButtonText}>
+                    {t.saveAndPrint} · {fmtMoney(tx.receiptTotal)}
                   </Text>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.payButton,
-                  styles.payButtonPrimary,
-                  (!canAdvance('review') || tx.saving) &&
-                    styles.payButtonDisabled,
-                ]}
-                onPress={() => {
-                  setPrintAfterSave(true);
-                  tx.saveReceipt(
-                    handleSaveSuccess,
-                    selectedCustomerId,
-                    handleSaveQueued
-                  );
-                }}
-                disabled={!canAdvance('review') || tx.saving}
-              >
-                {tx.saving && printAfterSave ? (
-                  <ActivityIndicator color={colors.accentInk} />
-                ) : (
-                  <>
-                    <Ionicons
-                      name="print-outline"
-                      size={18}
-                      color={colors.accentInk}
-                    />
-                    <Text style={styles.payButtonText}>{t.saveAndPrint}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+                </>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.saveOnlyLink}
+              onPress={() => {
+                setPrintAfterSave(false);
+                tx.saveReceipt(
+                  handleSaveSuccess,
+                  selectedCustomerId,
+                  handleSaveQueued
+                );
+              }}
+              disabled={!canAdvance('review') || tx.saving}
+            >
+              {tx.saving && !printAfterSave ? (
+                <ActivityIndicator color={colors.textSecondary} />
+              ) : (
+                <Text style={styles.saveOnlyLinkText}>
+                  {t.saveWithoutPrinting}
+                </Text>
+              )}
+            </TouchableOpacity>
             <Text style={styles.payHint}>
               {payMethodLabel} · {tx.lineItems.length}{' '}
               {tx.lineItems.length === 1 ? t.line : t.lines}
@@ -1787,6 +1783,18 @@ const makeStyles = (colors: Palette) =>
       borderRadius: borderRadius.lg,
     },
     payButtonPrimary: { backgroundColor: colors.accent },
+    payButtonSolo: { flex: 0, marginBottom: spacing.xs },
+    saveOnlyLink: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.sm,
+      minHeight: 36,
+    },
+    saveOnlyLinkText: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontFamily: fonts.sansSemiBold,
+    },
     payButtonOutline: {
       backgroundColor: 'transparent',
       borderWidth: 1,
