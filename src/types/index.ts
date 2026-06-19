@@ -63,6 +63,12 @@ export interface ParsedIdFields {
   address: string | null;
   dob: string | null;
   driversLicense: string | null;
+  // Richer fields the AAMVA barcode parser can supply (OCR leaves them
+  // undefined). Optional so the camera-OCR path is unaffected.
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  stateOfIssue?: string | null;
 }
 
 export interface SellerIdInfo {

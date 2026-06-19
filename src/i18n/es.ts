@@ -300,6 +300,7 @@ export default {
   address: 'Dirección',
   dateOfBirth: 'Fecha de Nacimiento',
   scanId: 'Escanear ID',
+  scanLicenseBarcode: 'Escanee o pegue el código de la licencia',
   updateId: 'Actualizar ID',
   noCustomers: 'Sin clientes aún',
   customersWillAppear: 'Los clientes se agregan al crear recibos',

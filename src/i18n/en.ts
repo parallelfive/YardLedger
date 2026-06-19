@@ -299,6 +299,7 @@ export default {
   address: 'Address',
   dateOfBirth: 'Date of Birth',
   scanId: 'Scan ID',
+  scanLicenseBarcode: 'Scan or paste license barcode',
   updateId: 'Update ID',
   noCustomers: 'No customers yet',
   customersWillAppear: 'Customers are added when you create receipts',

@@ -10,6 +10,7 @@ import {
   Alert,
   Image,
   Pressable,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -36,7 +37,8 @@ import {
 } from '../../hooks/useNewTransaction';
 import Snackbar from '../../components/Snackbar';
 import { useIdScanner } from '../../hooks/useIdScanner';
-import type { Metal } from '../../types';
+import { parseAamva, looksLikeAamva } from '../../utils/parseAamva';
+import type { Metal, ParsedIdFields } from '../../types';
 import {
   searchCustomers,
   updateCustomerIdPhoto,
@@ -78,6 +80,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const [step, setStep] = useState(0);
   const [printAfterSave, setPrintAfterSave] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
+  const [barcodeBuffer, setBarcodeBuffer] = useState('');
   const [snack, setSnack] = useState<{
     receiptId: string;
     receiptNumber: string;
@@ -302,19 +305,50 @@ export default function NewTransactionScreen({ navigation }: Props) {
     [t.error, t.cameraPermission]
   );
 
+  // Fill the seller form from parsed ID fields. `overwrite` is used by the
+  // explicit barcode scan (authoritative); the camera-OCR path fills only
+  // blanks so a partial OCR read can't clobber what the operator typed.
+  const applyParsedId = useCallback(
+    (fields: ParsedIdFields, overwrite: boolean) => {
+      const set = (
+        value: string | null | undefined,
+        current: string,
+        setter: (v: string) => void
+      ) => {
+        if (value && (overwrite || !current.trim())) setter(value);
+      };
+      set(fields.name, tx.sellerName, tx.setSellerName);
+      set(fields.driversLicense, tx.sellerDlNumber, tx.setSellerDlNumber);
+      set(fields.dob, tx.sellerDob, tx.setSellerDob);
+      set(fields.address, tx.sellerAddress, tx.setSellerAddress);
+      set(fields.city, tx.sellerCity, tx.setSellerCity);
+      set(fields.state, tx.sellerState, tx.setSellerState);
+      set(fields.zip, tx.sellerZip, tx.setSellerZip);
+      set(fields.stateOfIssue, tx.sellerStateOfIssue, tx.setSellerStateOfIssue);
+    },
+    [tx]
+  );
+
   const scanSellerId = useCallback(async () => {
     const result = await scanAndRecognize();
     if (!result) return;
     tx.setSellerIdPhotoUri(result.imageUri);
-    if (result.fields.name && !tx.sellerName.trim())
-      tx.setSellerName(result.fields.name);
-    if (result.fields.driversLicense && !tx.sellerDlNumber.trim())
-      tx.setSellerDlNumber(result.fields.driversLicense);
-    if (result.fields.dob && !tx.sellerDob.trim())
-      tx.setSellerDob(result.fields.dob);
-    if (result.fields.address && !tx.sellerAddress.trim())
-      tx.setSellerAddress(result.fields.address);
-  }, [scanAndRecognize, tx]);
+    applyParsedId(result.fields, false);
+  }, [scanAndRecognize, tx, applyParsedId]);
+
+  // Desktop USB barcode scanners type the AAMVA PDF417 payload into the focused
+  // field. When the buffer becomes recognizable AAMVA data, parse it, fill the
+  // form, and clear the buffer for the next scan.
+  const handleBarcodeInput = useCallback(
+    (text: string) => {
+      setBarcodeBuffer(text);
+      if (looksLikeAamva(text)) {
+        applyParsedId(parseAamva(text), true);
+        setBarcodeBuffer('');
+      }
+    },
+    [applyParsedId]
+  );
 
   // Step gating
   const canAdvance = (name: StepName): boolean => {
@@ -628,6 +662,28 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 >
                   <Text style={styles.rescanButtonText}>{t.updateId}</Text>
                 </TouchableOpacity>
+              </View>
+            ) : Platform.OS === 'web' ? (
+              <View style={styles.scanIdButton}>
+                <Ionicons
+                  name="barcode-outline"
+                  size={20}
+                  color={colors.accent}
+                />
+                <TextInput
+                  style={styles.barcodeInput}
+                  placeholder={t.scanLicenseBarcode}
+                  placeholderTextColor={colors.textTertiary}
+                  value={barcodeBuffer}
+                  onChangeText={handleBarcodeInput}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  // A single-line input strips the AAMVA newline separators a
+                  // USB scanner emits; multiline (a <textarea> on web) keeps
+                  // them so the payload parses.
+                  multiline
+                  numberOfLines={1}
+                />
               </View>
             ) : (
               <TouchableOpacity
@@ -1512,6 +1568,13 @@ const makeStyles = (colors: Palette) =>
       color: colors.accent,
       fontSize: fontSize.md,
       fontFamily: fonts.sansSemiBold,
+    },
+    barcodeInput: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      paddingVertical: 2,
     },
     idPhotoPreview: {
       marginBottom: spacing.md,
