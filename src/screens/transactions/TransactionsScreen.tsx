@@ -9,6 +9,7 @@ import {
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { TransactionsStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { useT } from '../../hooks/useT';
 import { useRole } from '../../hooks';
 import { useReceipts } from '../../hooks/useReceipts';
@@ -56,12 +57,12 @@ export default function TransactionsScreen({ navigation }: Props) {
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
 
-  useFocusEffect(
-    useCallback(() => {
-      refresh();
-      refreshSales();
-    }, [refresh, refreshSales])
-  );
+  const refreshAll = useCallback(() => {
+    refresh();
+    refreshSales();
+  }, [refresh, refreshSales]);
+  useFocusEffect(refreshAll);
+  useRefreshOnReconnect(refreshAll);
 
   const filteredReceipts = useMemo(() => {
     if (!appliedSearch) return receipts;

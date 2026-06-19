@@ -18,7 +18,7 @@ import {
   SplineSansMono_600SemiBold,
 } from '@expo-google-fonts/spline-sans-mono';
 import { store, useAppDispatch } from './src/store';
-import { setPendingOutbox } from './src/store/appStore';
+import { setPendingOutbox, setLastSynced } from './src/store/appStore';
 import { ThemeProvider, useTheme } from './src/theme';
 import RootNavigator from './src/navigation/RootNavigator';
 import { AdminElevationProvider } from './src/providers/AdminElevationProvider';
@@ -37,6 +37,9 @@ function ThemedApp() {
   const onReconnect = useCallback(async () => {
     const res = await replayOutbox();
     dispatch(setPendingOutbox(res.remaining));
+    // Signal focused data screens to refresh now that we're back online and the
+    // queue has replayed — no manual tab switch needed.
+    dispatch(setLastSynced(Date.now()));
     if (res.failed.length > 0) {
       Alert.alert(
         t.syncIssuesTitle,

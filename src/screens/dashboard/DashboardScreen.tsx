@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { Ionicons } from '@expo/vector-icons';
 import { TareHeader } from '../../components';
 import {
@@ -132,6 +133,7 @@ export default function DashboardScreen() {
       load();
     }, [load])
   );
+  useRefreshOnReconnect(load);
 
   if (loading) {
     return (

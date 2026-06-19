@@ -11,6 +11,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useInventory } from '../../hooks/useInventory';
+import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import {
   Tag,
   DeltaTag,
@@ -68,6 +69,7 @@ export default function InventoryScreen() {
       refresh();
     }, [refresh])
   );
+  useRefreshOnReconnect(refresh);
 
   const rows = useMemo<Row[]>(() => {
     return (inventory as unknown[]).map((raw) => {

@@ -6,6 +6,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
 import { useSales } from '../../hooks/useSales';
+import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { DateRangeSelector } from '../../components';
 import {
   SectionLabel,
@@ -43,6 +44,7 @@ export default function SalesScreen({ navigation }: Props) {
       refresh();
     }, [refresh])
   );
+  useRefreshOnReconnect(refresh);
 
   const { revenue, profit, weight } = useMemo(() => {
     return sales.reduce(
