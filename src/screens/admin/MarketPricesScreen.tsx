@@ -16,6 +16,7 @@ import {
   fetchMetalsByCategory,
 } from '../../services/metals';
 import { useT } from '../../hooks/useT';
+import { useResponsive } from '../../hooks';
 import { useTheme, useThemedStyles } from '../../theme';
 import {
   type Palette,
@@ -34,6 +35,7 @@ export default function MarketPricesScreen() {
   const { t } = useT();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { isWide } = useResponsive();
   const [sections, setSections] = useState<MetalSection[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -104,6 +106,9 @@ export default function MarketPricesScreen() {
         <SectionList
           sections={sections}
           keyExtractor={(item) => item.id}
+          contentContainerStyle={
+            isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' }
+          }
           renderSectionHeader={({ section }) => (
             <View style={styles.catHeader}>
               <Text style={styles.catTitle}>{section.title}</Text>

@@ -22,7 +22,7 @@ import {
   type Customer,
 } from '../../services/customers';
 import { fetchCompanySettings } from '../../services/companySettings';
-import { SignedImage } from '../../components';
+import { SignedImage, ResponsiveContainer } from '../../components';
 import { SectionLabel, Tag, fmtMoney, fmtLbs } from '../../components/foundry';
 import { escapeHtml } from '../../utils/validation';
 import { useT } from '../../hooks/useT';
@@ -275,293 +275,301 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Flag banner */}
-      {customer.is_flagged && (
-        <View style={styles.flagBanner}>
-          <Ionicons name="alert-circle-outline" size={20} color={colors.rust} />
-          <View style={styles.flagBannerContent}>
-            <Text style={styles.flagBannerText}>{t.flagWarning}</Text>
-            {customer.flag_reason ? (
-              <Text style={styles.flagBannerReason}>
-                {customer.flag_reason}
+      <ResponsiveContainer maxWidth={640} style={styles.responsiveBody}>
+        {/* Flag banner */}
+        {customer.is_flagged && (
+          <View style={styles.flagBanner}>
+            <Ionicons
+              name="alert-circle-outline"
+              size={20}
+              color={colors.rust}
+            />
+            <View style={styles.flagBannerContent}>
+              <Text style={styles.flagBannerText}>{t.flagWarning}</Text>
+              {customer.flag_reason ? (
+                <Text style={styles.flagBannerReason}>
+                  {customer.flag_reason}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        )}
+
+        {/* Identity card */}
+        <View style={styles.identityCard}>
+          <View style={styles.identityHeader}>
+            <View style={styles.identityName}>
+              <Text style={styles.customerName} numberOfLines={2}>
+                {customer.name}
               </Text>
-            ) : null}
-          </View>
-        </View>
-      )}
-
-      {/* Identity card */}
-      <View style={styles.identityCard}>
-        <View style={styles.identityHeader}>
-          <View style={styles.identityName}>
-            <Text style={styles.customerName} numberOfLines={2}>
-              {customer.name}
-            </Text>
-            {customer.phone ? (
-              <Text style={styles.customerPhone}>{customer.phone}</Text>
-            ) : null}
-          </View>
-          {customer.dl_photo_uri ? (
-            <Tag
-              label={t.idOnFile}
-              color={colors.moss}
-              soft={colors.moss + '22'}
-              icon="checkmark"
-            />
-          ) : (
-            <Tag
-              label={t.noIdOnFile}
-              color={colors.gold}
-              soft={colors.gold + '22'}
-            />
-          )}
-        </View>
-
-        {/* ID photo */}
-        <TouchableOpacity
-          style={styles.idPhotoBox}
-          onPress={handleScanId}
-          disabled={uploading || scanning}
-          activeOpacity={0.8}
-        >
-          {uploading || scanning ? (
-            <ActivityIndicator color={colors.accent} size="large" />
-          ) : customer.dl_photo_uri ? (
-            <>
-              <SignedImage
-                value={customer.dl_photo_uri}
-                style={styles.idPhoto}
-                resizeMode="contain"
+              {customer.phone ? (
+                <Text style={styles.customerPhone}>{customer.phone}</Text>
+              ) : null}
+            </View>
+            {customer.dl_photo_uri ? (
+              <Tag
+                label={t.idOnFile}
+                color={colors.moss}
+                soft={colors.moss + '22'}
+                icon="checkmark"
               />
-              <View style={styles.idPhotoOverlay}>
-                <Ionicons
-                  name="camera-outline"
-                  size={14}
-                  color={colors.white}
+            ) : (
+              <Tag
+                label={t.noIdOnFile}
+                color={colors.gold}
+                soft={colors.gold + '22'}
+              />
+            )}
+          </View>
+
+          {/* ID photo */}
+          <TouchableOpacity
+            style={styles.idPhotoBox}
+            onPress={handleScanId}
+            disabled={uploading || scanning}
+            activeOpacity={0.8}
+          >
+            {uploading || scanning ? (
+              <ActivityIndicator color={colors.accent} size="large" />
+            ) : customer.dl_photo_uri ? (
+              <>
+                <SignedImage
+                  value={customer.dl_photo_uri}
+                  style={styles.idPhoto}
+                  resizeMode="contain"
                 />
-                <Text style={styles.idPhotoOverlayText}>{t.updateId}</Text>
+                <View style={styles.idPhotoOverlay}>
+                  <Ionicons
+                    name="camera-outline"
+                    size={14}
+                    color={colors.white}
+                  />
+                  <Text style={styles.idPhotoOverlayText}>{t.updateId}</Text>
+                </View>
+              </>
+            ) : (
+              <View style={styles.idPlaceholder}>
+                <Ionicons
+                  name="scan-outline"
+                  size={30}
+                  color={colors.textTertiary}
+                />
+                <Text style={styles.idPlaceholderText}>{t.scanId}</Text>
               </View>
-            </>
-          ) : (
-            <View style={styles.idPlaceholder}>
-              <Ionicons
-                name="scan-outline"
-                size={30}
-                color={colors.textTertiary}
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>{t.totalTransactions}</Text>
+            <Text style={styles.statValue}>{receipts.length}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>{t.totalSpent}</Text>
+            <Text style={styles.statValue}>{fmtMoney(totalSpent)}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>{t.memberSince}</Text>
+            <Text style={[styles.statValue, styles.statValueSmall]}>
+              {new Date(customer.created_at).toLocaleDateString()}
+            </Text>
+          </View>
+        </View>
+
+        {/* Details */}
+        <SectionLabel
+          actionLabel={editingInfo ? undefined : t.edit}
+          onAction={editingInfo ? undefined : () => setEditingInfo(true)}
+        >
+          {t.detailsLabel}
+        </SectionLabel>
+
+        <View style={styles.detailCard}>
+          {editingInfo ? (
+            <View style={styles.editFields}>
+              <Text style={styles.editLabel}>{t.dlNumber}</Text>
+              <TextInput
+                style={styles.editInput}
+                value={dlNumber}
+                onChangeText={setDlNumber}
+                placeholder="DL-123456789"
+                placeholderTextColor={colors.textTertiary}
               />
-              <Text style={styles.idPlaceholderText}>{t.scanId}</Text>
+              <Text style={styles.editLabel}>{t.address}</Text>
+              <TextInput
+                style={styles.editInput}
+                value={address}
+                onChangeText={setAddress}
+                placeholder={t.address}
+                placeholderTextColor={colors.textTertiary}
+                autoCapitalize="words"
+              />
+              <Text style={styles.editLabel}>{t.dateOfBirth}</Text>
+              <TextInput
+                style={styles.editInput}
+                value={dob}
+                onChangeText={setDob}
+                placeholder="YYYY-MM-DD"
+                placeholderTextColor={colors.textTertiary}
+              />
+              <Text style={styles.editLabel}>{t.customerNotes}</Text>
+              <TextInput
+                style={[styles.editInput, styles.editInputMultiline]}
+                value={notes}
+                onChangeText={setNotes}
+                placeholder={t.notesPlaceholder}
+                placeholderTextColor={colors.textTertiary}
+                multiline
+                numberOfLines={3}
+              />
+              <View style={styles.editActions}>
+                <TouchableOpacity
+                  style={styles.editCancelButton}
+                  onPress={() => {
+                    setDlNumber(customer.drivers_license);
+                    setAddress(customer.address);
+                    setDob(customer.dob ?? '');
+                    setNotes(customer.notes);
+                    setEditingInfo(false);
+                  }}
+                >
+                  <Text style={styles.editCancelText}>{t.cancel}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.editSaveButton}
+                  onPress={handleSaveInfo}
+                  disabled={savingInfo}
+                >
+                  {savingInfo ? (
+                    <ActivityIndicator color={colors.accentInk} size="small" />
+                  ) : (
+                    <Text style={styles.editSaveText}>{t.save}</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
+          ) : (
+            <>
+              <DetailRow
+                label={t.dlNumber}
+                value={customer.drivers_license || '—'}
+              />
+              <DetailRow label={t.address} value={customer.address || '—'} />
+              <DetailRow
+                label={t.dateOfBirth}
+                value={
+                  customer.dob
+                    ? new Date(customer.dob).toLocaleDateString()
+                    : '—'
+                }
+              />
+              <DetailRow
+                label={t.customerNotes}
+                value={customer.notes || '—'}
+                last
+              />
+            </>
           )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Stats */}
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>{t.totalTransactions}</Text>
-          <Text style={styles.statValue}>{receipts.length}</Text>
         </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>{t.totalSpent}</Text>
-          <Text style={styles.statValue}>{fmtMoney(totalSpent)}</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statLabel}>{t.memberSince}</Text>
-          <Text style={[styles.statValue, styles.statValueSmall]}>
-            {new Date(customer.created_at).toLocaleDateString()}
-          </Text>
-        </View>
-      </View>
 
-      {/* Details */}
-      <SectionLabel
-        actionLabel={editingInfo ? undefined : t.edit}
-        onAction={editingInfo ? undefined : () => setEditingInfo(true)}
-      >
-        {t.detailsLabel}
-      </SectionLabel>
-
-      <View style={styles.detailCard}>
-        {editingInfo ? (
-          <View style={styles.editFields}>
-            <Text style={styles.editLabel}>{t.dlNumber}</Text>
-            <TextInput
-              style={styles.editInput}
-              value={dlNumber}
-              onChangeText={setDlNumber}
-              placeholder="DL-123456789"
-              placeholderTextColor={colors.textTertiary}
+        {/* History */}
+        <SectionLabel>{t.customerHistory}</SectionLabel>
+        {receipts.length === 0 ? (
+          <View style={styles.emptyHistory}>
+            <Ionicons
+              name="receipt-outline"
+              size={28}
+              color={colors.textTertiary}
             />
-            <Text style={styles.editLabel}>{t.address}</Text>
-            <TextInput
-              style={styles.editInput}
-              value={address}
-              onChangeText={setAddress}
-              placeholder={t.address}
-              placeholderTextColor={colors.textTertiary}
-              autoCapitalize="words"
-            />
-            <Text style={styles.editLabel}>{t.dateOfBirth}</Text>
-            <TextInput
-              style={styles.editInput}
-              value={dob}
-              onChangeText={setDob}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={colors.textTertiary}
-            />
-            <Text style={styles.editLabel}>{t.customerNotes}</Text>
-            <TextInput
-              style={[styles.editInput, styles.editInputMultiline]}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder={t.notesPlaceholder}
-              placeholderTextColor={colors.textTertiary}
-              multiline
-              numberOfLines={3}
-            />
-            <View style={styles.editActions}>
-              <TouchableOpacity
-                style={styles.editCancelButton}
-                onPress={() => {
-                  setDlNumber(customer.drivers_license);
-                  setAddress(customer.address);
-                  setDob(customer.dob ?? '');
-                  setNotes(customer.notes);
-                  setEditingInfo(false);
-                }}
-              >
-                <Text style={styles.editCancelText}>{t.cancel}</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.editSaveButton}
-                onPress={handleSaveInfo}
-                disabled={savingInfo}
-              >
-                {savingInfo ? (
-                  <ActivityIndicator color={colors.accentInk} size="small" />
-                ) : (
-                  <Text style={styles.editSaveText}>{t.save}</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.emptyText}>{t.noTransactions}</Text>
           </View>
         ) : (
-          <>
-            <DetailRow
-              label={t.dlNumber}
-              value={customer.drivers_license || '—'}
-            />
-            <DetailRow label={t.address} value={customer.address || '—'} />
-            <DetailRow
-              label={t.dateOfBirth}
-              value={
-                customer.dob ? new Date(customer.dob).toLocaleDateString() : '—'
-              }
-            />
-            <DetailRow
-              label={t.customerNotes}
-              value={customer.notes || '—'}
-              last
-            />
-          </>
+          <View style={styles.historyList}>
+            {receipts.map((r) => (
+              <TouchableOpacity
+                key={r.id}
+                style={styles.receiptRow}
+                activeOpacity={0.7}
+                onPress={() => {
+                  const parent = navigation.getParent();
+                  if (parent) {
+                    parent.navigate('TransactionsTab', {
+                      screen: 'ReceiptDetail',
+                      params: { receiptId: r.id },
+                    });
+                  }
+                }}
+              >
+                <View style={styles.receiptIcon}>
+                  <Ionicons
+                    name="receipt-outline"
+                    size={18}
+                    color={colors.accent}
+                  />
+                </View>
+                <View style={styles.receiptInfo}>
+                  <Text style={styles.receiptNumber} numberOfLines={1}>
+                    {r.receipt_number}
+                  </Text>
+                  <Text style={styles.receiptItems} numberOfLines={1}>
+                    {r.line_items
+                      .map(
+                        (li) =>
+                          `${li.metal_name} (${fmtLbs(Number(li.weight))} lb)`
+                      )
+                      .join(', ')}
+                  </Text>
+                </View>
+                <View style={styles.receiptRight}>
+                  <Text style={styles.receiptTotal}>
+                    {fmtMoney(Number(r.subtotal))}
+                  </Text>
+                  <Text style={styles.receiptDate}>
+                    {new Date(r.created_at).toLocaleDateString()}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         )}
-      </View>
 
-      {/* History */}
-      <SectionLabel>{t.customerHistory}</SectionLabel>
-      {receipts.length === 0 ? (
-        <View style={styles.emptyHistory}>
-          <Ionicons
-            name="receipt-outline"
-            size={28}
-            color={colors.textTertiary}
-          />
-          <Text style={styles.emptyText}>{t.noTransactions}</Text>
-        </View>
-      ) : (
-        <View style={styles.historyList}>
-          {receipts.map((r) => (
-            <TouchableOpacity
-              key={r.id}
-              style={styles.receiptRow}
-              activeOpacity={0.7}
-              onPress={() => {
-                const parent = navigation.getParent();
-                if (parent) {
-                  parent.navigate('TransactionsTab', {
-                    screen: 'ReceiptDetail',
-                    params: { receiptId: r.id },
-                  });
-                }
-              }}
-            >
-              <View style={styles.receiptIcon}>
-                <Ionicons
-                  name="receipt-outline"
-                  size={18}
-                  color={colors.accent}
-                />
-              </View>
-              <View style={styles.receiptInfo}>
-                <Text style={styles.receiptNumber} numberOfLines={1}>
-                  {r.receipt_number}
-                </Text>
-                <Text style={styles.receiptItems} numberOfLines={1}>
-                  {r.line_items
-                    .map(
-                      (li) =>
-                        `${li.metal_name} (${fmtLbs(Number(li.weight))} lb)`
-                    )
-                    .join(', ')}
-                </Text>
-              </View>
-              <View style={styles.receiptRight}>
-                <Text style={styles.receiptTotal}>
-                  {fmtMoney(Number(r.subtotal))}
-                </Text>
-                <Text style={styles.receiptDate}>
-                  {new Date(r.created_at).toLocaleDateString()}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* Actions */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={[
-            styles.flagButton,
-            customer.is_flagged && styles.flagButtonActive,
-          ]}
-          activeOpacity={0.8}
-          onPress={handleToggleFlag}
-        >
-          <Ionicons
-            name={customer.is_flagged ? 'flag' : 'flag-outline'}
-            size={18}
-            color={customer.is_flagged ? colors.rust : colors.textSecondary}
-          />
-          <Text
+        {/* Actions */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity
             style={[
-              styles.flagButtonText,
-              customer.is_flagged && styles.flagButtonTextActive,
+              styles.flagButton,
+              customer.is_flagged && styles.flagButtonActive,
             ]}
+            activeOpacity={0.8}
+            onPress={handleToggleFlag}
           >
-            {customer.is_flagged ? t.unflagCustomer : t.flagCustomer}
-          </Text>
-        </TouchableOpacity>
+            <Ionicons
+              name={customer.is_flagged ? 'flag' : 'flag-outline'}
+              size={18}
+              color={customer.is_flagged ? colors.rust : colors.textSecondary}
+            />
+            <Text
+              style={[
+                styles.flagButtonText,
+                customer.is_flagged && styles.flagButtonTextActive,
+              ]}
+            >
+              {customer.is_flagged ? t.unflagCustomer : t.flagCustomer}
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.printButton}
-          activeOpacity={0.8}
-          onPress={handlePrintStatement}
-        >
-          <Ionicons name="print-outline" size={18} color={colors.accentInk} />
-          <Text style={styles.printButtonText}>{t.printStatement}</Text>
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={styles.printButton}
+            activeOpacity={0.8}
+            onPress={handlePrintStatement}
+          >
+            <Ionicons name="print-outline" size={18} color={colors.accentInk} />
+            <Text style={styles.printButtonText}>{t.printStatement}</Text>
+          </TouchableOpacity>
+        </View>
+      </ResponsiveContainer>
     </ScrollView>
   );
 }
@@ -590,6 +598,8 @@ const makeStyles = (colors: Palette) =>
     content: {
       padding: spacing.lg,
       paddingBottom: spacing.xxxl,
+    },
+    responsiveBody: {
       gap: spacing.md,
     },
     centered: {

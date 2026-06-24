@@ -10,6 +10,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useResponsive } from '../../hooks';
 import { useInventory } from '../../hooks/useInventory';
 import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import {
@@ -62,6 +63,7 @@ export default function InventoryScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { inventory, loading, refresh } = useInventory();
+  const { isWide } = useResponsive();
   const [cat, setCat] = useState<string>(t.allLabel);
 
   useFocusEffect(
@@ -131,7 +133,10 @@ export default function InventoryScreen() {
             tintColor={colors.accent}
           />
         }
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' },
+        ]}
         ListHeaderComponent={
           <>
             {/* On-hand value hero */}

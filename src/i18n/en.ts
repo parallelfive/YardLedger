@@ -155,6 +155,10 @@ export default {
   approvedBy: 'Approved by admin',
   print: 'Print',
   saveAndPrint: 'Save & Print',
+  saveWithoutPrinting: 'Save without printing',
+  signToEnable: 'Sign above to enable Save & Print',
+  receiptSavedToast: 'Receipt saved',
+  sameSeller: 'Same seller',
 
   // Add Line Item Modal
   addLineItem: '+ Add Line Item',
@@ -295,6 +299,7 @@ export default {
   address: 'Address',
   dateOfBirth: 'Date of Birth',
   scanId: 'Scan ID',
+  scanLicenseBarcode: 'Scan or paste license barcode',
   updateId: 'Update ID',
   noCustomers: 'No customers yet',
   customersWillAppear: 'Customers are added when you create receipts',

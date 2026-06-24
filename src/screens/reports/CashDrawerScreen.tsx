@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { ResponsiveContainer } from '../../components';
 import { useT } from '../../hooks/useT';
 import { useAppSelector, type RootState } from '../../store';
 import { useCashDrawer } from '../../hooks/useCashDrawer';
@@ -93,93 +94,102 @@ export default function CashDrawerScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {current ? (
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>{t.drawerOpen}</Text>
-          <Row label={t.openingFloat} value={fmtMoney(current.opening_float)} />
-          <Row
-            label={t.cashPaidOut}
-            value={`− ${fmtMoney(current.cash_paid_out)}`}
-          />
-          <View style={styles.divider} />
-          <Row
-            label={t.expectedInDrawer}
-            value={fmtMoney(current.expected_cash)}
-            strong
-          />
+      <ResponsiveContainer maxWidth={640}>
+        {current ? (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>{t.drawerOpen}</Text>
+            <Row
+              label={t.openingFloat}
+              value={fmtMoney(current.opening_float)}
+            />
+            <Row
+              label={t.cashPaidOut}
+              value={`− ${fmtMoney(current.cash_paid_out)}`}
+            />
+            <View style={styles.divider} />
+            <Row
+              label={t.expectedInDrawer}
+              value={fmtMoney(current.expected_cash)}
+              strong
+            />
 
-          <Text style={styles.fieldLabel}>{t.countedCash}</Text>
-          <TextInput
-            style={styles.input}
-            value={countInput}
-            onChangeText={setCountInput}
-            keyboardType="decimal-pad"
-            placeholder="0.00"
-            placeholderTextColor={colors.textTertiary}
-          />
-          <TouchableOpacity
-            style={[styles.button, busy && styles.buttonDisabled]}
-            onPress={handleClose}
-            disabled={busy || countInput.trim() === ''}
-          >
-            <Text style={styles.buttonText}>{t.closeDrawer}</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.card}>
-          <Text style={styles.cardLabel}>{t.openDrawer}</Text>
-          <Text style={styles.hint}>{t.openDrawerHint}</Text>
-          <Text style={styles.fieldLabel}>{t.openingFloat}</Text>
-          <TextInput
-            style={styles.input}
-            value={floatInput}
-            onChangeText={setFloatInput}
-            keyboardType="decimal-pad"
-            placeholder="0.00"
-            placeholderTextColor={colors.textTertiary}
-          />
-          <TouchableOpacity
-            style={[styles.button, busy && styles.buttonDisabled]}
-            onPress={handleOpen}
-            disabled={busy || floatInput.trim() === ''}
-          >
-            <Text style={styles.buttonText}>{t.openDrawer}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+            <Text style={styles.fieldLabel}>{t.countedCash}</Text>
+            <TextInput
+              style={styles.input}
+              value={countInput}
+              onChangeText={setCountInput}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor={colors.textTertiary}
+            />
+            <TouchableOpacity
+              style={[styles.button, busy && styles.buttonDisabled]}
+              onPress={handleClose}
+              disabled={busy || countInput.trim() === ''}
+            >
+              <Text style={styles.buttonText}>{t.closeDrawer}</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.card}>
+            <Text style={styles.cardLabel}>{t.openDrawer}</Text>
+            <Text style={styles.hint}>{t.openDrawerHint}</Text>
+            <Text style={styles.fieldLabel}>{t.openingFloat}</Text>
+            <TextInput
+              style={styles.input}
+              value={floatInput}
+              onChangeText={setFloatInput}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+              placeholderTextColor={colors.textTertiary}
+            />
+            <TouchableOpacity
+              style={[styles.button, busy && styles.buttonDisabled]}
+              onPress={handleOpen}
+              disabled={busy || floatInput.trim() === ''}
+            >
+              <Text style={styles.buttonText}>{t.openDrawer}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
-      <Text style={styles.sectionTitle}>{t.closeoutHistory}</Text>
-      {history.length === 0 ? (
-        <Text style={styles.empty}>{t.noCloseouts}</Text>
-      ) : (
-        history.map((h) => {
-          const v = Number(h.variance ?? 0);
-          const vColor =
-            v === 0 ? colors.textSecondary : v > 0 ? colors.moss : colors.rust;
-          const vLabel =
-            v === 0
-              ? t.balanced
-              : `${fmtMoney(Math.abs(v))} ${v > 0 ? t.over : t.short}`;
-          return (
-            <View key={h.id} style={styles.histRow}>
-              <View>
-                <Text style={styles.histDate}>
-                  {h.closed_at
-                    ? new Date(h.closed_at).toLocaleDateString()
-                    : ''}
-                </Text>
-                <Text style={styles.histSub}>
-                  {fmtMoney(Number(h.counted_cash ?? 0))} {t.countedCash} ·{' '}
-                  {fmtMoney(Number(h.expected_cash ?? 0))} {t.expectedShort}
+        <Text style={styles.sectionTitle}>{t.closeoutHistory}</Text>
+        {history.length === 0 ? (
+          <Text style={styles.empty}>{t.noCloseouts}</Text>
+        ) : (
+          history.map((h) => {
+            const v = Number(h.variance ?? 0);
+            const vColor =
+              v === 0
+                ? colors.textSecondary
+                : v > 0
+                  ? colors.moss
+                  : colors.rust;
+            const vLabel =
+              v === 0
+                ? t.balanced
+                : `${fmtMoney(Math.abs(v))} ${v > 0 ? t.over : t.short}`;
+            return (
+              <View key={h.id} style={styles.histRow}>
+                <View>
+                  <Text style={styles.histDate}>
+                    {h.closed_at
+                      ? new Date(h.closed_at).toLocaleDateString()
+                      : ''}
+                  </Text>
+                  <Text style={styles.histSub}>
+                    {fmtMoney(Number(h.counted_cash ?? 0))} {t.countedCash} ·{' '}
+                    {fmtMoney(Number(h.expected_cash ?? 0))} {t.expectedShort}
+                  </Text>
+                </View>
+                <Text style={[styles.histVariance, { color: vColor }]}>
+                  {vLabel}
                 </Text>
               </View>
-              <Text style={[styles.histVariance, { color: vColor }]}>
-                {vLabel}
-              </Text>
-            </View>
-          );
-        })
-      )}
+            );
+          })
+        )}
+      </ResponsiveContainer>
     </ScrollView>
   );
 }

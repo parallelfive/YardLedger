@@ -156,6 +156,10 @@ export default {
   approvedBy: 'Aprobado por admin',
   print: 'Imprimir',
   saveAndPrint: 'Guardar e Imprimir',
+  saveWithoutPrinting: 'Guardar sin imprimir',
+  signToEnable: 'Firma arriba para habilitar Guardar e Imprimir',
+  receiptSavedToast: 'Recibo guardado',
+  sameSeller: 'Mismo vendedor',
 
   // Add Line Item Modal
   addLineItem: '+ Agregar Artículo',
@@ -296,6 +300,7 @@ export default {
   address: 'Dirección',
   dateOfBirth: 'Fecha de Nacimiento',
   scanId: 'Escanear ID',
+  scanLicenseBarcode: 'Escanee o pegue el código de la licencia',
   updateId: 'Actualizar ID',
   noCustomers: 'Sin clientes aún',
   customersWillAppear: 'Los clientes se agregan al crear recibos',

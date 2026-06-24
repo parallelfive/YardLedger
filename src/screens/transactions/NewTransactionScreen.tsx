@@ -10,6 +10,7 @@ import {
   Alert,
   Image,
   Pressable,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -18,6 +19,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { AccessCodeModal, SignaturePad } from '../../components';
+import { useResponsive } from '../../hooks';
 import AddMaterialKeypad from '../../components/AddMaterialKeypad';
 import type { SignaturePadHandle } from '../../components/SignaturePad';
 import {
@@ -29,9 +31,14 @@ import {
   type Tone,
 } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
-import { useNewTransaction } from '../../hooks/useNewTransaction';
+import {
+  useNewTransaction,
+  type CreatedReceipt,
+} from '../../hooks/useNewTransaction';
+import Snackbar from '../../components/Snackbar';
 import { useIdScanner } from '../../hooks/useIdScanner';
-import type { Metal } from '../../types';
+import { parseAamva, looksLikeAamva } from '../../utils/parseAamva';
+import type { Metal, ParsedIdFields } from '../../types';
 import {
   searchCustomers,
   updateCustomerIdPhoto,
@@ -51,13 +58,6 @@ type Props = NativeStackScreenProps<
   'NewTransaction'
 >;
 
-interface SavedReceipt {
-  id: string;
-  total: number;
-  customerName: string;
-  itemCount: number;
-}
-
 type Tier = 'open' | 'regulated' | 'restricted' | 'catalytic';
 type StepName = 'materials' | 'seller' | 'vehicle' | 'converter' | 'review';
 
@@ -66,6 +66,13 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const insets = useSafeAreaInsets();
+  const { isWide } = useResponsive();
+  // On desktop/tablet, cap the scroll body and footer to a centered column so
+  // the form and the Save & Print button don't stretch edge-to-edge. The
+  // colored header stays full-bleed.
+  const wideColumn = isWide
+    ? { maxWidth: 640, alignSelf: 'center' as const, width: '100%' as const }
+    : null;
   const signaturePadRef = useRef<SignaturePadHandle>(null);
   const tx = useNewTransaction(signaturePadRef);
   const { scanning: scanningId, scanAndRecognize } = useIdScanner();
@@ -73,7 +80,14 @@ export default function NewTransactionScreen({ navigation }: Props) {
   const [step, setStep] = useState(0);
   const [printAfterSave, setPrintAfterSave] = useState(false);
   const [showAddSheet, setShowAddSheet] = useState(false);
-  const [savedReceipt, setSavedReceipt] = useState<SavedReceipt | null>(null);
+  const [barcodeBuffer, setBarcodeBuffer] = useState('');
+  const [snack, setSnack] = useState<{
+    receiptId: string;
+    receiptNumber: string;
+    customerName: string;
+    customerPhone: string;
+    customerId: string;
+  } | null>(null);
   const [customerResults, setCustomers] = useState<Customer[]>([]);
   const [searchingCustomers, setSearchingCustomers] = useState(false);
   const [showCustomers, setShowCustomers] = useState(false);
@@ -192,66 +206,62 @@ export default function NewTransactionScreen({ navigation }: Props) {
     [tx]
   );
 
+  // Save succeeded (and printed inline if requested). Update the customer's ID
+  // photo, then auto-advance to a fresh ticket and confirm via a snackbar — no
+  // blocking modal, no detour through the receipt detail screen.
   const handleSaveSuccess = useCallback(
-    async (
-      receiptId: string,
-      customerId: string,
-      sellerIdPhotoUrl: string | null
-    ) => {
-      if (sellerIdPhotoUrl && customerId) {
+    async (receipt: CreatedReceipt) => {
+      if (receipt.seller_id_photo_uri && receipt.customer_id) {
         try {
-          await updateCustomerIdPhoto(customerId, sellerIdPhotoUrl);
+          await updateCustomerIdPhoto(
+            receipt.customer_id,
+            receipt.seller_id_photo_uri
+          );
         } catch {
           // Non-blocking — receipt is already saved
         }
       }
-      if (printAfterSave) {
-        tx.resetForm();
-        navigation.popToTop();
-        navigation.navigate('ReceiptDetail', { receiptId, printOnLoad: true });
-      } else {
-        setSavedReceipt({
-          id: receiptId,
-          total: tx.receiptTotal,
-          customerName: tx.customerName,
-          itemCount: tx.lineItems.length,
-        });
-      }
-    },
-    [printAfterSave, tx, navigation]
-  );
-
-  // Offline: the buy was queued locally (the hook already reset the form). Give
-  // feedback and return to a fresh ticket — there's no server receipt to view.
-  const handleSaveQueued = useCallback(() => {
-    setSavedReceipt(null);
-    setSelectedCustomerId(undefined);
-    setStep(0);
-    Alert.alert(t.savedOffline, t.willSyncMsg);
-  }, [t]);
-
-  const handleNewTicket = useCallback(
-    (keepCustomer: boolean) => {
-      tx.resetForm(keepCustomer);
-      setSavedReceipt(null);
+      // Capture the seller before resetting so "Same seller" can re-seed it.
+      const sellerName = tx.customerName;
+      const sellerPhone = tx.customerPhone;
+      tx.resetForm();
+      setSelectedCustomerId(undefined);
       setStep(0);
-      if (!keepCustomer) setSelectedCustomerId(undefined);
+      setSnack({
+        receiptId: receipt.id,
+        receiptNumber: receipt.receipt_number,
+        customerName: sellerName,
+        customerPhone: sellerPhone,
+        customerId: receipt.customer_id,
+      });
     },
     [tx]
   );
 
-  const handleViewReceipt = useCallback(() => {
-    if (!savedReceipt) return;
-    const receiptId = savedReceipt.id;
-    setSavedReceipt(null);
-    tx.resetForm();
+  // Side effects live OUTSIDE setSnack so a double-invoked updater (StrictMode /
+  // concurrent) can't navigate twice. Capture the snack value, then act.
+  const handleSnackView = useCallback(() => {
+    if (!snack) return;
+    const receiptId = snack.receiptId;
+    setSnack(null);
+    navigation.navigate('ReceiptDetail', { receiptId, printOnLoad: false });
+  }, [snack, navigation]);
+
+  const handleSnackSameSeller = useCallback(() => {
+    if (!snack) return;
+    tx.setCustomerName(snack.customerName);
+    tx.setCustomerPhone(snack.customerPhone);
+    setSelectedCustomerId(snack.customerId || undefined);
+    setSnack(null);
+  }, [snack, tx]);
+
+  // Offline: the buy was queued locally (the hook already reset the form). Give
+  // feedback and return to a fresh ticket — there's no server receipt to view.
+  const handleSaveQueued = useCallback(() => {
+    setSelectedCustomerId(undefined);
     setStep(0);
-    navigation.popToTop();
-    navigation.navigate('ReceiptDetail', {
-      receiptId,
-      printOnLoad: printAfterSave,
-    });
-  }, [savedReceipt, navigation, printAfterSave, tx]);
+    Alert.alert(t.savedOffline, t.willSyncMsg);
+  }, [t]);
 
   const handleClose = useCallback(() => {
     if (tx.lineItems.length > 0) {
@@ -295,19 +305,50 @@ export default function NewTransactionScreen({ navigation }: Props) {
     [t.error, t.cameraPermission]
   );
 
+  // Fill the seller form from parsed ID fields. `overwrite` is used by the
+  // explicit barcode scan (authoritative); the camera-OCR path fills only
+  // blanks so a partial OCR read can't clobber what the operator typed.
+  const applyParsedId = useCallback(
+    (fields: ParsedIdFields, overwrite: boolean) => {
+      const set = (
+        value: string | null | undefined,
+        current: string,
+        setter: (v: string) => void
+      ) => {
+        if (value && (overwrite || !current.trim())) setter(value);
+      };
+      set(fields.name, tx.sellerName, tx.setSellerName);
+      set(fields.driversLicense, tx.sellerDlNumber, tx.setSellerDlNumber);
+      set(fields.dob, tx.sellerDob, tx.setSellerDob);
+      set(fields.address, tx.sellerAddress, tx.setSellerAddress);
+      set(fields.city, tx.sellerCity, tx.setSellerCity);
+      set(fields.state, tx.sellerState, tx.setSellerState);
+      set(fields.zip, tx.sellerZip, tx.setSellerZip);
+      set(fields.stateOfIssue, tx.sellerStateOfIssue, tx.setSellerStateOfIssue);
+    },
+    [tx]
+  );
+
   const scanSellerId = useCallback(async () => {
     const result = await scanAndRecognize();
     if (!result) return;
     tx.setSellerIdPhotoUri(result.imageUri);
-    if (result.fields.name && !tx.sellerName.trim())
-      tx.setSellerName(result.fields.name);
-    if (result.fields.driversLicense && !tx.sellerDlNumber.trim())
-      tx.setSellerDlNumber(result.fields.driversLicense);
-    if (result.fields.dob && !tx.sellerDob.trim())
-      tx.setSellerDob(result.fields.dob);
-    if (result.fields.address && !tx.sellerAddress.trim())
-      tx.setSellerAddress(result.fields.address);
-  }, [scanAndRecognize, tx]);
+    applyParsedId(result.fields, false);
+  }, [scanAndRecognize, tx, applyParsedId]);
+
+  // Desktop USB barcode scanners type the AAMVA PDF417 payload into the focused
+  // field. When the buffer becomes recognizable AAMVA data, parse it, fill the
+  // form, and clear the buffer for the next scan.
+  const handleBarcodeInput = useCallback(
+    (text: string) => {
+      setBarcodeBuffer(text);
+      if (looksLikeAamva(text)) {
+        applyParsedId(parseAamva(text), true);
+        setBarcodeBuffer('');
+      }
+    },
+    [applyParsedId]
+  );
 
   // Step gating
   const canAdvance = (name: StepName): boolean => {
@@ -392,7 +433,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
 
       <ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, wideColumn]}
         keyboardShouldPersistTaps="handled"
       >
         {/* ── Compliance banner (live read of what the cart requires) ── */}
@@ -621,6 +662,28 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 >
                   <Text style={styles.rescanButtonText}>{t.updateId}</Text>
                 </TouchableOpacity>
+              </View>
+            ) : Platform.OS === 'web' ? (
+              <View style={styles.scanIdButton}>
+                <Ionicons
+                  name="barcode-outline"
+                  size={20}
+                  color={colors.accent}
+                />
+                <TextInput
+                  style={styles.barcodeInput}
+                  placeholder={t.scanLicenseBarcode}
+                  placeholderTextColor={colors.textTertiary}
+                  value={barcodeBuffer}
+                  onChangeText={handleBarcodeInput}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  // A single-line input strips the AAMVA newline separators a
+                  // USB scanner emits; multiline (a <textarea> on web) keeps
+                  // them so the payload parses.
+                  multiline
+                  numberOfLines={1}
+                />
               </View>
             ) : (
               <TouchableOpacity
@@ -965,6 +1028,7 @@ export default function NewTransactionScreen({ navigation }: Props) {
       <View
         style={[
           styles.footer,
+          wideColumn,
           { paddingBottom: Math.max(insets.bottom, spacing.md) + spacing.md },
         ]}
       >
@@ -978,66 +1042,65 @@ export default function NewTransactionScreen({ navigation }: Props) {
         )}
         {isLast ? (
           <View style={styles.flex}>
-            <View style={styles.payRow}>
-              <TouchableOpacity
-                style={[
-                  styles.payButton,
-                  styles.payButtonOutline,
-                  (!canAdvance('review') || tx.saving) &&
-                    styles.payButtonDisabled,
-                ]}
-                onPress={() => {
-                  setPrintAfterSave(false);
-                  tx.saveReceipt(
-                    handleSaveSuccess,
-                    selectedCustomerId,
-                    handleSaveQueued
-                  );
-                }}
-                disabled={!canAdvance('review') || tx.saving}
-              >
-                {tx.saving && !printAfterSave ? (
-                  <ActivityIndicator color={colors.accent} />
-                ) : (
-                  <Text style={styles.payButtonOutlineText}>
-                    {t.pay} {fmtMoney(tx.receiptTotal)}
+            <TouchableOpacity
+              style={[
+                styles.payButton,
+                styles.payButtonSolo,
+                styles.payButtonPrimary,
+                (!canAdvance('review') || tx.saving || !tx.signature) &&
+                  styles.payButtonDisabled,
+              ]}
+              onPress={() => {
+                setPrintAfterSave(true);
+                tx.saveReceipt(
+                  handleSaveSuccess,
+                  selectedCustomerId,
+                  handleSaveQueued,
+                  true
+                );
+              }}
+              disabled={!canAdvance('review') || tx.saving || !tx.signature}
+            >
+              {tx.saving && printAfterSave ? (
+                <ActivityIndicator color={colors.accentInk} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="print-outline"
+                    size={18}
+                    color={colors.accentInk}
+                  />
+                  <Text style={styles.payButtonText}>
+                    {t.saveAndPrint} · {fmtMoney(tx.receiptTotal)}
                   </Text>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.payButton,
-                  styles.payButtonPrimary,
-                  (!canAdvance('review') || tx.saving) &&
-                    styles.payButtonDisabled,
-                ]}
-                onPress={() => {
-                  setPrintAfterSave(true);
-                  tx.saveReceipt(
-                    handleSaveSuccess,
-                    selectedCustomerId,
-                    handleSaveQueued
-                  );
-                }}
-                disabled={!canAdvance('review') || tx.saving}
-              >
-                {tx.saving && printAfterSave ? (
-                  <ActivityIndicator color={colors.accentInk} />
-                ) : (
-                  <>
-                    <Ionicons
-                      name="print-outline"
-                      size={18}
-                      color={colors.accentInk}
-                    />
-                    <Text style={styles.payButtonText}>{t.saveAndPrint}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.payHint}>
-              {payMethodLabel} · {tx.lineItems.length}{' '}
-              {tx.lineItems.length === 1 ? t.line : t.lines}
+                </>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.saveOnlyLink}
+              onPress={() => {
+                setPrintAfterSave(false);
+                tx.saveReceipt(
+                  handleSaveSuccess,
+                  selectedCustomerId,
+                  handleSaveQueued,
+                  false
+                );
+              }}
+              disabled={!canAdvance('review') || tx.saving || !tx.signature}
+            >
+              {tx.saving && !printAfterSave ? (
+                <ActivityIndicator color={colors.textSecondary} />
+              ) : (
+                <Text style={styles.saveOnlyLinkText}>
+                  {t.saveWithoutPrinting}
+                </Text>
+              )}
+            </TouchableOpacity>
+            <Text style={[styles.payHint, !tx.signature && styles.payHintWarn]}>
+              {!tx.signature
+                ? t.signToEnable
+                : `${payMethodLabel} · ${tx.lineItems.length} ${tx.lineItems.length === 1 ? t.line : t.lines}`}
             </Text>
           </View>
         ) : (
@@ -1095,61 +1158,20 @@ export default function NewTransactionScreen({ navigation }: Props) {
         </View>
       </Modal>
 
-      {/* Quick-mode success modal */}
-      <Modal
-        visible={!!savedReceipt}
-        transparent
-        animationType="fade"
-        onRequestClose={handleViewReceipt}
-      >
-        <View style={styles.successOverlay}>
-          <View style={styles.successModal}>
-            <View style={styles.successIconCircle}>
-              <Ionicons name="checkmark" size={36} color={colors.white} />
-            </View>
-            <Text style={styles.successTitle}>{t.receiptSaved}</Text>
-            {savedReceipt && (
-              <View style={styles.successSummary}>
-                <Text style={styles.successCustomer}>
-                  {savedReceipt.customerName}
-                </Text>
-                <Text style={styles.successDetail}>
-                  {savedReceipt.itemCount}{' '}
-                  {savedReceipt.itemCount === 1 ? 'item' : t.items} ·{' '}
-                  {fmtMoney(savedReceipt.total)}
-                </Text>
-              </View>
-            )}
-            <TouchableOpacity
-              style={styles.quickModeButton}
-              onPress={() => handleNewTicket(false)}
-            >
-              <Text style={styles.quickModeButtonText}>{t.newTicket}</Text>
-            </TouchableOpacity>
-            {savedReceipt && (
-              <TouchableOpacity
-                style={styles.quickModeSameCustomer}
-                onPress={() => handleNewTicket(true)}
-              >
-                <Text style={styles.quickModeSameCustomerText}>
-                  {t.newTicketSameCustomer}
-                </Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={styles.viewReceiptButton}
-              onPress={handleViewReceipt}
-            >
-              <Text style={styles.viewReceiptButtonText}>{t.viewReceipt}</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       <AccessCodeModal
         visible={tx.showCodeModal}
         onSuccess={tx.approveOverride}
         onCancel={tx.cancelOverride}
+      />
+
+      <Snackbar
+        visible={!!snack}
+        message={snack ? `${t.receiptSavedToast} · ${snack.receiptNumber}` : ''}
+        actions={[
+          { label: t.viewReceipt, onPress: handleSnackView },
+          { label: t.sameSeller, onPress: handleSnackSameSeller },
+        ]}
+        onDismiss={() => setSnack(null)}
       />
     </View>
   );
@@ -1547,6 +1569,13 @@ const makeStyles = (colors: Palette) =>
       fontSize: fontSize.md,
       fontFamily: fonts.sansSemiBold,
     },
+    barcodeInput: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      paddingVertical: 2,
+    },
     idPhotoPreview: {
       marginBottom: spacing.md,
       borderRadius: borderRadius.md,
@@ -1787,6 +1816,18 @@ const makeStyles = (colors: Palette) =>
       borderRadius: borderRadius.lg,
     },
     payButtonPrimary: { backgroundColor: colors.accent },
+    payButtonSolo: { flex: 0, marginBottom: spacing.xs },
+    saveOnlyLink: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.sm,
+      minHeight: 36,
+    },
+    saveOnlyLinkText: {
+      color: colors.textSecondary,
+      fontSize: 14,
+      fontFamily: fonts.sansSemiBold,
+    },
     payButtonOutline: {
       backgroundColor: 'transparent',
       borderWidth: 1,
@@ -1810,6 +1851,7 @@ const makeStyles = (colors: Palette) =>
       textAlign: 'center',
       marginTop: 6,
     },
+    payHintWarn: { color: colors.rust },
 
     // Add material sheet
     sheetOverlay: { flex: 1, justifyContent: 'flex-end' },

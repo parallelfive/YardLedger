@@ -27,6 +27,7 @@ import {
 import { useAppSelector, type RootState } from '../../store';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useT } from '../../hooks/useT';
+import { useResponsive } from '../../hooks';
 import { MetalDot, fmtMoney, type Tone } from '../../components/foundry';
 import { useTheme, useThemedStyles } from '../../theme';
 import {
@@ -81,6 +82,7 @@ export default function PricingScreen() {
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const { ensureElevated } = useAdminElevation();
+  const { isWide } = useResponsive();
   const [sections, setSections] = useState<MetalSection[]>([]);
   const [categories, setCategories] = useState<MetalCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -309,7 +311,10 @@ export default function PricingScreen() {
         keyExtractor={(item) => item.id}
         refreshing={loading}
         onRefresh={loadData}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' },
+        ]}
         ListHeaderComponent={
           <Text style={styles.introNote}>{t.materialsManagerIntro}</Text>
         }

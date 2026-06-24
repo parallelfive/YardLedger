@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ResponsiveContainer } from '../../components';
 import { setPin } from '../../services/pin';
 import { useT } from '../../hooks/useT';
 import {
@@ -57,50 +58,52 @@ export default function SetAdminPinScreen({ onDone }: { onDone: () => void }) {
       style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.card}>
-        <Text style={styles.title}>{t.setPinTitle}</Text>
-        <Text style={styles.subtitle}>{t.setPinSubtitle}</Text>
+      <ResponsiveContainer maxWidth={420}>
+        <View style={styles.card}>
+          <Text style={styles.title}>{t.setPinTitle}</Text>
+          <Text style={styles.subtitle}>{t.setPinSubtitle}</Text>
 
-        <TextInput
-          style={styles.input}
-          value={pin}
-          onChangeText={setPinValue}
-          keyboardType="number-pad"
-          placeholder="0000"
-          placeholderTextColor={colors.textTertiary}
-          maxLength={4}
-          secureTextEntry
-          autoFocus
-        />
-        <TextInput
-          style={styles.input}
-          value={confirm}
-          onChangeText={setConfirm}
-          keyboardType="number-pad"
-          placeholder={t.confirmPinLabel}
-          placeholderTextColor={colors.textTertiary}
-          maxLength={4}
-          secureTextEntry
-        />
+          <TextInput
+            style={styles.input}
+            value={pin}
+            onChangeText={setPinValue}
+            keyboardType="number-pad"
+            placeholder="0000"
+            placeholderTextColor={colors.textTertiary}
+            maxLength={4}
+            secureTextEntry
+            autoFocus
+          />
+          <TextInput
+            style={styles.input}
+            value={confirm}
+            onChangeText={setConfirm}
+            keyboardType="number-pad"
+            placeholder={t.confirmPinLabel}
+            placeholderTextColor={colors.textTertiary}
+            maxLength={4}
+            secureTextEntry
+          />
 
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <TouchableOpacity
-          style={[
-            styles.saveButton,
-            (saving || pin.length !== 4 || confirm.length !== 4) &&
-              styles.buttonDisabled,
-          ]}
-          onPress={handleSave}
-          disabled={saving || pin.length !== 4 || confirm.length !== 4}
-        >
-          {saving ? (
-            <ActivityIndicator color={colors.accentInk} />
-          ) : (
-            <Text style={styles.saveButtonText}>{t.savePin}</Text>
-          )}
-        </TouchableOpacity>
-      </View>
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              (saving || pin.length !== 4 || confirm.length !== 4) &&
+                styles.buttonDisabled,
+            ]}
+            onPress={handleSave}
+            disabled={saving || pin.length !== 4 || confirm.length !== 4}
+          >
+            {saving ? (
+              <ActivityIndicator color={colors.accentInk} />
+            ) : (
+              <Text style={styles.saveButtonText}>{t.savePin}</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ResponsiveContainer>
     </KeyboardAvoidingView>
   );
 }

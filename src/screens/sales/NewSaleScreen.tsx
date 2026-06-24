@@ -28,6 +28,7 @@ import {
   fmtLbs,
   type Tone,
 } from '../../components/foundry';
+import { ResponsiveContainer } from '../../components';
 import { type Palette, spacing, fontSize, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
 
@@ -210,106 +211,108 @@ export default function NewSaleScreen({ navigation }: Props) {
           contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Buyer */}
-          <Text style={styles.fieldLabel}>{t.buyerProcessor}</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={t.buyerProcessorHint}
-            placeholderTextColor={colors.textTertiary}
-            value={buyerName}
-            onChangeText={setBuyerName}
-          />
+          <ResponsiveContainer maxWidth={640}>
+            {/* Buyer */}
+            <Text style={styles.fieldLabel}>{t.buyerProcessor}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={t.buyerProcessorHint}
+              placeholderTextColor={colors.textTertiary}
+              value={buyerName}
+              onChangeText={setBuyerName}
+            />
 
-          {/* Material picker */}
-          <Text style={styles.fieldLabel}>{t.materialLabel}</Text>
-          {loadingInventory ? (
-            <ActivityIndicator color={colors.accent} style={styles.loader} />
-          ) : inventory.length === 0 ? (
-            <View style={styles.emptyPicker}>
-              <Text style={styles.emptyText}>{t.noInventory}</Text>
-            </View>
-          ) : (
-            <View style={styles.materialList}>
-              {inventory.map((row) => {
-                const active = row.id === selectedId;
-                return (
-                  <TouchableOpacity
-                    key={row.id}
-                    style={[
-                      styles.materialRow,
-                      active && styles.materialActive,
-                    ]}
-                    onPress={() => selectMetal(row)}
-                    activeOpacity={0.7}
-                  >
-                    <MetalDot tone={row.tone} size={10} />
-                    <Text style={styles.materialName} numberOfLines={1}>
-                      {row.metalName}
-                    </Text>
-                    <Text style={styles.materialAvail}>
-                      {fmtLbs(row.weight)} {t.lbAvail}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          )}
-
-          {/* Weight + Price */}
-          <View style={styles.fieldsRow}>
-            <View style={styles.fieldCol}>
-              <View style={styles.labelRow}>
-                <Text style={styles.fieldLabelInline}>{t.weightLb}</Text>
-                {selected ? (
-                  <Text style={styles.fieldHint}>
-                    {fmtLbs(onHand)} {t.onHandShort}
-                  </Text>
-                ) : null}
+            {/* Material picker */}
+            <Text style={styles.fieldLabel}>{t.materialLabel}</Text>
+            {loadingInventory ? (
+              <ActivityIndicator color={colors.accent} style={styles.loader} />
+            ) : inventory.length === 0 ? (
+              <View style={styles.emptyPicker}>
+                <Text style={styles.emptyText}>{t.noInventory}</Text>
               </View>
-              <TextInput
-                style={[styles.input, styles.inputMono]}
-                placeholder="0"
-                placeholderTextColor={colors.textTertiary}
-                value={saleWeight}
-                onChangeText={setSaleWeight}
-                keyboardType="decimal-pad"
-                editable={!!selected}
-              />
-            </View>
-            <View style={styles.fieldCol}>
-              <Text style={styles.fieldLabelInline}>{t.priceLbShort}</Text>
-              <TextInput
-                style={[styles.input, styles.inputMono]}
-                placeholder="0.00"
-                placeholderTextColor={colors.textTertiary}
-                value={salePrice}
-                onChangeText={setSalePrice}
-                keyboardType="decimal-pad"
-                editable={!!selected}
-              />
-            </View>
-          </View>
+            ) : (
+              <View style={styles.materialList}>
+                {inventory.map((row) => {
+                  const active = row.id === selectedId;
+                  return (
+                    <TouchableOpacity
+                      key={row.id}
+                      style={[
+                        styles.materialRow,
+                        active && styles.materialActive,
+                      ]}
+                      onPress={() => selectMetal(row)}
+                      activeOpacity={0.7}
+                    >
+                      <MetalDot tone={row.tone} size={10} />
+                      <Text style={styles.materialName} numberOfLines={1}>
+                        {row.metalName}
+                      </Text>
+                      <Text style={styles.materialAvail}>
+                        {fmtLbs(row.weight)} {t.lbAvail}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
 
-          {/* Oversell guard */}
-          {oversell && (
-            <View style={styles.guardBanner}>
-              <Ionicons
-                name="alert-circle-outline"
-                size={16}
-                color={colors.rust}
-              />
-              <Text style={styles.guardText}>
-                {t.cannotSell} {fmtLbs(weight)} {t.lbWord} {t.onlyWord}{' '}
-                {fmtLbs(onHand)} {t.lbOnHand}
-              </Text>
+            {/* Weight + Price */}
+            <View style={styles.fieldsRow}>
+              <View style={styles.fieldCol}>
+                <View style={styles.labelRow}>
+                  <Text style={styles.fieldLabelInline}>{t.weightLb}</Text>
+                  {selected ? (
+                    <Text style={styles.fieldHint}>
+                      {fmtLbs(onHand)} {t.onHandShort}
+                    </Text>
+                  ) : null}
+                </View>
+                <TextInput
+                  style={[styles.input, styles.inputMono]}
+                  placeholder="0"
+                  placeholderTextColor={colors.textTertiary}
+                  value={saleWeight}
+                  onChangeText={setSaleWeight}
+                  keyboardType="decimal-pad"
+                  editable={!!selected}
+                />
+              </View>
+              <View style={styles.fieldCol}>
+                <Text style={styles.fieldLabelInline}>{t.priceLbShort}</Text>
+                <TextInput
+                  style={[styles.input, styles.inputMono]}
+                  placeholder="0.00"
+                  placeholderTextColor={colors.textTertiary}
+                  value={salePrice}
+                  onChangeText={setSalePrice}
+                  keyboardType="decimal-pad"
+                  editable={!!selected}
+                />
+              </View>
             </View>
-          )}
 
-          {/* Sale total */}
-          <View style={styles.totalCard}>
-            <Text style={styles.totalLabel}>{t.saleTotalLabel}</Text>
-            <Text style={styles.totalValue}>{fmtMoney(total)}</Text>
-          </View>
+            {/* Oversell guard */}
+            {oversell && (
+              <View style={styles.guardBanner}>
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={16}
+                  color={colors.rust}
+                />
+                <Text style={styles.guardText}>
+                  {t.cannotSell} {fmtLbs(weight)} {t.lbWord} {t.onlyWord}{' '}
+                  {fmtLbs(onHand)} {t.lbOnHand}
+                </Text>
+              </View>
+            )}
+
+            {/* Sale total */}
+            <View style={styles.totalCard}>
+              <Text style={styles.totalLabel}>{t.saleTotalLabel}</Text>
+              <Text style={styles.totalValue}>{fmtMoney(total)}</Text>
+            </View>
+          </ResponsiveContainer>
         </ScrollView>
 
         {/* Footer */}

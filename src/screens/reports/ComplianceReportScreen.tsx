@@ -10,8 +10,7 @@ import {
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
-import { File, Paths } from 'expo-file-system';
+import { shareTextFile } from '../../utils/shareFile';
 import DateRangeSelector, {
   type DatePreset,
   getDateRange,
@@ -30,6 +29,7 @@ import { useT } from '../../hooks/useT';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useAppSelector, type RootState } from '../../store';
 import { Tag, SectionLabel, fmtMoney } from '../../components/foundry';
+import { ResponsiveContainer } from '../../components';
 import { type Palette, spacing, fontSize, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
 
@@ -223,18 +223,14 @@ export default function ComplianceReportScreen() {
         )
         .join('\n');
 
-      const file = new File(Paths.cache, 'purchase_records.csv');
-      file.write(header + csvRows);
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'text/csv',
-        UTI: 'public.comma-separated-values-text',
-      });
-      // Regulated PII — don't leave the export lingering in the cache dir.
-      try {
-        file.delete();
-      } catch {
-        /* best effort */
-      }
+      // Regulated PII — shareTextFile purges the native cache copy after the
+      // share sheet closes (web triggers a browser download instead).
+      await shareTextFile(
+        'purchase_records.csv',
+        header + csvRows,
+        'text/csv',
+        'public.comma-separated-values-text'
+      );
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }
@@ -247,18 +243,12 @@ export default function ComplianceReportScreen() {
     try {
       const { start, end } = getDateRange(preset);
       const csv = await exportNmrldCsv(start, end);
-      const file = new File(Paths.cache, 'nmrld_upload.csv');
-      file.write(csv);
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'text/csv',
-        UTI: 'public.comma-separated-values-text',
-      });
-      // Regulated PII — don't leave the export lingering in the cache dir.
-      try {
-        file.delete();
-      } catch {
-        /* best effort */
-      }
+      await shareTextFile(
+        'nmrld_upload.csv',
+        csv,
+        'text/csv',
+        'public.comma-separated-values-text'
+      );
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }
@@ -278,18 +268,12 @@ export default function ComplianceReportScreen() {
         return;
       }
       const csv = buildNmrldExportCsv(unreported, registration);
-      const file = new File(Paths.cache, 'nmrld_unreported.csv');
-      file.write(csv);
-      await Sharing.shareAsync(file.uri, {
-        mimeType: 'text/csv',
-        UTI: 'public.comma-separated-values-text',
-      });
-      // Regulated PII — don't leave the export lingering in the cache dir.
-      try {
-        file.delete();
-      } catch {
-        /* best effort */
-      }
+      await shareTextFile(
+        'nmrld_unreported.csv',
+        csv,
+        'text/csv',
+        'public.comma-separated-values-text'
+      );
       Alert.alert(
         t.markReportedTitle,
         t.markReportedConfirm.replace('{n}', String(unreported.length)),
@@ -321,156 +305,164 @@ export default function ComplianceReportScreen() {
 
   return (
     <ScrollView style={styles.container}>
-      <DateRangeSelector selected={preset} onSelect={setPreset} />
+      <ResponsiveContainer maxWidth={640}>
+        <DateRangeSelector selected={preset} onSelect={setPreset} />
 
-      {loading ? (
-        <ActivityIndicator
-          color={colors.accent}
-          size="large"
-          style={styles.loader}
-        />
-      ) : rows.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyText}>{t.noDataForRange}</Text>
-        </View>
-      ) : (
-        <>
-          {/* Stats */}
-          <View style={styles.statsRow}>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{rows.length}</Text>
-              <Text style={styles.statLabel}>{t.totalTransactions}</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statBox}>
-              <Text style={[styles.statNumber, { color: colors.rust }]}>
-                {restrictedCount}
-              </Text>
-              <Text style={styles.statLabel}>{t.restrictedMaterial}</Text>
-            </View>
+        {loading ? (
+          <ActivityIndicator
+            color={colors.accent}
+            size="large"
+            style={styles.loader}
+          />
+        ) : rows.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>{t.noDataForRange}</Text>
           </View>
+        ) : (
+          <>
+            {/* Stats */}
+            <View style={styles.statsRow}>
+              <View style={styles.statBox}>
+                <Text style={styles.statNumber}>{rows.length}</Text>
+                <Text style={styles.statLabel}>{t.totalTransactions}</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statBox}>
+                <Text style={[styles.statNumber, { color: colors.rust }]}>
+                  {restrictedCount}
+                </Text>
+                <Text style={styles.statLabel}>{t.restrictedMaterial}</Text>
+              </View>
+            </View>
 
-          {/* Export / report actions */}
-          <SectionLabel>{t.tabReports}</SectionLabel>
-          <View style={styles.exportGrid}>
-            <ExportBtn
-              icon="print-outline"
-              tone={colors.accent}
-              label={t.purchaseRecord}
-              sub={t.tabReports}
-              onPress={() => handlePrint(false)}
-            />
-            {restrictedCount > 0 && (
+            {/* Export / report actions */}
+            <SectionLabel>{t.tabReports}</SectionLabel>
+            <View style={styles.exportGrid}>
               <ExportBtn
-                icon="shield-outline"
-                tone={colors.rust}
-                label={t.restrictedReport}
-                sub={`${restrictedCount} ${t.flaggedCount}`}
-                onPress={() => handlePrint(true)}
+                icon="print-outline"
+                tone={colors.accent}
+                label={t.purchaseRecord}
+                sub={t.tabReports}
+                onPress={() => handlePrint(false)}
               />
-            )}
-            <ExportBtn
-              icon="download-outline"
-              tone={colors.teal}
-              label={t.exportCsv}
-              sub={t.spreadsheet}
-              onPress={handleExportCsv}
-            />
-            <ExportBtn
-              icon="cloud-upload-outline"
-              tone={colors.gold}
-              label={t.nmrldExport}
-              sub={t.stateReporting}
-              onPress={handleNmrldExport}
-            />
-            <ExportBtn
-              icon="checkmark-done-outline"
-              tone={colors.moss}
-              label={t.reportUnreported}
-              sub={t.awaitingReport}
-              onPress={handleReportUnreported}
-            />
-          </View>
+              {restrictedCount > 0 && (
+                <ExportBtn
+                  icon="shield-outline"
+                  tone={colors.rust}
+                  label={t.restrictedReport}
+                  sub={`${restrictedCount} ${t.flaggedCount}`}
+                  onPress={() => handlePrint(true)}
+                />
+              )}
+              <ExportBtn
+                icon="download-outline"
+                tone={colors.teal}
+                label={t.exportCsv}
+                sub={t.spreadsheet}
+                onPress={handleExportCsv}
+              />
+              <ExportBtn
+                icon="cloud-upload-outline"
+                tone={colors.gold}
+                label={t.nmrldExport}
+                sub={t.stateReporting}
+                onPress={handleNmrldExport}
+              />
+              <ExportBtn
+                icon="checkmark-done-outline"
+                tone={colors.moss}
+                label={t.reportUnreported}
+                sub={t.awaitingReport}
+                onPress={handleReportUnreported}
+              />
+            </View>
 
-          {/* Transaction List */}
-          <SectionLabel>{t.purchaseRecord}</SectionLabel>
-          <View style={styles.list}>
-            {rows.map((row, i) => {
-              const vehicle = [
-                row.vehicleYear,
-                row.vehicleMake,
-                row.vehicleModel,
-              ]
-                .filter(Boolean)
-                .join(' ');
-              return (
-                <View
-                  key={i}
-                  style={[
-                    styles.recordCard,
-                    {
-                      borderLeftColor: row.hasRestricted
-                        ? colors.rust
-                        : colors.accent,
-                    },
-                  ]}
-                >
-                  <View style={styles.recordHeader}>
-                    <View style={styles.recordTitleLine}>
-                      <Text style={styles.recordSeller}>{row.sellerName}</Text>
+            {/* Transaction List */}
+            <SectionLabel>{t.purchaseRecord}</SectionLabel>
+            <View style={styles.list}>
+              {rows.map((row, i) => {
+                const vehicle = [
+                  row.vehicleYear,
+                  row.vehicleMake,
+                  row.vehicleModel,
+                ]
+                  .filter(Boolean)
+                  .join(' ');
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.recordCard,
+                      {
+                        borderLeftColor: row.hasRestricted
+                          ? colors.rust
+                          : colors.accent,
+                      },
+                    ]}
+                  >
+                    <View style={styles.recordHeader}>
+                      <View style={styles.recordTitleLine}>
+                        <Text style={styles.recordSeller}>
+                          {row.sellerName}
+                        </Text>
+                        {row.hasRestricted && (
+                          <Ionicons
+                            name="alert-circle"
+                            size={13}
+                            color={colors.rust}
+                          />
+                        )}
+                      </View>
+                      <Text style={styles.recordAmount}>
+                        {fmtMoney(row.amountPaid)}
+                      </Text>
+                    </View>
+                    <Text style={styles.recordReceipt}>
+                      {row.receiptNumber}
+                    </Text>
+                    <Text style={styles.recordMeta}>
+                      {[
+                        row.date,
+                        row.dlNumber
+                          ? `${t.dlNumberShort} ${row.dlNumber}${row.stateOfIssue ? ` (${row.stateOfIssue})` : ''}`
+                          : null,
+                        row.vehiclePlate
+                          ? `${t.vehiclePlateShort} ${row.vehiclePlate}${vehicle ? ` — ${vehicle}` : ''}${row.vehicleColor ? ` (${row.vehicleColor})` : ''}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Text>
+                    {!!row.materials && (
+                      <Text style={styles.recordMaterials}>
+                        {row.materials}
+                      </Text>
+                    )}
+                    <View style={styles.recordTags}>
+                      <Tag
+                        label={row.sellerAffirmed ? t.affirmed : t.noAffirm}
+                        color={
+                          row.sellerAffirmed ? colors.textTertiary : colors.rust
+                        }
+                        icon={row.sellerAffirmed ? 'checkmark' : 'close'}
+                      />
                       {row.hasRestricted && (
-                        <Ionicons
-                          name="alert-circle"
-                          size={13}
+                        <Tag
+                          label={t.restrictedMaterial}
                           color={colors.rust}
+                          soft={colors.rust + '22'}
+                          icon="warning"
                         />
                       )}
                     </View>
-                    <Text style={styles.recordAmount}>
-                      {fmtMoney(row.amountPaid)}
-                    </Text>
                   </View>
-                  <Text style={styles.recordReceipt}>{row.receiptNumber}</Text>
-                  <Text style={styles.recordMeta}>
-                    {[
-                      row.date,
-                      row.dlNumber
-                        ? `${t.dlNumberShort} ${row.dlNumber}${row.stateOfIssue ? ` (${row.stateOfIssue})` : ''}`
-                        : null,
-                      row.vehiclePlate
-                        ? `${t.vehiclePlateShort} ${row.vehiclePlate}${vehicle ? ` — ${vehicle}` : ''}${row.vehicleColor ? ` (${row.vehicleColor})` : ''}`
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                  {!!row.materials && (
-                    <Text style={styles.recordMaterials}>{row.materials}</Text>
-                  )}
-                  <View style={styles.recordTags}>
-                    <Tag
-                      label={row.sellerAffirmed ? t.affirmed : t.noAffirm}
-                      color={
-                        row.sellerAffirmed ? colors.textTertiary : colors.rust
-                      }
-                      icon={row.sellerAffirmed ? 'checkmark' : 'close'}
-                    />
-                    {row.hasRestricted && (
-                      <Tag
-                        label={t.restrictedMaterial}
-                        color={colors.rust}
-                        soft={colors.rust + '22'}
-                        icon="warning"
-                      />
-                    )}
-                  </View>
-                </View>
-              );
-            })}
-          </View>
-        </>
-      )}
-      <View style={{ height: spacing.xxxl }} />
+                );
+              })}
+            </View>
+          </>
+        )}
+        <View style={{ height: spacing.xxxl }} />
+      </ResponsiveContainer>
     </ScrollView>
   );
 }

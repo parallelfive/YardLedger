@@ -12,6 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { useT } from '../../hooks/useT';
 import { useRole } from '../../hooks';
+import { useResponsive } from '../../hooks';
 import { useReceipts } from '../../hooks/useReceipts';
 import { useSales } from '../../hooks/useSales';
 import { useAppSelector, type RootState } from '../../store';
@@ -45,6 +46,7 @@ export default function TransactionsScreen({ navigation }: Props) {
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const { isAdmin } = useRole();
+  const { isWide } = useResponsive();
   const [preset, setPreset] = useState<DatePreset>('today');
   const { start, end } = getDateRange(preset);
   const { receipts, loading, refresh } = useReceipts(
@@ -151,6 +153,11 @@ export default function TransactionsScreen({ navigation }: Props) {
         onRefresh={refresh}
         emptyTitle={t.noTransactions}
         emptySubtitle={t.tapToRecordBuy}
+        contentContainerStyle={
+          isWide
+            ? { maxWidth: 640, alignSelf: 'center', width: '100%' }
+            : undefined
+        }
         renderItem={({ item }) => {
           const items = (item.line_items ?? []) as {
             metal_name?: string;

@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
@@ -162,6 +163,15 @@ export async function shareReceipt(receipt: PrintReceiptData): Promise<void> {
     // Will use defaults
   }
   const html = buildReceiptHtml(receipt, company);
+
+  // Web has no PDF-to-file + OS share sheet. Fall back to the browser print
+  // dialog, from which the operator can "Save as PDF" or print — the closest
+  // equivalent action.
+  if (Platform.OS === 'web') {
+    await Print.printAsync({ html });
+    return;
+  }
+
   const { uri } = await Print.printToFileAsync({ html });
 
   // Copy to a named file so the share sheet shows a nice filename

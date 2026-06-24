@@ -16,3 +16,4 @@ export { default as SignedImage } from './SignedImage';
 export { TareMark, Wordmark } from './brand';
 export { default as SetPinModal } from './SetPinModal';
 export { default as TareHeader } from './TareHeader';
+export { default as ResponsiveContainer } from './ResponsiveContainer';

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tag, SectionLabel } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
 import { useCustomers } from '../../hooks';
+import { useResponsive } from '../../hooks';
 import { useTheme, useThemedStyles } from '../../theme';
 import {
   type Palette,
@@ -31,6 +32,7 @@ export default function CustomerListScreen({ navigation }: Props) {
   const { customers, loading, refresh } = useCustomers();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { isWide } = useResponsive();
   const [search, setSearch] = useState('');
 
   useFocusEffect(
@@ -62,7 +64,10 @@ export default function CustomerListScreen({ navigation }: Props) {
             tintColor={colors.accent}
           />
         }
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' },
+        ]}
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <>

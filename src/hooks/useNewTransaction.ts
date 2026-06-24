@@ -7,6 +7,23 @@ import { setPendingOutbox } from '../store/appStore';
 import { useT } from './useT';
 import { createReceipt, type CreateReceiptParams } from '../services/receipts';
 import { enqueueReceipt } from '../services/outbox';
+import { printReceipt } from '../utils/printReceipt';
+
+// The receipt row returned by create_receipt_with_items (the fields the success
+// handler + inline print need).
+export interface CreatedReceipt {
+  id: string;
+  customer_id: string;
+  receipt_number: string;
+  customer_name: string;
+  customer_phone: string | null;
+  vehicle_plate: string | null;
+  vehicle_description: string | null;
+  seller_affirmed: boolean | null;
+  seller_id_photo_uri: string | null;
+  subtotal: number;
+  created_at: string;
+}
 import {
   calculateLineItemTotal,
   calculateReceiptTotal,
@@ -218,13 +235,10 @@ export function useNewTransaction(
   };
 
   const saveReceipt = async (
-    onSuccess: (
-      receiptId: string,
-      customerId: string,
-      sellerIdPhotoUrl: string | null
-    ) => void,
+    onSuccess: (receipt: CreatedReceipt) => void,
     customerId?: string,
-    onQueued?: () => void
+    onQueued?: () => void,
+    print = false
   ) => {
     if (savingRef.current) return; // already submitting — ignore re-entry
     if (!customerName.trim()) {
@@ -345,12 +359,35 @@ export function useNewTransaction(
     }
 
     try {
-      const receipt = await createReceipt(receiptParams);
-      onSuccess(
-        receipt.id,
-        receipt.customer_id,
-        receipt.seller_id_photo_uri ?? null
-      );
+      const receipt = (await createReceipt(receiptParams)) as CreatedReceipt;
+      // Print inline from the just-saved receipt — no detour through the detail
+      // screen, no re-fetch. A print failure must NOT undo the saved buy.
+      if (print) {
+        try {
+          await printReceipt({
+            receipt_number: receipt.receipt_number,
+            customer_name: receipt.customer_name,
+            customer_phone: receipt.customer_phone ?? undefined,
+            vehicle_plate: receipt.vehicle_plate ?? undefined,
+            vehicle_description: receipt.vehicle_description ?? undefined,
+            seller_affirmed: receipt.seller_affirmed ?? undefined,
+            subtotal: Number(receipt.subtotal),
+            signature_uri: signatureData,
+            created_at: receipt.created_at,
+            line_items: lineItems.map((li) => ({
+              metal_name: li.metalName,
+              weight: li.weight,
+              price_per_lb: li.pricePerLb,
+              total: li.total,
+              is_price_override: li.isPriceOverride,
+              original_price_per_lb: li.originalPricePerLb,
+            })),
+          });
+        } catch (printErr) {
+          console.error('[print] Error:', (printErr as Error).message);
+        }
+      }
+      onSuccess(receipt);
     } catch (err) {
       // Log only the message — a raw Postgres/PostgREST error can echo back
       // submitted column values (seller DL #, address) into device logs.

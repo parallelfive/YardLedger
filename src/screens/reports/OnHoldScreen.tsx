@@ -6,6 +6,7 @@ import { fetchReceiptsOnHold, type OnHoldRow } from '../../services/reports';
 import { RefreshableList } from '../../components';
 import { Tag, SectionLabel } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
+import { useResponsive } from '../../hooks';
 import { type Palette, spacing, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
 
@@ -22,6 +23,7 @@ export default function OnHoldScreen() {
   const styles = useThemedStyles(makeStyles);
   const navigation = useNavigation() as unknown as Nav;
   const isFocused = useIsFocused();
+  const { isWide } = useResponsive();
   const [rows, setRows] = useState<OnHoldRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,7 +57,10 @@ export default function OnHoldScreen() {
         keyExtractor={(item) => item.id}
         loading={loading}
         onRefresh={load}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' },
+        ]}
         emptyTitle={t.noMaterialOnHold}
         emptySubtitle=""
         ListHeaderComponent={

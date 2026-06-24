@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { ResponsiveContainer } from '../../components';
 import { useT } from '../../hooks/useT';
 import { useRole } from '../../hooks';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
@@ -309,216 +310,224 @@ export default function CompanyProfileScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Identity header — logo/monogram + name */}
-      <View style={styles.identity}>
+      <ResponsiveContainer maxWidth={640}>
+        {/* Identity header — logo/monogram + name */}
+        <View style={styles.identity}>
+          <TouchableOpacity
+            style={styles.logoTile}
+            onPress={handlePickLogo}
+            disabled={uploading}
+            activeOpacity={0.8}
+          >
+            {uploading ? (
+              <ActivityIndicator color={colors.accentInk} />
+            ) : logoUrl ? (
+              <Image source={{ uri: logoUrl }} style={styles.logoImage} />
+            ) : (
+              <Text style={styles.monogram}>{monogram}</Text>
+            )}
+          </TouchableOpacity>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={styles.identityName} numberOfLines={1}>
+              {companyName || company?.name || '—'}
+            </Text>
+            <Text style={styles.identitySub}>
+              {company?.prefix ?? stateCode}
+            </Text>
+            <Text style={styles.logoHint}>{t.tapLogoToChange}</Text>
+          </View>
+        </View>
+
+        {/* Identity */}
+        <AdmGroup title={t.companyInfo}>
+          <AdmField
+            label={t.companyNameLabel}
+            value={companyName}
+            onChangeText={setCompanyName}
+            placeholder={t.companyNamePlaceholder}
+          />
+          <AdmField
+            label={t.phoneLabel}
+            value={phone}
+            onChangeText={setPhone}
+            placeholder={t.phonePlaceholder}
+            keyboardType="phone-pad"
+            mono
+            last
+          />
+        </AdmGroup>
+
+        {/* Location */}
+        <AdmGroup title={t.locationContact}>
+          <AdmField
+            label={t.addressLabel}
+            value={address}
+            onChangeText={setAddress}
+            placeholder={t.addressPlaceholder}
+            multiline
+            last
+          />
+        </AdmGroup>
+
+        {/* Compliance rules */}
+        <AdmGroup title={t.complianceRules}>
+          <AdmField
+            label={t.stateLabel}
+            value={stateCode}
+            onChangeText={setStateCode}
+            autoCapitalize="characters"
+            maxLength={2}
+            mono
+          />
+          <AdmField
+            label={t.timezoneLabel}
+            value={timezone}
+            onChangeText={setTimezone}
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder="America/Denver"
+            mono
+          />
+          <AdmField
+            label={t.generalHoldHoursLabel}
+            value={generalHoldHours}
+            onChangeText={setGeneralHoldHours}
+            keyboardType="number-pad"
+            mono
+          />
+          <AdmField
+            label={t.catHoldDaysLabel}
+            value={catHoldDays}
+            onChangeText={setCatHoldDays}
+            keyboardType="number-pad"
+            mono
+          />
+          <AdmSwitch
+            label={t.catCheckOnlyLabel}
+            value={catCheckOnly}
+            onValueChange={setCatCheckOnly}
+            last
+          />
+        </AdmGroup>
+
+        <Text style={styles.footnote}>{t.profilePrintsNote}</Text>
+
+        {/* Save */}
         <TouchableOpacity
-          style={styles.logoTile}
-          onPress={handlePickLogo}
-          disabled={uploading}
-          activeOpacity={0.8}
+          style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          onPress={handleSave}
+          disabled={saving}
         >
-          {uploading ? (
+          {saving ? (
             <ActivityIndicator color={colors.accentInk} />
-          ) : logoUrl ? (
-            <Image source={{ uri: logoUrl }} style={styles.logoImage} />
           ) : (
-            <Text style={styles.monogram}>{monogram}</Text>
+            <>
+              <Ionicons name="checkmark" size={18} color={colors.accentInk} />
+              <Text style={styles.saveButtonText}>{t.save}</Text>
+            </>
           )}
         </TouchableOpacity>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.identityName} numberOfLines={1}>
-            {companyName || company?.name || '—'}
-          </Text>
-          <Text style={styles.identitySub}>{company?.prefix ?? stateCode}</Text>
-          <Text style={styles.logoHint}>{t.tapLogoToChange}</Text>
-        </View>
-      </View>
 
-      {/* Identity */}
-      <AdmGroup title={t.companyInfo}>
-        <AdmField
-          label={t.companyNameLabel}
-          value={companyName}
-          onChangeText={setCompanyName}
-          placeholder={t.companyNamePlaceholder}
-        />
-        <AdmField
-          label={t.phoneLabel}
-          value={phone}
-          onChangeText={setPhone}
-          placeholder={t.phonePlaceholder}
-          keyboardType="phone-pad"
-          mono
-          last
-        />
-      </AdmGroup>
-
-      {/* Location */}
-      <AdmGroup title={t.locationContact}>
-        <AdmField
-          label={t.addressLabel}
-          value={address}
-          onChangeText={setAddress}
-          placeholder={t.addressPlaceholder}
-          multiline
-          last
-        />
-      </AdmGroup>
-
-      {/* Compliance rules */}
-      <AdmGroup title={t.complianceRules}>
-        <AdmField
-          label={t.stateLabel}
-          value={stateCode}
-          onChangeText={setStateCode}
-          autoCapitalize="characters"
-          maxLength={2}
-          mono
-        />
-        <AdmField
-          label={t.timezoneLabel}
-          value={timezone}
-          onChangeText={setTimezone}
-          autoCapitalize="none"
-          autoCorrect={false}
-          placeholder="America/Denver"
-          mono
-        />
-        <AdmField
-          label={t.generalHoldHoursLabel}
-          value={generalHoldHours}
-          onChangeText={setGeneralHoldHours}
-          keyboardType="number-pad"
-          mono
-        />
-        <AdmField
-          label={t.catHoldDaysLabel}
-          value={catHoldDays}
-          onChangeText={setCatHoldDays}
-          keyboardType="number-pad"
-          mono
-        />
-        <AdmSwitch
-          label={t.catCheckOnlyLabel}
-          value={catCheckOnly}
-          onValueChange={setCatCheckOnly}
-          last
-        />
-      </AdmGroup>
-
-      <Text style={styles.footnote}>{t.profilePrintsNote}</Text>
-
-      {/* Save */}
-      <TouchableOpacity
-        style={[styles.saveButton, saving && styles.saveButtonDisabled]}
-        onPress={handleSave}
-        disabled={saving}
-      >
-        {saving ? (
-          <ActivityIndicator color={colors.accentInk} />
-        ) : (
+        {/* State Reporting (owner only) — per-yard LeadsOnline SFTP credentials */}
+        {isOwner && (
           <>
-            <Ionicons name="checkmark" size={18} color={colors.accentInk} />
-            <Text style={styles.saveButtonText}>{t.save}</Text>
+            <AdmGroup title={t.stateReporting}>
+              <AdmSwitch
+                label={t.reportingEnabled}
+                value={repEnabled}
+                onValueChange={setRepEnabled}
+              />
+              <AdmField
+                label={t.sftpHost}
+                value={repHost}
+                onChangeText={setRepHost}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="sftp.leadsonline.com"
+                mono
+              />
+              <AdmField
+                label={t.sftpPort}
+                value={repPort}
+                onChangeText={setRepPort}
+                keyboardType="number-pad"
+                mono
+              />
+              <AdmField
+                label={t.sftpUsername}
+                value={repUsername}
+                onChangeText={setRepUsername}
+                autoCapitalize="none"
+                autoCorrect={false}
+                mono
+              />
+              <AdmField
+                label={t.sftpPassword}
+                value={repPassword}
+                onChangeText={setRepPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder={repHasCreds ? '•••••••• (unchanged)' : ''}
+                mono
+              />
+              <AdmField
+                label={t.sftpRemoteDir}
+                value={repRemoteDir}
+                onChangeText={setRepRemoteDir}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="/uploads"
+                mono
+                last
+              />
+            </AdmGroup>
+
+            <TouchableOpacity
+              style={[
+                styles.saveButton,
+                savingReporting && styles.saveButtonDisabled,
+              ]}
+              onPress={handleSaveReporting}
+              disabled={savingReporting}
+            >
+              {savingReporting ? (
+                <ActivityIndicator color={colors.accentInk} />
+              ) : (
+                <Text style={styles.saveButtonText}>
+                  {t.saveReportingConfig}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.sendNowButton,
+                (sendingReport || !repEnabled) && styles.saveButtonDisabled,
+              ]}
+              onPress={handleSendNow}
+              disabled={sendingReport || !repEnabled}
+            >
+              {sendingReport ? (
+                <ActivityIndicator color={colors.accent} />
+              ) : (
+                <>
+                  <Ionicons
+                    name="cloud-upload-outline"
+                    size={18}
+                    color={colors.accent}
+                  />
+                  <Text style={styles.sendNowButtonText}>
+                    {t.sendReportNow}
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
           </>
         )}
-      </TouchableOpacity>
 
-      {/* State Reporting (owner only) — per-yard LeadsOnline SFTP credentials */}
-      {isOwner && (
-        <>
-          <AdmGroup title={t.stateReporting}>
-            <AdmSwitch
-              label={t.reportingEnabled}
-              value={repEnabled}
-              onValueChange={setRepEnabled}
-            />
-            <AdmField
-              label={t.sftpHost}
-              value={repHost}
-              onChangeText={setRepHost}
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="sftp.leadsonline.com"
-              mono
-            />
-            <AdmField
-              label={t.sftpPort}
-              value={repPort}
-              onChangeText={setRepPort}
-              keyboardType="number-pad"
-              mono
-            />
-            <AdmField
-              label={t.sftpUsername}
-              value={repUsername}
-              onChangeText={setRepUsername}
-              autoCapitalize="none"
-              autoCorrect={false}
-              mono
-            />
-            <AdmField
-              label={t.sftpPassword}
-              value={repPassword}
-              onChangeText={setRepPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder={repHasCreds ? '•••••••• (unchanged)' : ''}
-              mono
-            />
-            <AdmField
-              label={t.sftpRemoteDir}
-              value={repRemoteDir}
-              onChangeText={setRepRemoteDir}
-              autoCapitalize="none"
-              autoCorrect={false}
-              placeholder="/uploads"
-              mono
-              last
-            />
-          </AdmGroup>
-
-          <TouchableOpacity
-            style={[
-              styles.saveButton,
-              savingReporting && styles.saveButtonDisabled,
-            ]}
-            onPress={handleSaveReporting}
-            disabled={savingReporting}
-          >
-            {savingReporting ? (
-              <ActivityIndicator color={colors.accentInk} />
-            ) : (
-              <Text style={styles.saveButtonText}>{t.saveReportingConfig}</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.sendNowButton,
-              (sendingReport || !repEnabled) && styles.saveButtonDisabled,
-            ]}
-            onPress={handleSendNow}
-            disabled={sendingReport || !repEnabled}
-          >
-            {sendingReport ? (
-              <ActivityIndicator color={colors.accent} />
-            ) : (
-              <>
-                <Ionicons
-                  name="cloud-upload-outline"
-                  size={18}
-                  color={colors.accent}
-                />
-                <Text style={styles.sendNowButtonText}>{t.sendReportNow}</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </>
-      )}
-
-      <View style={styles.bottomSpacer} />
+        <View style={styles.bottomSpacer} />
+      </ResponsiveContainer>
     </ScrollView>
   );
 }

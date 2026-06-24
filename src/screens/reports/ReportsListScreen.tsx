@@ -12,8 +12,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { ReportsStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Sharing from 'expo-sharing';
-import { File, Paths } from 'expo-file-system';
+import { shareTextFile } from '../../utils/shareFile';
 import { useT } from '../../hooks/useT';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useRole } from '../../hooks';
@@ -31,7 +30,7 @@ import {
   type ComplianceReceiptRow,
 } from '../../services/reports';
 import { Tag, SectionLabel, fmtMoney, fmtLbs } from '../../components/foundry';
-import { TareHeader } from '../../components';
+import { TareHeader, ResponsiveContainer } from '../../components';
 import { fetchCompanySettings } from '../../services/companySettings';
 import { stateName } from '../../utils';
 import { isReportOverdue } from '../../utils/businessDays';
@@ -51,22 +50,14 @@ const isRestricted = (r: ComplianceReceiptRow) =>
 
 async function shareCsv(rows: ComplianceReceiptRow[], name: string) {
   const csv = buildNmrldExportCsv(rows, await fetchNmrldRegistrationNumber());
-  const file = new File(Paths.cache, name);
-  file.write(csv);
-  // These CSVs contain regulated seller PII (DL #, address, VIN). Purge the
-  // cached copy once the share sheet closes so it doesn't linger at rest.
-  try {
-    await Sharing.shareAsync(file.uri, {
-      mimeType: 'text/csv',
-      UTI: 'public.comma-separated-values-text',
-    });
-  } finally {
-    try {
-      file.delete();
-    } catch {
-      /* best effort */
-    }
-  }
+  // These CSVs contain regulated seller PII (DL #, address, VIN); shareTextFile
+  // purges the native cache copy after sharing and never holds it at rest.
+  await shareTextFile(
+    name,
+    csv,
+    'text/csv',
+    'public.comma-separated-values-text'
+  );
 }
 
 export default function ReportsListScreen({ navigation }: Props) {
@@ -154,6 +145,7 @@ export default function ReportsListScreen({ navigation }: Props) {
     title: string;
     screen: keyof ReportsStackParamList;
   }[] = [
+    { title: t.cashDrawer, screen: 'CashDrawer' },
     { title: t.dailySummary, screen: 'DailySummary' },
     { title: t.inventoryValuation, screen: 'InventoryValuation' },
     { title: t.profitability, screen: 'Profitability' },
@@ -169,214 +161,218 @@ export default function ReportsListScreen({ navigation }: Props) {
         style={styles.container}
         contentContainerStyle={styles.content}
       >
-        <DateRangeSelector selected={preset} onSelect={setPreset} />
+        <ResponsiveContainer maxWidth={640}>
+          <DateRangeSelector selected={preset} onSelect={setPreset} />
 
-        {/* Stats triplet */}
-        <View style={styles.triplet}>
-          <Stat
-            n={rows.length}
-            label={t.statTransactions}
-            color={colors.textPrimary}
-          />
-          <View style={styles.tripletDivider} />
-          <Stat
-            n={restrictedCount}
-            label={t.statRestricted}
-            color={colors.rust}
-          />
-          <View style={styles.tripletDivider} />
-          <Stat
-            n={unreportedCount}
-            label={t.statUnreported}
-            color={colors.gold}
-          />
-        </View>
-
-        {/* Deadline strip — tap to see/upload the unreported receipts */}
-        {unreportedCount > 0 && (
-          <TouchableOpacity
-            style={styles.deadline}
-            onPress={() => navigation.navigate('ReportingStatus')}
-          >
-            <Ionicons
-              name={overdueCount > 0 ? 'alert-circle' : 'time-outline'}
-              size={17}
+          {/* Stats triplet */}
+          <View style={styles.triplet}>
+            <Stat
+              n={rows.length}
+              label={t.statTransactions}
+              color={colors.textPrimary}
+            />
+            <View style={styles.tripletDivider} />
+            <Stat
+              n={restrictedCount}
+              label={t.statRestricted}
               color={colors.rust}
             />
-            <Text style={styles.deadlineText}>
-              <Text style={styles.deadlineStrong}>
-                {overdueCount > 0
-                  ? `${overdueCount} ${t.overdueCount}`
-                  : `${unreportedCount} ${t.statUnreported.toLowerCase()}`}
-              </Text>{' '}
-              · {overdueCount > 0 ? t.overdueStrip : t.unreportedDeadline}
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={16}
-              color={colors.textSecondary}
+            <View style={styles.tripletDivider} />
+            <Stat
+              n={unreportedCount}
+              label={t.statUnreported}
+              color={colors.gold}
             />
-          </TouchableOpacity>
-        )}
-
-        {/* Export actions */}
-        <View style={styles.exportGrid}>
-          <ExportBtn
-            icon="document-text-outline"
-            tone={colors.accent}
-            label={t.purchaseRecord}
-            sub={t.tabReports}
-            onPress={() => navigation.navigate('ComplianceReport')}
-          />
-          <ExportBtn
-            icon="shield-outline"
-            tone={colors.rust}
-            label={t.restrictedReport}
-            sub={`${restrictedCount} ${t.flaggedCount}`}
-            onPress={() =>
-              shareCsv(rows.filter(isRestricted), 'restricted.csv').catch((e) =>
-                Alert.alert(t.error, (e as Error).message)
-              )
-            }
-          />
-          <ExportBtn
-            icon="download-outline"
-            tone={colors.teal}
-            label={t.exportCsvLabel}
-            sub={t.spreadsheet}
-            onPress={() =>
-              shareCsv(rows, 'compliance.csv').catch((e) =>
-                Alert.alert(t.error, (e as Error).message)
-              )
-            }
-          />
-          <ExportBtn
-            icon={isAdmin ? 'cloud-upload-outline' : 'lock-closed-outline'}
-            tone={colors.gold}
-            label={t.stateUpload}
-            sub={isAdmin ? t.stateReporting : t.adminOnly}
-            locked={!isAdmin}
-            onPress={handleStateUpload}
-          />
-        </View>
-
-        {/* Purchase-record ledger */}
-        <SectionLabel>{`${t.purchaseRecordsRange} · ${
-          preset === 'today'
-            ? t.today
-            : preset === 'week'
-              ? t.thisWeek
-              : t.thisMonth
-        }`}</SectionLabel>
-
-        {loading ? (
-          <ActivityIndicator
-            color={colors.accent}
-            style={{ marginTop: spacing.xl }}
-          />
-        ) : rows.length === 0 ? (
-          <Text style={styles.emptyText}>{t.noTransactions}</Text>
-        ) : (
-          <View style={styles.ledger}>
-            <View style={styles.ledgerHeader}>
-              <Text style={styles.ledgerHeaderLabel}>{t.receiptSeller}</Text>
-              <Text style={styles.ledgerHeaderLabel}>{t.paidLabel}</Text>
-            </View>
-            {rows.map((r, i) => {
-              const restricted = isRestricted(r);
-              const reported = !!r.reported_at;
-              const materials = (r.line_items ?? [])
-                .map((li) => `${li.metal_name} (${fmtLbs(li.weight)} lb)`)
-                .join(', ');
-              const weight = (r.line_items ?? []).reduce(
-                (s, li) => s + Number(li.weight),
-                0
-              );
-              return (
-                <TouchableOpacity
-                  key={r.id}
-                  onPress={() =>
-                    rootNav.navigate('TransactionsTab', {
-                      screen: 'ReceiptDetail',
-                      params: { receiptId: r.id },
-                    })
-                  }
-                  style={[
-                    styles.ledgerRow,
-                    i < rows.length - 1 && styles.ledgerRowBorder,
-                    {
-                      borderLeftColor: restricted ? colors.rust : 'transparent',
-                    },
-                  ]}
-                >
-                  <View style={styles.ledgerTop}>
-                    <View style={styles.ledgerSellerLine}>
-                      <Text style={styles.ledgerSeller}>
-                        {r.seller_name || r.customer_name}
-                      </Text>
-                      {restricted && (
-                        <Ionicons
-                          name="alert-circle"
-                          size={13}
-                          color={colors.rust}
-                        />
-                      )}
-                    </View>
-                    <Text style={styles.ledgerPaid}>
-                      {fmtMoney(r.subtotal)}
-                    </Text>
-                  </View>
-                  <Text style={styles.ledgerNo}>{r.receipt_number}</Text>
-                  <Text style={styles.ledgerMeta}>
-                    {[
-                      r.seller_dl_number,
-                      r.vehicle_plate,
-                      `${fmtLbs(weight)} lb`,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  </Text>
-                  {!!materials && (
-                    <Text style={styles.ledgerMaterials}>{materials}</Text>
-                  )}
-                  <View style={styles.ledgerTags}>
-                    <Tag
-                      label={reported ? t.reported : t.queued}
-                      color={reported ? colors.moss : colors.gold}
-                      icon={reported ? 'checkmark' : 'time-outline'}
-                    />
-                    <Tag
-                      label={r.seller_affirmed ? t.affirmed : t.noAffirm}
-                      color={
-                        r.seller_affirmed ? colors.textTertiary : colors.rust
-                      }
-                      icon={r.seller_affirmed ? 'checkmark' : 'close'}
-                    />
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
           </View>
-        )}
 
-        {/* Our extra detailed reports (kept; not in the prototype) */}
-        <SectionLabel>{t.detailedReports}</SectionLabel>
-        <View style={styles.detailGrid}>
-          {detailReports.map((d) => (
+          {/* Deadline strip — tap to see/upload the unreported receipts */}
+          {unreportedCount > 0 && (
             <TouchableOpacity
-              key={d.screen}
-              style={styles.detailCard}
-              onPress={() => navigation.navigate(d.screen)}
+              style={styles.deadline}
+              onPress={() => navigation.navigate('ReportingStatus')}
             >
-              <Text style={styles.detailTitle}>{d.title}</Text>
+              <Ionicons
+                name={overdueCount > 0 ? 'alert-circle' : 'time-outline'}
+                size={17}
+                color={colors.rust}
+              />
+              <Text style={styles.deadlineText}>
+                <Text style={styles.deadlineStrong}>
+                  {overdueCount > 0
+                    ? `${overdueCount} ${t.overdueCount}`
+                    : `${unreportedCount} ${t.statUnreported.toLowerCase()}`}
+                </Text>{' '}
+                · {overdueCount > 0 ? t.overdueStrip : t.unreportedDeadline}
+              </Text>
               <Ionicons
                 name="chevron-forward"
                 size={16}
-                color={colors.textTertiary}
+                color={colors.textSecondary}
               />
             </TouchableOpacity>
-          ))}
-        </View>
+          )}
+
+          {/* Export actions */}
+          <View style={styles.exportGrid}>
+            <ExportBtn
+              icon="document-text-outline"
+              tone={colors.accent}
+              label={t.purchaseRecord}
+              sub={t.tabReports}
+              onPress={() => navigation.navigate('ComplianceReport')}
+            />
+            <ExportBtn
+              icon="shield-outline"
+              tone={colors.rust}
+              label={t.restrictedReport}
+              sub={`${restrictedCount} ${t.flaggedCount}`}
+              onPress={() =>
+                shareCsv(rows.filter(isRestricted), 'restricted.csv').catch(
+                  (e) => Alert.alert(t.error, (e as Error).message)
+                )
+              }
+            />
+            <ExportBtn
+              icon="download-outline"
+              tone={colors.teal}
+              label={t.exportCsvLabel}
+              sub={t.spreadsheet}
+              onPress={() =>
+                shareCsv(rows, 'compliance.csv').catch((e) =>
+                  Alert.alert(t.error, (e as Error).message)
+                )
+              }
+            />
+            <ExportBtn
+              icon={isAdmin ? 'cloud-upload-outline' : 'lock-closed-outline'}
+              tone={colors.gold}
+              label={t.stateUpload}
+              sub={isAdmin ? t.stateReporting : t.adminOnly}
+              locked={!isAdmin}
+              onPress={handleStateUpload}
+            />
+          </View>
+
+          {/* Purchase-record ledger */}
+          <SectionLabel>{`${t.purchaseRecordsRange} · ${
+            preset === 'today'
+              ? t.today
+              : preset === 'week'
+                ? t.thisWeek
+                : t.thisMonth
+          }`}</SectionLabel>
+
+          {loading ? (
+            <ActivityIndicator
+              color={colors.accent}
+              style={{ marginTop: spacing.xl }}
+            />
+          ) : rows.length === 0 ? (
+            <Text style={styles.emptyText}>{t.noTransactions}</Text>
+          ) : (
+            <View style={styles.ledger}>
+              <View style={styles.ledgerHeader}>
+                <Text style={styles.ledgerHeaderLabel}>{t.receiptSeller}</Text>
+                <Text style={styles.ledgerHeaderLabel}>{t.paidLabel}</Text>
+              </View>
+              {rows.map((r, i) => {
+                const restricted = isRestricted(r);
+                const reported = !!r.reported_at;
+                const materials = (r.line_items ?? [])
+                  .map((li) => `${li.metal_name} (${fmtLbs(li.weight)} lb)`)
+                  .join(', ');
+                const weight = (r.line_items ?? []).reduce(
+                  (s, li) => s + Number(li.weight),
+                  0
+                );
+                return (
+                  <TouchableOpacity
+                    key={r.id}
+                    onPress={() =>
+                      rootNav.navigate('TransactionsTab', {
+                        screen: 'ReceiptDetail',
+                        params: { receiptId: r.id },
+                      })
+                    }
+                    style={[
+                      styles.ledgerRow,
+                      i < rows.length - 1 && styles.ledgerRowBorder,
+                      {
+                        borderLeftColor: restricted
+                          ? colors.rust
+                          : 'transparent',
+                      },
+                    ]}
+                  >
+                    <View style={styles.ledgerTop}>
+                      <View style={styles.ledgerSellerLine}>
+                        <Text style={styles.ledgerSeller}>
+                          {r.seller_name || r.customer_name}
+                        </Text>
+                        {restricted && (
+                          <Ionicons
+                            name="alert-circle"
+                            size={13}
+                            color={colors.rust}
+                          />
+                        )}
+                      </View>
+                      <Text style={styles.ledgerPaid}>
+                        {fmtMoney(r.subtotal)}
+                      </Text>
+                    </View>
+                    <Text style={styles.ledgerNo}>{r.receipt_number}</Text>
+                    <Text style={styles.ledgerMeta}>
+                      {[
+                        r.seller_dl_number,
+                        r.vehicle_plate,
+                        `${fmtLbs(weight)} lb`,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Text>
+                    {!!materials && (
+                      <Text style={styles.ledgerMaterials}>{materials}</Text>
+                    )}
+                    <View style={styles.ledgerTags}>
+                      <Tag
+                        label={reported ? t.reported : t.queued}
+                        color={reported ? colors.moss : colors.gold}
+                        icon={reported ? 'checkmark' : 'time-outline'}
+                      />
+                      <Tag
+                        label={r.seller_affirmed ? t.affirmed : t.noAffirm}
+                        color={
+                          r.seller_affirmed ? colors.textTertiary : colors.rust
+                        }
+                        icon={r.seller_affirmed ? 'checkmark' : 'close'}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* Our extra detailed reports (kept; not in the prototype) */}
+          <SectionLabel>{t.detailedReports}</SectionLabel>
+          <View style={styles.detailGrid}>
+            {detailReports.map((d) => (
+              <TouchableOpacity
+                key={d.screen}
+                style={styles.detailCard}
+                onPress={() => navigation.navigate(d.screen)}
+              >
+                <Text style={styles.detailTitle}>{d.title}</Text>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={colors.textTertiary}
+                />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ResponsiveContainer>
       </ScrollView>
     </View>
   );

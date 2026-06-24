@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { useT } from '../../hooks/useT';
-import { useRole } from '../../hooks';
+import { useRole, useResponsive } from '../../hooks';
 import { useUserApproval } from '../../hooks/useUserApproval';
 import { useInviteCodes } from '../../hooks/useInviteCodes';
 import { useCurrentCompany } from '../../hooks/useCurrentCompany';
@@ -40,6 +40,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
   const profile = useAppSelector((state: RootState) => state.auth.profile);
   const company = useCurrentCompany();
   const { ensureElevated } = useAdminElevation();
+  const { isWide } = useResponsive();
   const {
     pendingUsers,
     activeUsers,
@@ -286,7 +287,10 @@ export default function UserApprovalScreen({ navigation }: Props) {
   return (
     <FlatList
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        isWide && { maxWidth: 640, alignSelf: 'center', width: '100%' },
+      ]}
       data={data}
       keyExtractor={(item) => item.id}
       refreshing={loading}
