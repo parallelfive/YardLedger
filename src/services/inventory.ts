@@ -6,7 +6,7 @@ export async function fetchInventory() {
     const { data, error } = await supabase
       .from('inventory')
       .select(
-        '*, metals(name, price_per_lb, is_restricted, is_catalytic, category_id, metal_categories(name))'
+        '*, metals(name, price_per_lb, is_restricted, is_regulated, is_catalytic, category_id, metal_categories(name))'
       )
       .gt('weight', 0)
       .order('metal_name');

@@ -924,5 +924,217 @@ export function TareMark({
   );
 }
 
+export function Sparkline({
+  data,
+  w = 300,
+  h = 56,
+  color = 'var(--accent)',
+  fillOpacity = 0.12,
+  strokeW = 2,
+}: {
+  data: number[];
+  w?: number;
+  h?: number;
+  color?: string;
+  fillOpacity?: number;
+  strokeW?: number;
+}) {
+  const min = Math.min(...data, 0);
+  const max = Math.max(...data, 1);
+  const rng = max - min || 1;
+  const pts = data.map(
+    (v, i) =>
+      [
+        (i / Math.max(1, data.length - 1)) * w,
+        h - 4 - ((v - min) / rng) * (h - 10),
+      ] as const
+  );
+  const line = pts
+    .map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1))
+    .join(' ');
+  const area = line + ` L${w} ${h} L0 ${h} Z`;
+  const gid = 'sg' + Math.round(min + max + data.length);
+  return (
+    <svg
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      style={{ display: 'block', width: '100%' }}
+    >
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={color} stopOpacity={fillOpacity * 2.4} />
+          <stop offset="1" stopColor={color} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <path d={area} fill={`url(#${gid})`} />
+      <path
+        d={line}
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeW}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx={pts[pts.length - 1][0]}
+        cy={pts[pts.length - 1][1]}
+        r="3"
+        fill={color}
+      />
+    </svg>
+  );
+}
+
+export function MetalDot({
+  tone,
+  size = 9,
+}: {
+  tone: Tone | string;
+  size?: number;
+}) {
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: tone === 'rust' ? 2 : 99,
+        background: toneColor(tone),
+        flexShrink: 0,
+        display: 'inline-block',
+      }}
+    />
+  );
+}
+
+export function Placeholder({
+  label,
+  h = 88,
+  r = 12,
+}: {
+  label: string;
+  h?: number;
+  r?: number;
+}) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        height: h,
+        borderRadius: r,
+        border: '1px dashed var(--line-strong)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background:
+          'repeating-linear-gradient(135deg, var(--surface-2) 0 11px, transparent 11px 22px)',
+        color: 'var(--ink-3)',
+      }}
+    >
+      <span
+        className="mono"
+        style={{ fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+export function Field({
+  label,
+  children,
+  hint,
+}: {
+  label: string;
+  children: ReactNode;
+  hint?: string;
+}) {
+  return (
+    <label style={{ display: 'block' }}>
+      <div
+        className="mono"
+        style={{
+          fontSize: 10.5,
+          fontWeight: 600,
+          letterSpacing: 0.6,
+          textTransform: 'uppercase',
+          color: 'var(--ink-3)',
+          marginBottom: 7,
+        }}
+      >
+        {label}
+      </div>
+      {children}
+      {hint && (
+        <div
+          className="mono"
+          style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 5 }}
+        >
+          {hint}
+        </div>
+      )}
+    </label>
+  );
+}
+
+export function TextInput({
+  value,
+  onChange,
+  placeholder,
+  prefix,
+  mono,
+  readOnly,
+  align,
+}: {
+  value: string | number;
+  onChange?: (v: string) => void;
+  placeholder?: string;
+  prefix?: string;
+  mono?: boolean;
+  readOnly?: boolean;
+  align?: 'left' | 'right';
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 7,
+        height: 44,
+        padding: '0 14px',
+        background: readOnly ? 'var(--surface-2)' : 'var(--surface)',
+        border: '1px solid var(--line)',
+        borderRadius: 11,
+      }}
+    >
+      {prefix && (
+        <span className="mono" style={{ fontSize: 14, color: 'var(--ink-3)' }}>
+          {prefix}
+        </span>
+      )}
+      <input
+        value={value}
+        onChange={(e) => onChange && onChange(e.target.value)}
+        placeholder={placeholder}
+        readOnly={readOnly}
+        className={mono ? 'mono num' : ''}
+        style={{
+          flex: 1,
+          border: 'none',
+          outline: 'none',
+          background: 'transparent',
+          color: 'var(--ink)',
+          fontSize: 14.5,
+          fontWeight: 550,
+          minWidth: 0,
+          textAlign: align || 'left',
+        }}
+      />
+    </div>
+  );
+}
+
 // Re-export the vars helper for screens that set CSS custom properties inline.
 export { vars };

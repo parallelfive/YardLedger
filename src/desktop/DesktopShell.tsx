@@ -8,6 +8,10 @@ import DesktopStyle from './DesktopStyle';
 import Rail, { type TabId } from './Rail';
 import TopBar from './TopBar';
 import Dashboard from './screens/Dashboard';
+import Inventory from './screens/Inventory';
+import Sales from './screens/Sales';
+import Compliance from './screens/Compliance';
+import Settings from './screens/Settings';
 import {
   Card,
   PanelHead,
@@ -20,7 +24,6 @@ import {
   lbs,
   tierTone,
 } from './ui';
-import type { IconName } from './Icon';
 
 type ReceiptRow = ReturnType<typeof useReceipts>['receipts'][number];
 
@@ -38,22 +41,6 @@ const ROLE_LABEL: Record<string, string> = {
   admin: 'Admin',
   worker: 'Worker',
 };
-
-function Placeholder({ title, icon }: { title: string; icon: IconName }) {
-  return (
-    <div
-      className="stagger in"
-      style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
-    >
-      <Card style={{ padding: 40, textAlign: 'center' }}>
-        <PanelHead title={title} icon={icon} />
-        <GroupLabel style={{ marginTop: 8 }}>
-          This desktop screen is being built in this pass
-        </GroupLabel>
-      </Card>
-    </div>
-  );
-}
 
 function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
   const weight = (t.line_items ?? []).reduce(
@@ -222,12 +209,10 @@ export default function DesktopShell() {
         metalCount={metals.length}
       />
     );
-  else if (tab === 'inventory')
-    screen = <Placeholder title="Inventory" icon="stack" />;
-  else if (tab === 'sales') screen = <Placeholder title="Sales" icon="truck" />;
-  else if (tab === 'compliance')
-    screen = <Placeholder title="Compliance" icon="shield" />;
-  else screen = <Placeholder title="Settings" icon="cog" />;
+  else if (tab === 'inventory') screen = <Inventory nav={nav} />;
+  else if (tab === 'sales') screen = <Sales nav={nav} />;
+  else if (tab === 'compliance') screen = <Compliance canReport={isAdmin} />;
+  else screen = <Settings canManage={isAdmin} />;
 
   return (
     <div className="yl-app" data-theme={mode}>
