@@ -4,10 +4,12 @@ import {
   DefaultTheme,
   DarkTheme,
 } from '@react-navigation/native';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
+import DesktopShell from '../desktop/DesktopShell';
+import { useResponsive } from '../hooks/useResponsive';
 import PendingApprovalScreen from '../screens/auth/PendingApprovalScreen';
 import PasscodeGate from './PasscodeGate';
 import AutoLock from './AutoLock';
@@ -44,6 +46,7 @@ async function handleAuthDeepLink(url: string) {
 export default function RootNavigator() {
   const dispatch = useAppDispatch();
   const { colors, isLight } = useTheme();
+  const { isDesktop } = useResponsive();
   const { session, profile, loading, activeIdentity } = useAppSelector(
     (state: RootState) => state.auth
   );
@@ -155,6 +158,16 @@ export default function RootNavigator() {
   }
 
   // Logged in, approved, and a staff identity is attributed for the shift.
+  // On a wide desktop browser, render the dedicated desktop shell (rail +
+  // topbar + tables) instead of the mobile tab navigator.
+  if (Platform.OS === 'web' && isDesktop) {
+    return (
+      <AutoLock>
+        <DesktopShell />
+      </AutoLock>
+    );
+  }
+
   return (
     <AutoLock>
       <NavigationContainer theme={navTheme}>

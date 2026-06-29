@@ -47,3 +47,6 @@ yarn-error.*
 
 # Local Supabase SQL-editor scratch files (may contain PII/secrets)
 supabase/snippets/
+
+# Playwright MCP test artifacts
+.playwright-mcp/

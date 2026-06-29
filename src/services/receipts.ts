@@ -201,7 +201,7 @@ export async function fetchReceipts(
     let query = supabase
       .from('receipts')
       .select(
-        'id, receipt_number, customer_name, type, subtotal, created_at, worker_id, line_items(id, metal_name, weight, total, is_restricted)'
+        'id, receipt_number, customer_name, type, subtotal, created_at, worker_id, payment_method, is_catalytic, reported_at, line_items(id, metal_name, weight, total, is_restricted)'
       )
       .order('created_at', { ascending: false });
 
