@@ -12,6 +12,7 @@ import Inventory from './screens/Inventory';
 import Sales from './screens/Sales';
 import Compliance from './screens/Compliance';
 import Settings from './screens/Settings';
+import { BuyFlow, SaleFlow } from './Flows';
 import {
   Card,
   PanelHead,
@@ -156,12 +157,21 @@ export default function DesktopShell() {
   const identity = useAppSelector((s: RootState) => s.auth.activeIdentity);
   const { role, isAdmin } = useRole();
   const { metals } = useMetals();
-  const { receipts } = useReceipts();
+  const { receipts, refresh: refreshReceipts } = useReceipts();
   const { mode } = useTheme();
 
   const [tab, setTab] = useState<TabId>('home');
   const [overlay, setOverlay] = useState<Overlay>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // After a buy/sale saves, close the slide-over and remount the active screen
+  // (and bump the shell's own receipts) so the new data shows immediately.
+  const done = () => {
+    setOverlay(null);
+    setReloadKey((k) => k + 1);
+    refreshReceipts();
+  };
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
@@ -245,7 +255,7 @@ export default function DesktopShell() {
         />
         <div
           ref={scrollRef}
-          key={tab}
+          key={`${tab}-${reloadKey}`}
           className="screen-scroll"
           style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
         >
@@ -260,32 +270,10 @@ export default function DesktopShell() {
           <TicketDetail t={overlay.data} onClose={nav.close} />
         )}
         {overlay?.type === 'buy' && (
-          <SlideOver open onClose={nav.close} width={560}>
-            <SlideHead
-              title="New buy"
-              sub="Coming in this build"
-              onClose={nav.close}
-              icon="plus"
-            />
-            <div style={{ padding: 22 }}>
-              <GroupLabel>The desktop buy flow is being wired next.</GroupLabel>
-            </div>
-          </SlideOver>
+          <BuyFlow onClose={nav.close} onDone={done} />
         )}
         {overlay?.type === 'sale' && (
-          <SlideOver open onClose={nav.close} width={520}>
-            <SlideHead
-              title="New sale"
-              sub="Coming in this build"
-              onClose={nav.close}
-              icon="truck"
-            />
-            <div style={{ padding: 22 }}>
-              <GroupLabel>
-                The desktop sale flow is being wired next.
-              </GroupLabel>
-            </div>
-          </SlideOver>
+          <SaleFlow onClose={nav.close} onDone={done} />
         )}
       </div>
     </div>
