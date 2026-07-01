@@ -3,9 +3,13 @@ import {
   fetchComplianceReport,
   buildNmrldExportCsv,
   fetchNmrldRegistrationNumber,
+  markReceiptsReported,
   type ComplianceReceiptRow,
 } from '../../services/reports';
 import { shareTextFile } from '../../utils/shareFile';
+import { useAppSelector, type RootState } from '../../store';
+import { useDeskAdmin } from '../AdminActions';
+import { printComplianceRecord } from '../print';
 import Icon, { type IconName } from '../Icon';
 import {
   Card,
@@ -59,6 +63,7 @@ const rangeDates = (range: Range): { start: string; end: string } => {
 
 // Derived per-record view-model from a ComplianceReceiptRow.
 interface RecordVM {
+  id: string;
   no: string;
   seller: string;
   dl: string;
@@ -80,6 +85,7 @@ const toVM = (r: ComplianceReceiptRow): RecordVM => {
       .filter(Boolean)
       .join(' ') || '—';
   return {
+    id: r.id,
     no: r.receipt_number,
     seller: r.seller_name || r.customer_name || 'Walk-in',
     dl: r.seller_dl_number || '—',
@@ -178,6 +184,11 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
   const [sel, setSel] = useState<RecordVM | null>(null);
   const [records, setRecords] = useState<ComplianceReceiptRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadTick, setReloadTick] = useState(0);
+  const { ensureElevated } = useDeskAdmin();
+  const userId = useAppSelector(
+    (s: RootState) => s.auth.activeIdentity?.user_id ?? s.auth.profile?.id ?? ''
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -196,7 +207,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
     return () => {
       cancelled = true;
     };
-  }, [range]);
+  }, [range, reloadTick]);
 
   const vms = useMemo(() => records.map(toVM), [records]);
   const queued = useMemo(() => vms.filter((r) => !r.reported), [vms]);
@@ -227,6 +238,30 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
     } catch {
       /* best effort — surfaced via OS share / download failure */
     }
+  };
+
+  // Stamp the given buys as reported to the state (after export/upload) so they
+  // leave the queue. Admin-gated — prompts for the PIN via the elevation flow.
+  const [reporting, setReporting] = useState(false);
+  const markReported = async (ids: string[]) => {
+    if (ids.length === 0 || reporting) return;
+    if (!(await ensureElevated())) return;
+    setReporting(true);
+    try {
+      await markReceiptsReported(ids, userId);
+      setSel(null);
+      setReloadTick((t) => t + 1);
+    } catch {
+      /* best effort */
+    } finally {
+      setReporting(false);
+    }
+  };
+
+  // "Export & mark reported": download the CSV, then flag the queued buys.
+  const exportAndReport = async () => {
+    await exportCsv();
+    await markReported(records.filter((r) => !r.reported_at).map((r) => r.id));
   };
 
   const cols: Col[] = [
@@ -327,8 +362,8 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
           </div>
           <button
             className="tap"
-            disabled={!canReport}
-            onClick={canReport ? exportCsv : undefined}
+            disabled={!canReport || reporting}
+            onClick={canReport ? exportAndReport : undefined}
             style={{
               width: '100%',
               padding: '15px',
@@ -752,11 +787,35 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                 </div>
               </Card>
               <div style={{ display: 'flex', gap: 10 }}>
-                <Btn variant="primary" icon="printer" full>
+                <Btn
+                  variant="primary"
+                  icon="printer"
+                  full
+                  onClick={() =>
+                    printComplianceRecord({
+                      no: sel.no,
+                      seller: sel.seller,
+                      dl: sel.dl,
+                      plate: sel.plate,
+                      vehicle: sel.vehicle,
+                      materials: sel.materials,
+                      weight: sel.weight,
+                      paid: sel.paid,
+                      pay: sel.pay,
+                      affirmed: sel.affirmed,
+                    }).catch(() => {})
+                  }
+                >
                   Print record
                 </Btn>
                 {!sel.reported && canReport && (
-                  <Btn variant="solid" tone="var(--gold)" icon="upload" full>
+                  <Btn
+                    variant="solid"
+                    tone="var(--gold)"
+                    icon="upload"
+                    full
+                    onClick={() => markReported([sel.id])}
+                  >
                     Report now
                   </Btn>
                 )}

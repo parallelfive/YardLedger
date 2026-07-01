@@ -187,7 +187,20 @@ export default function Settings({ canManage }: { canManage: boolean }) {
             icon="building"
             right={
               canManage && (
-                <Btn variant="subtle" size="sm" icon="edit">
+                <Btn
+                  variant="subtle"
+                  size="sm"
+                  icon="edit"
+                  onClick={() =>
+                    admin.editCompany({
+                      company_name:
+                        settings?.company_name ?? company?.name ?? '',
+                      phone: settings?.phone ?? '',
+                      address: settings?.address ?? '',
+                      state: settings?.state ?? 'NM',
+                    })
+                  }
+                >
                   Edit
                 </Btn>
               )

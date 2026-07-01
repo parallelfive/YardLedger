@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useSales } from '../../hooks/useSales';
+import { shareTextFile } from '../../utils/shareFile';
+import { printBillOfLading } from '../print';
 import {
   Card,
   PanelHead,
@@ -284,10 +286,56 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                 ))}
               </Card>
               <div style={{ display: 'flex', gap: 10 }}>
-                <Btn variant="primary" icon="printer" full>
+                <Btn
+                  variant="primary"
+                  icon="printer"
+                  full
+                  onClick={() =>
+                    printBillOfLading({
+                      no: loadNo(sel.id),
+                      buyer: sel.buyer_name || '—',
+                      metal: sel.metal_name,
+                      weight: sel.weight,
+                      pricePerLb: sel.sale_price_per_lb,
+                      total: sel.total_revenue,
+                      date: new Date(sel.created_at).toLocaleDateString(
+                        'en-US',
+                        {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        }
+                      ),
+                    }).catch(() => {})
+                  }
+                >
                   Bill of lading
                 </Btn>
-                <Btn variant="ghost" icon="download" full>
+                <Btn
+                  variant="ghost"
+                  icon="download"
+                  full
+                  onClick={() => {
+                    const csv =
+                      'load,buyer,material,weight_lb,price_per_lb,total\n' +
+                      [
+                        loadNo(sel.id),
+                        sel.buyer_name,
+                        sel.metal_name,
+                        sel.weight,
+                        sel.sale_price_per_lb,
+                        sel.total_revenue,
+                      ]
+                        .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
+                        .join(',');
+                    shareTextFile(
+                      `${loadNo(sel.id)}.csv`,
+                      csv,
+                      'text/csv',
+                      'public.comma-separated-values-text'
+                    ).catch(() => {});
+                  }}
+                >
                   Export
                 </Btn>
               </div>

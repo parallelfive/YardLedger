@@ -13,6 +13,7 @@ import {
   updateMetalPrice,
   logPriceChange,
 } from '../services/metals';
+import { updateCompanySettings } from '../services/companySettings';
 import Icon from './Icon';
 import { Btn, Field, TextInput, money } from './ui';
 
@@ -26,9 +27,19 @@ interface EditTarget {
   price_per_lb: number;
 }
 
+export interface CompanyEdit {
+  company_name: string;
+  phone: string;
+  address: string;
+  state: string;
+}
+
 interface DeskAdmin {
   addMaterial: () => void;
   editPrice: (metal: EditTarget) => void;
+  editCompany: (current: CompanyEdit) => void;
+  // Open an admin-elevation window (prompts for the PIN if none is active).
+  ensureElevated: (requireOwner?: boolean) => Promise<boolean>;
 }
 
 const Ctx = createContext<DeskAdmin | null>(null);
@@ -50,7 +61,7 @@ function Modal({
 }: {
   title: string;
   sub?: string;
-  icon: 'lock' | 'plus' | 'edit';
+  icon: 'lock' | 'plus' | 'edit' | 'building';
   onClose: () => void;
   children: ReactNode;
   zIndex?: number;
@@ -135,9 +146,11 @@ function Modal({
 
 // ── admin PIN prompt ─────────────────────────────────────────────────────────
 function ElevateModal({
+  requireOwner,
   onCancel,
   onSuccess,
 }: {
+  requireOwner: boolean;
   onCancel: () => void;
   onSuccess: (expiry: number) => void;
 }) {
@@ -150,7 +163,7 @@ function ElevateModal({
     setBusy(true);
     setErr(null);
     try {
-      const expiry = await elevateAdmin(pin);
+      const expiry = await elevateAdmin(pin, requireOwner);
       onSuccess(expiry);
     } catch (e) {
       setErr((e as Error).message);
@@ -358,6 +371,94 @@ function EditPriceModal({
   );
 }
 
+// ── edit company profile ─────────────────────────────────────────────────────
+function EditCompanyModal({
+  current,
+  onClose,
+  onSave,
+}: {
+  current: CompanyEdit;
+  onClose: () => void;
+  onSave: (updates: CompanyEdit) => Promise<void>;
+}) {
+  const [name, setName] = useState(current.company_name);
+  const [phone, setPhone] = useState(current.phone);
+  const [address, setAddress] = useState(current.address);
+  const [state, setState] = useState(current.state);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const ok = !!name.trim() && !busy;
+
+  const save = async () => {
+    if (!ok) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await onSave({
+        company_name: name.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        state: state.trim().toUpperCase(),
+      });
+    } catch (e) {
+      setErr((e as Error).message);
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Modal
+      title="Company profile"
+      sub="Owner only"
+      icon="building"
+      onClose={onClose}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Field label="Company name">
+          <TextInput
+            value={name}
+            onChange={setName}
+            placeholder="Company name"
+          />
+        </Field>
+        <Field label="Phone">
+          <TextInput
+            value={phone}
+            onChange={setPhone}
+            placeholder="(555) 000-0000"
+          />
+        </Field>
+        <Field label="Address">
+          <TextInput
+            value={address}
+            onChange={setAddress}
+            placeholder="Street, city, ZIP"
+          />
+        </Field>
+        <Field label="Operating state">
+          <TextInput value={state} onChange={setState} placeholder="NM" />
+        </Field>
+      </div>
+      {err && (
+        <div
+          className="mono"
+          style={{ fontSize: 12, color: 'var(--rust)', marginTop: 10 }}
+        >
+          {err}
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+        <Btn variant="ghost" onClick={onClose}>
+          Cancel
+        </Btn>
+        <Btn variant="primary" icon="check" full disabled={!ok} onClick={save}>
+          {busy ? 'Saving…' : 'Save profile'}
+        </Btn>
+      </div>
+    </Modal>
+  );
+}
+
 // ── provider ─────────────────────────────────────────────────────────────────
 export function DeskAdminProvider({
   onChanged,
@@ -372,25 +473,41 @@ export function DeskAdminProvider({
   const expiryRef = useRef(0);
   const [elevate, setElevate] = useState<null | {
     resolve: (ok: boolean) => void;
+    requireOwner: boolean;
   }>(null);
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<EditTarget | null>(null);
+  const [company, setCompany] = useState<CompanyEdit | null>(null);
 
   // Resolve immediately if a window is still open; else prompt for the PIN.
-  const ensureElevated = useCallback((): Promise<boolean> => {
-    if (Date.now() < expiryRef.current - 2000) return Promise.resolve(true);
-    return new Promise<boolean>((resolve) => setElevate({ resolve }));
-  }, []);
+  // An owner-required action always re-prompts (a cached window may be admin).
+  const ensureElevated = useCallback(
+    (requireOwner = false): Promise<boolean> => {
+      if (!requireOwner && Date.now() < expiryRef.current - 2000)
+        return Promise.resolve(true);
+      return new Promise<boolean>((resolve) =>
+        setElevate({ resolve, requireOwner })
+      );
+    },
+    []
+  );
 
   const addMaterial = useCallback(() => setAdding(true), []);
   const editPrice = useCallback((metal: EditTarget) => setEditing(metal), []);
+  const editCompany = useCallback(
+    (current: CompanyEdit) => setCompany(current),
+    []
+  );
 
   return (
-    <Ctx.Provider value={{ addMaterial, editPrice }}>
+    <Ctx.Provider
+      value={{ addMaterial, editPrice, editCompany, ensureElevated }}
+    >
       {children}
 
       {elevate && (
         <ElevateModal
+          requireOwner={elevate.requireOwner}
           onCancel={() => {
             elevate.resolve(false);
             setElevate(null);
@@ -429,6 +546,19 @@ export function DeskAdminProvider({
               userId
             ).catch(() => {});
             setEditing(null);
+            onChanged();
+          }}
+        />
+      )}
+
+      {company && (
+        <EditCompanyModal
+          current={company}
+          onClose={() => setCompany(null)}
+          onSave={async (updates) => {
+            if (!(await ensureElevated(true))) return;
+            await updateCompanySettings(updates, userId);
+            setCompany(null);
             onChanged();
           }}
         />
