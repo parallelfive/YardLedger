@@ -13,6 +13,7 @@ import Sales from './screens/Sales';
 import Compliance from './screens/Compliance';
 import Settings from './screens/Settings';
 import { BuyFlow, SaleFlow } from './Flows';
+import { printReceipt } from '../utils/printReceipt';
 import {
   Card,
   PanelHead,
@@ -138,7 +139,28 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
             </div>
           ))}
         </Card>
-        <Btn variant="primary" icon="printer" full>
+        <Btn
+          variant="primary"
+          icon="printer"
+          full
+          onClick={() =>
+            printReceipt({
+              receipt_number: t.receipt_number,
+              customer_name: t.customer_name || 'Walk-in',
+              subtotal: Number(t.subtotal || 0),
+              created_at: t.created_at,
+              line_items: (t.line_items ?? []).map((li) => ({
+                metal_name: li.metal_name,
+                weight: Number(li.weight || 0),
+                price_per_lb: Number(li.weight)
+                  ? Number(li.total || 0) / Number(li.weight)
+                  : 0,
+                total: Number(li.total || 0),
+                is_price_override: false,
+              })),
+            }).catch(() => {})
+          }
+        >
           Reprint ticket
         </Btn>
       </div>
@@ -158,7 +180,7 @@ export default function DesktopShell() {
   const { role, isAdmin } = useRole();
   const { metals } = useMetals();
   const { receipts, refresh: refreshReceipts } = useReceipts();
-  const { mode } = useTheme();
+  const { mode, isLight, toggle: toggleTheme } = useTheme();
 
   const [tab, setTab] = useState<TabId>('home');
   const [overlay, setOverlay] = useState<Overlay>(null);
@@ -238,11 +260,11 @@ export default function DesktopShell() {
         onNewBuy={nav.openBuy}
       />
       <div
+        className="yl-col"
         style={{
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          minWidth: 0,
           position: 'relative',
         }}
       >
@@ -252,6 +274,8 @@ export default function DesktopShell() {
           alerts={queued > 0}
           onAlerts={() => nav.go('compliance')}
           onNewBuy={nav.openBuy}
+          isLight={isLight}
+          onToggleTheme={toggleTheme}
         />
         <div
           ref={scrollRef}

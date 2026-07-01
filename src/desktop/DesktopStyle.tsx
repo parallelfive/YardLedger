@@ -92,7 +92,12 @@ const CSS = `
 .yl-app .trow { transition: background .12s ease; }
 .yl-app .trow:hover { background: var(--surface-2); }
 
-.yl-app .screen-scroll { scrollbar-width: thin; }
+/* Flex scroll containers (main content + slide-over bodies) must be allowed to
+   shrink below their content size, or the default min-height:auto makes the
+   content push siblings (e.g. a slide-over footer) off-screen instead of
+   scrolling. This is the classic flexbox overflow fix. */
+.yl-app .screen-scroll { scrollbar-width: thin; min-height: 0; }
+.yl-app .yl-col { min-width: 0; min-height: 0; }
 `;
 
 export default function DesktopStyle() {

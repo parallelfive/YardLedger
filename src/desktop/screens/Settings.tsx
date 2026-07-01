@@ -1,6 +1,10 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useCurrentCompany } from '../../hooks';
 import { useMetals } from '../../hooks/useMetals';
+import {
+  fetchCompanySettings,
+  type CompanySettings,
+} from '../../services/companySettings';
 import type { Metal } from '../../types';
 import Icon from '../Icon';
 import {
@@ -128,6 +132,31 @@ function RuleStat({
 export default function Settings({ canManage }: { canManage: boolean }) {
   const company = useCurrentCompany();
   const { metals } = useMetals();
+  const [settings, setSettings] = useState<CompanySettings | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetchCompanySettings().then((s) => {
+      if (active) setSettings(s);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Real state rules from company_settings, falling back to NM defaults so the
+  // card never looks broken while loading or when no row exists yet.
+  const state = settings?.state || NM_RULES.state;
+  const holdGeneralDays = settings
+    ? Math.round((settings.general_hold_hours ?? 24) / 24)
+    : NM_RULES.holdGeneral;
+  const holdCatalytic =
+    settings?.cat_converter_hold_days ?? NM_RULES.holdCatalytic;
+  const retainGeneral =
+    settings?.general_retention_years ?? NM_RULES.retainGeneral;
+  const checkOnlyCat = settings
+    ? settings.cat_converter_check_only
+    : NM_RULES.checkOnlyCat;
 
   const matCols: Col[] = [
     { key: 'name', label: 'Material', w: '2fr' },
@@ -195,11 +224,10 @@ export default function Settings({ canManage }: { canManage: boolean }) {
           <InfoRow k="License" v="—" />
           <InfoRow k="EIN" v="—" />
           <InfoRow k="Registry ID" v="—" />
-          <InfoRow k="Phone" v="—" />
-          <InfoRow k="Address" v="—" />
+          <InfoRow k="Phone" v={settings?.phone || '—'} />
+          <InfoRow k="Address" v={settings?.address || '—'} />
           <GroupLabel style={{ marginTop: 14, lineHeight: 1.5 }}>
-            License, EIN & contact details live in company settings — manage
-            them from the mobile app.
+            License & EIN aren&apos;t tracked in this build.
           </GroupLabel>
         </Card>
 
@@ -218,7 +246,7 @@ export default function Settings({ canManage }: { canManage: boolean }) {
           />
           <Field label="Operating state">
             <select
-              value={NM_RULES.state}
+              value={state}
               disabled
               style={{
                 width: '100%',
@@ -233,26 +261,22 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                 outline: 'none',
               }}
             >
-              <option>{NM_RULES.state}</option>
+              <option>{state}</option>
             </select>
           </Field>
           <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
             <RuleStat
-              n={NM_RULES.holdGeneral}
-              unit="day"
+              n={holdGeneralDays}
+              unit={holdGeneralDays === 1 ? 'day' : 'days'}
               label="General hold"
             />
             <RuleStat
-              n={NM_RULES.holdCatalytic}
+              n={holdCatalytic}
               unit="days"
               label="Catalytic hold"
               tone="var(--gold)"
             />
-            <RuleStat
-              n={NM_RULES.retainGeneral}
-              unit="yr"
-              label="Retain records"
-            />
+            <RuleStat n={retainGeneral} unit="yr" label="Retain records" />
           </div>
           <div
             style={{
@@ -280,10 +304,10 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                 Catalytic = check only
               </span>
               <Pill
-                tone={NM_RULES.checkOnlyCat ? 'var(--rust)' : 'var(--ink-3)'}
-                icon={NM_RULES.checkOnlyCat ? 'check' : 'x'}
+                tone={checkOnlyCat ? 'var(--rust)' : 'var(--ink-3)'}
+                icon={checkOnlyCat ? 'check' : 'x'}
               >
-                {NM_RULES.checkOnlyCat ? 'Enforced' : 'Off'}
+                {checkOnlyCat ? 'Enforced' : 'Off'}
               </Pill>
             </div>
           </div>

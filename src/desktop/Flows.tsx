@@ -72,6 +72,8 @@ export function BuyFlow({
 
   const [seller, setSeller] = useState('');
   const [dl, setDl] = useState('');
+  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [affirmed, setAffirmed] = useState(false);
   const [items, setItems] = useState<{ id: string; weight: number }[]>([]);
   const [pay, setPay] = useState<'cash' | 'check'>('cash');
   const [adding, setAdding] = useState(false);
@@ -107,7 +109,15 @@ export function BuyFlow({
     setAdding(false);
   };
 
-  const canSave = items.length > 0 && weight > 0 && !!seller.trim() && !busy;
+  // Regulated / restricted / catalytic buys legally require seller ID, a
+  // vehicle, and an ownership affirmation — capture and require them here so the
+  // desktop can't create an incomplete compliance record (mobile gates these in
+  // its stepper).
+  const needsCompliance = tier !== null && tier !== 'open';
+  const complianceOk =
+    !needsCompliance || (!!dl.trim() && !!vehiclePlate.trim() && affirmed);
+  const canSave =
+    items.length > 0 && weight > 0 && !!seller.trim() && complianceOk && !busy;
 
   const complete = async () => {
     if (!canSave) return;
@@ -140,6 +150,8 @@ export function BuyFlow({
         isCatalytic: tier === 'catalytic',
         sellerName: seller.trim() || undefined,
         sellerDlNumber: dl.trim() || undefined,
+        vehiclePlate: vehiclePlate.trim() || undefined,
+        sellerAffirmed: needsCompliance ? affirmed : undefined,
         lineItems,
       });
       onDone();
@@ -457,6 +469,63 @@ export function BuyFlow({
               )}
             </div>
           </Card>
+        )}
+
+        {/* regulated capture — required so we never save an incomplete record */}
+        {needsCompliance && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <GroupLabel>Required for {tier}</GroupLabel>
+            <Field label="Vehicle plate">
+              <TextInput
+                value={vehiclePlate}
+                onChange={setVehiclePlate}
+                placeholder="Plate #"
+                mono
+              />
+            </Field>
+            <button
+              className="tap"
+              onClick={() => setAffirmed((a) => !a)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 11,
+                padding: '13px 14px',
+                borderRadius: 12,
+                textAlign: 'left',
+                background: affirmed ? 'var(--accent-soft)' : 'var(--surface)',
+                border: `1.5px solid ${affirmed ? 'var(--accent)' : 'var(--line)'}`,
+              }}
+            >
+              <div
+                style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: 6,
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: affirmed ? 'var(--accent)' : 'transparent',
+                  border: `1.5px solid ${affirmed ? 'var(--accent)' : 'var(--line-strong)'}`,
+                }}
+              >
+                {affirmed && (
+                  <Icon
+                    name="check"
+                    size={14}
+                    color="var(--accent-ink)"
+                    stroke={2.6}
+                  />
+                )}
+              </div>
+              <span
+                style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.4 }}
+              >
+                Seller affirms lawful ownership of the material.
+              </span>
+            </button>
+          </div>
         )}
 
         {/* payment */}

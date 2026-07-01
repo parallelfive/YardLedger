@@ -7,12 +7,16 @@ export default function TopBar({
   alerts,
   onAlerts,
   onNewBuy,
+  isLight,
+  onToggleTheme,
 }: {
   title: string;
   sub: string;
   alerts: boolean;
   onAlerts: () => void;
   onNewBuy: () => void;
+  isLight: boolean;
+  onToggleTheme: () => void;
 }) {
   const [q, setQ] = useState('');
   return (
@@ -60,6 +64,7 @@ export default function TopBar({
           placeholder="Search sellers, tickets, metals…"
           width={260}
         />
+        <IconBtn icon={isLight ? 'bolt' : 'drop'} onClick={onToggleTheme} />
         <IconBtn icon="bell" badge={alerts} onClick={onAlerts} />
         <Btn variant="primary" icon="plus" onClick={onNewBuy}>
           New buy

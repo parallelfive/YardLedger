@@ -9,6 +9,7 @@ import * as Linking from 'expo-linking';
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 import DesktopShell from '../desktop/DesktopShell';
+import DesktopLogin from '../desktop/DesktopLogin';
 import { useResponsive } from '../hooks/useResponsive';
 import PendingApprovalScreen from '../screens/auth/PendingApprovalScreen';
 import PasscodeGate from './PasscodeGate';
@@ -135,6 +136,9 @@ export default function RootNavigator() {
 
   // Not logged in
   if (!session) {
+    if (Platform.OS === 'web' && isDesktop) {
+      return <DesktopLogin />;
+    }
     return (
       <NavigationContainer theme={navTheme}>
         <AuthNavigator />
