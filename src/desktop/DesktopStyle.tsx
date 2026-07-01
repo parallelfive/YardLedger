@@ -74,6 +74,7 @@ const CSS = `
 @keyframes ylScrim { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ylSlideR { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes ylBar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes ylPop { from { opacity: 0; transform: translate(-50%, -50%) scale(.97); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 
 .yl-app .stagger.in > * { opacity: 0; animation: ylFade .5s cubic-bezier(.2,.7,.2,1) forwards; }
 .yl-app .stagger.in > *:nth-child(1) { animation-delay: .02s; }

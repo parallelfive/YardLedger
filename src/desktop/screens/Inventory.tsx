@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useInventory } from '../../hooks/useInventory';
+import { useDeskAdmin } from '../AdminActions';
 import Icon from '../Icon';
 import {
   Card,
@@ -74,6 +75,7 @@ function MetalDetail({
   onClose: () => void;
   nav: { openBuy: () => void };
 }) {
+  const admin = useDeskAdmin();
   if (!m) return null;
   const spread = m.price - m.avg;
   const up = spread >= 0;
@@ -216,7 +218,19 @@ function MetalDetail({
           >
             Buy this metal
           </Btn>
-          <Btn variant="ghost" icon="edit" full>
+          <Btn
+            variant="ghost"
+            icon="edit"
+            full
+            onClick={() => {
+              onClose();
+              admin.editPrice({
+                id: m.id,
+                name: m.name,
+                price_per_lb: m.price,
+              });
+            }}
+          >
             Edit price
           </Btn>
         </div>
@@ -248,7 +262,7 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
       const avg = Number(r.avg_cost_per_lb ?? price);
       const onHand = Number(r.weight ?? 0);
       return {
-        id: r.id,
+        id: r.metal_id,
         name: r.metal_name,
         cat: flags?.metal_categories?.name || 'Other',
         tier,

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useCurrentCompany } from '../../hooks';
 import { useMetals } from '../../hooks/useMetals';
+import { useDeskAdmin } from '../AdminActions';
 import {
   fetchCompanySettings,
   type CompanySettings,
@@ -132,6 +133,7 @@ function RuleStat({
 export default function Settings({ canManage }: { canManage: boolean }) {
   const company = useCurrentCompany();
   const { metals } = useMetals();
+  const admin = useDeskAdmin();
   const [settings, setSettings] = useState<CompanySettings | null>(null);
 
   useEffect(() => {
@@ -330,7 +332,12 @@ export default function Settings({ canManage }: { canManage: boolean }) {
             icon="stack"
           />
           {canManage && (
-            <Btn variant="primary" size="sm" icon="plus">
+            <Btn
+              variant="primary"
+              size="sm"
+              icon="plus"
+              onClick={admin.addMaterial}
+            >
               Add material
             </Btn>
           )}

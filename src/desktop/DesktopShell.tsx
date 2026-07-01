@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppSelector, type RootState } from '../store';
 import { useRole } from '../hooks/useRole';
 import { useMetals } from '../hooks/useMetals';
@@ -6,13 +6,14 @@ import { useReceipts } from '../hooks/useReceipts';
 import { useTheme } from '../theme';
 import DesktopStyle from './DesktopStyle';
 import Rail, { type TabId } from './Rail';
-import TopBar from './TopBar';
+import TopBar, { type SearchResult } from './TopBar';
 import Dashboard from './screens/Dashboard';
 import Inventory from './screens/Inventory';
 import Sales from './screens/Sales';
 import Compliance from './screens/Compliance';
 import Settings from './screens/Settings';
 import { BuyFlow, SaleFlow } from './Flows';
+import { DeskAdminProvider } from './AdminActions';
 import { printReceipt } from '../utils/printReceipt';
 import {
   Card,
@@ -185,6 +186,7 @@ export default function DesktopShell() {
   const [tab, setTab] = useState<TabId>('home');
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [query, setQuery] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // After a buy/sale saves, close the slide-over and remount the active screen
@@ -205,6 +207,40 @@ export default function DesktopShell() {
       !r.reported_at &&
       ((r.line_items ?? []).some((li) => li.is_restricted) || !!r.is_catalytic)
   ).length;
+
+  // Global search: metals (→ Inventory) + receipts by seller / receipt #
+  // (→ ticket detail). setTab/setOverlay are stable so nav isn't a dependency.
+  const searchResults = useMemo<SearchResult[]>(() => {
+    const ql = query.trim().toLowerCase();
+    if (!ql) return [];
+    const ms = (
+      metals as unknown as { id: string; name: string; price_per_lb: number }[]
+    )
+      .filter((m) => m.name.toLowerCase().includes(ql))
+      .slice(0, 5)
+      .map((m) => ({
+        key: 'm' + m.id,
+        icon: 'stack' as const,
+        title: m.name,
+        sub: `${money(Number(m.price_per_lb || 0))}/lb`,
+        onPick: () => setTab('inventory'),
+      }));
+    const rs = receipts
+      .filter(
+        (r) =>
+          (r.customer_name || '').toLowerCase().includes(ql) ||
+          (r.receipt_number || '').toLowerCase().includes(ql)
+      )
+      .slice(0, 6)
+      .map((r) => ({
+        key: 'r' + r.id,
+        icon: 'receipt' as const,
+        title: r.customer_name || 'Walk-in',
+        sub: `${r.receipt_number} · ${money(Number(r.subtotal || 0))}`,
+        onPick: () => setOverlay({ type: 'ticket', data: r }),
+      }));
+    return [...ms, ...rs].slice(0, 8);
+  }, [query, metals, receipts]);
 
   const nav = {
     go: (id: TabId) => setTab(id),
@@ -249,57 +285,62 @@ export default function DesktopShell() {
   return (
     <div className="yl-app" data-theme={mode}>
       <DesktopStyle />
-      <Rail
-        tab={tab}
-        onTab={nav.go}
-        company={{ abbr: NM.abbr, prefix: company?.prefix ?? '' }}
-        userName={identity?.name ?? 'Staff'}
-        roleLabel={ROLE_LABEL[role ?? 'worker'] ?? 'Worker'}
-        queued={queued}
-        reportBy={NM.reportBy}
-        onNewBuy={nav.openBuy}
-      />
-      <div
-        className="yl-col"
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'relative',
-        }}
-      >
-        <TopBar
-          title={titles[tab].title}
-          sub={titles[tab].sub}
-          alerts={queued > 0}
-          onAlerts={() => nav.go('compliance')}
+      <DeskAdminProvider onChanged={done}>
+        <Rail
+          tab={tab}
+          onTab={nav.go}
+          company={{ abbr: NM.abbr, prefix: company?.prefix ?? '' }}
+          userName={identity?.name ?? 'Staff'}
+          roleLabel={ROLE_LABEL[role ?? 'worker'] ?? 'Worker'}
+          queued={queued}
+          reportBy={NM.reportBy}
           onNewBuy={nav.openBuy}
-          isLight={isLight}
-          onToggleTheme={toggleTheme}
         />
         <div
-          ref={scrollRef}
-          key={`${tab}-${reloadKey}`}
-          className="screen-scroll"
-          style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
+          className="yl-col"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            position: 'relative',
+          }}
         >
+          <TopBar
+            title={titles[tab].title}
+            sub={titles[tab].sub}
+            alerts={queued > 0}
+            onAlerts={() => nav.go('compliance')}
+            onNewBuy={nav.openBuy}
+            isLight={isLight}
+            onToggleTheme={toggleTheme}
+            query={query}
+            onQuery={setQuery}
+            results={searchResults}
+          />
           <div
-            style={{ maxWidth: 1320, margin: '0 auto', padding: '26px 28px' }}
+            ref={scrollRef}
+            key={`${tab}-${reloadKey}`}
+            className="screen-scroll"
+            style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
           >
-            {screen}
+            <div
+              style={{ maxWidth: 1320, margin: '0 auto', padding: '26px 28px' }}
+            >
+              {screen}
+            </div>
           </div>
-        </div>
 
-        {overlay?.type === 'ticket' && (
-          <TicketDetail t={overlay.data} onClose={nav.close} />
-        )}
-        {overlay?.type === 'buy' && (
-          <BuyFlow onClose={nav.close} onDone={done} />
-        )}
-        {overlay?.type === 'sale' && (
-          <SaleFlow onClose={nav.close} onDone={done} />
-        )}
-      </div>
+          {overlay?.type === 'ticket' && (
+            <TicketDetail t={overlay.data} onClose={nav.close} />
+          )}
+          {overlay?.type === 'buy' && (
+            <BuyFlow onClose={nav.close} onDone={done} />
+          )}
+          {overlay?.type === 'sale' && (
+            <SaleFlow onClose={nav.close} onDone={done} />
+          )}
+        </div>
+      </DeskAdminProvider>
     </div>
   );
 }
