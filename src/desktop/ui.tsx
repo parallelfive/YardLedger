@@ -219,7 +219,7 @@ export function StatTile({
 }) {
   return (
     <Card
-      pad={big ? 22 : 18}
+      pad={big ? 20 : 16}
       hover
       style={{
         display: 'flex',

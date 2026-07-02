@@ -238,7 +238,7 @@ export default function Dashboard({
   return (
     <div
       className="stagger in"
-      style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+      style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
     >
       {/* KPI row */}
       <div
@@ -289,7 +289,7 @@ export default function Dashboard({
           alignItems: 'start',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <Card>
             <PanelHead
               title="Buy volume"
@@ -322,7 +322,7 @@ export default function Dashboard({
                 </div>
               }
             />
-            <AreaChart data={m.series} h={156} />
+            <AreaChart data={m.series} h={140} />
           </Card>
 
           <Card pad={0}>
@@ -446,7 +446,7 @@ export default function Dashboard({
         </div>
 
         {/* right column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* State reporting */}
           <Card
             pad={0}
@@ -458,7 +458,7 @@ export default function Dashboard({
           >
             <div
               style={{
-                padding: '18px 20px',
+                padding: '15px 20px',
                 background:
                   'color-mix(in oklab, var(--gold) 8%, var(--surface))',
               }}
@@ -497,7 +497,7 @@ export default function Dashboard({
                   display: 'flex',
                   alignItems: 'baseline',
                   gap: 9,
-                  marginTop: 14,
+                  marginTop: 10,
                 }}
               >
                 <span
@@ -556,7 +556,7 @@ export default function Dashboard({
           </Card>
 
           {/* Metal mix */}
-          <Card>
+          <Card pad={16}>
             <PanelHead title="Metal mix" sub="On hand · by weight" />
             {m.mix.length === 0 ? (
               <div
@@ -633,7 +633,7 @@ export default function Dashboard({
           </Card>
 
           {/* Quick actions */}
-          <Card>
+          <Card pad={16}>
             <PanelHead title="Quick actions" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <Btn

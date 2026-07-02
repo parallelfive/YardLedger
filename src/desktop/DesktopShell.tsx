@@ -327,7 +327,7 @@ export default function DesktopShell() {
                 tables from stretching absurdly while letting 1440–1920 screens
                 run full-bleed. */}
             <div
-              style={{ maxWidth: 2200, margin: '0 auto', padding: '26px 36px' }}
+              style={{ maxWidth: 2200, margin: '0 auto', padding: '18px 36px' }}
             >
               {screen}
             </div>
