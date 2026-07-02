@@ -326,8 +326,18 @@ export default function DesktopShell() {
                 wide monitors; a high 2200 ceiling keeps ultra-wide (>2500px)
                 tables from stretching absurdly while letting 1440–1920 screens
                 run full-bleed. */}
+            {/* Full-height flex column so screens that opt in (the Day book
+                fills the viewport height instead of leaving a dead gap below;
+                table screens just sit at natural height at the top. */}
             <div
-              style={{ maxWidth: 2200, margin: '0 auto', padding: '18px 36px' }}
+              style={{
+                maxWidth: 2200,
+                margin: '0 auto',
+                padding: '18px 36px',
+                minHeight: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+              }}
             >
               {screen}
             </div>

@@ -44,10 +44,14 @@ function AreaChart({
   data,
   h = 156,
   color = 'var(--accent)',
+  fill = false,
 }: {
   data: number[];
   h?: number;
   color?: string;
+  /** Stretch to fill the parent's height instead of a fixed pixel height.
+   * preserveAspectRatio="none" already lets the viewBox scale vertically. */
+  fill?: boolean;
 }) {
   const w = 760;
   const min = Math.min(...data, 0);
@@ -70,7 +74,7 @@ function AreaChart({
     <svg
       viewBox={`0 0 ${w} ${h}`}
       preserveAspectRatio="none"
-      style={{ display: 'block', width: '100%', height: h }}
+      style={{ display: 'block', width: '100%', height: fill ? '100%' : h }}
     >
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
@@ -238,7 +242,13 @@ export default function Dashboard({
   return (
     <div
       className="stagger in"
-      style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 14,
+        flex: 1,
+        minHeight: 0,
+      }}
     >
       {/* KPI row */}
       <div
@@ -246,6 +256,7 @@ export default function Dashboard({
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: 16,
+          flexShrink: 0,
         }}
       >
         <StatTile
@@ -286,11 +297,27 @@ export default function Dashboard({
           display: 'grid',
           gridTemplateColumns: 'minmax(0,1.85fr) minmax(0,1fr)',
           gap: 18,
-          alignItems: 'start',
+          alignItems: 'stretch',
+          flex: 1,
+          minHeight: 0,
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <Card>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            minHeight: 0,
+          }}
+        >
+          <Card
+            style={{
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 220,
+            }}
+          >
             <PanelHead
               title="Buy volume"
               sub="Net $ bought · 14 days"
@@ -322,7 +349,9 @@ export default function Dashboard({
                 </div>
               }
             />
-            <AreaChart data={m.series} h={140} />
+            <div style={{ flex: 1, minHeight: 120, marginTop: 6 }}>
+              <AreaChart data={m.series} fill />
+            </div>
           </Card>
 
           <Card pad={0}>
@@ -446,7 +475,14 @@ export default function Dashboard({
         </div>
 
         {/* right column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            minHeight: 0,
+          }}
+        >
           {/* State reporting */}
           <Card
             pad={0}
@@ -632,8 +668,9 @@ export default function Dashboard({
             )}
           </Card>
 
-          {/* Quick actions */}
-          <Card pad={16}>
+          {/* Quick actions — anchored to the bottom so the right column
+              reaches the viewport floor alongside the left. */}
+          <Card pad={16} style={{ marginTop: 'auto' }}>
             <PanelHead title="Quick actions" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <Btn
