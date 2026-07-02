@@ -274,7 +274,6 @@ export default function DesktopShell() {
         reportBy={NM.reportBy}
         act={NM.act}
         registry={NM.registry}
-        metalCount={metals.length}
       />
     );
   else if (tab === 'inventory') screen = <Inventory nav={nav} />;

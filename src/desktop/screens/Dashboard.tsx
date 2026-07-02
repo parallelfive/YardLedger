@@ -117,7 +117,6 @@ export default function Dashboard({
   reportBy,
   act,
   registry,
-  metalCount,
 }: {
   nav: {
     go: (t: TabId) => void;
@@ -129,7 +128,6 @@ export default function Dashboard({
   reportBy: string;
   act: string;
   registry: string;
-  metalCount: number;
 }) {
   const { receipts } = useReceipts();
   const { inventory } = useInventory();
@@ -165,7 +163,7 @@ export default function Dashboard({
     // on-hand value + metal mix from inventory
     const inv = inventory as unknown as {
       weight: number;
-      avg_cost?: number | null;
+      avg_cost_per_lb?: number | null;
       metals?: {
         price_per_lb?: number | null;
         metal_categories?: { name?: string } | null;
@@ -176,7 +174,9 @@ export default function Dashboard({
     let totalWt = 0;
     for (const it of inv) {
       const wt = Number(it.weight || 0);
-      const unit = Number(it.avg_cost ?? it.metals?.price_per_lb ?? 0);
+      // Value inventory at its cost basis (weighted-avg cost), not the current
+      // buying price — matches the Inventory screen's on-hand-value.
+      const unit = Number(it.avg_cost_per_lb ?? it.metals?.price_per_lb ?? 0);
       onHandValue += wt * unit;
       const cat = it.metals?.metal_categories?.name || 'Other';
       byCat[cat] = (byCat[cat] || 0) + wt;
@@ -217,6 +217,7 @@ export default function Dashboard({
       seriesTotal: series.reduce((a, b) => a + b, 0),
       queued,
       onHandValue,
+      onHandMetals: inv.length,
       mix,
       sold,
       soldWeight,
@@ -273,7 +274,7 @@ export default function Dashboard({
         <StatTile
           label="On-hand value"
           value={money0(m.onHandValue)}
-          sub={`${metalCount} metals in yard`}
+          sub={`${m.onHandMetals} metal${m.onHandMetals === 1 ? '' : 's'} in yard`}
           tone="gold"
           icon="stack"
         />
