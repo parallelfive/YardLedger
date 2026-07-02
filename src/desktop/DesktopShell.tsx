@@ -333,7 +333,7 @@ export default function DesktopShell() {
               style={{
                 maxWidth: 2200,
                 margin: '0 auto',
-                padding: '18px 36px',
+                padding: '16px 36px 10px',
                 minHeight: '100%',
                 display: 'flex',
                 flexDirection: 'column',
