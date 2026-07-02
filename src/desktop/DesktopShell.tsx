@@ -322,8 +322,12 @@ export default function DesktopShell() {
             className="screen-scroll"
             style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}
           >
+            {/* Fill the browser width. The old 1320 cap left dead gutters on
+                wide monitors; a high 2200 ceiling keeps ultra-wide (>2500px)
+                tables from stretching absurdly while letting 1440–1920 screens
+                run full-bleed. */}
             <div
-              style={{ maxWidth: 1320, margin: '0 auto', padding: '26px 28px' }}
+              style={{ maxWidth: 2200, margin: '0 auto', padding: '26px 36px' }}
             >
               {screen}
             </div>
