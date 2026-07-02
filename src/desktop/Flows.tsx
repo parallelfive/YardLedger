@@ -119,6 +119,23 @@ export function BuyFlow({
   const canSave =
     items.length > 0 && weight > 0 && !!seller.trim() && complianceOk && !busy;
 
+  // Tell the operator exactly what's blocking the save (a regulated buy needs
+  // ID + vehicle + affirmation), so a disabled button is never a mystery.
+  const disabledReason =
+    items.length === 0
+      ? 'Add a material to start the ticket'
+      : weight <= 0
+        ? 'Enter a weight'
+        : !seller.trim()
+          ? "Enter the seller's name"
+          : needsCompliance && !dl.trim()
+            ? `${tier} buy — enter the driver license`
+            : needsCompliance && !vehiclePlate.trim()
+              ? `${tier} buy — enter the vehicle plate`
+              : needsCompliance && !affirmed
+                ? `${tier} buy — confirm the ownership affirmation`
+                : null;
+
   const complete = async () => {
     if (!canSave) return;
     setBusy(true);
@@ -636,6 +653,21 @@ export function BuyFlow({
             {money(total)}
           </div>
         </div>
+        {disabledReason && !busy && (
+          <div
+            className="mono"
+            style={{
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: 'var(--gold)',
+              textAlign: 'center',
+              textTransform: 'capitalize',
+              marginBottom: 10,
+            }}
+          >
+            {disabledReason}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 10 }}>
           <Btn variant="ghost" onClick={onClose}>
             Cancel
