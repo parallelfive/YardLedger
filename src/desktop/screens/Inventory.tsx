@@ -362,7 +362,13 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
   return (
     <div
       className="stagger in"
-      style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 18,
+        flex: 1,
+        minHeight: 0,
+      }}
     >
       {/* hero + filters row */}
       <div
@@ -370,6 +376,7 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
           display: 'grid',
           gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)',
           gap: 16,
+          flexShrink: 0,
         }}
       >
         <Card style={{ position: 'relative', overflow: 'hidden' }}>
@@ -479,8 +486,9 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
         </Card>
       </div>
 
-      {/* table */}
-      <Card pad={0}>
+      {/* table — grows to fill the remaining height so a short list doesn't
+          leave a dead gap below the page */}
+      <Card pad={0} style={{ flex: 1 }}>
         <div
           style={{
             padding: '16px 20px',

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useAppSelector, type RootState } from '../store';
 import { useRole } from '../hooks/useRole';
 import { useMetals } from '../hooks/useMetals';
+import { useInventory } from '../hooks/useInventory';
 import { useReceipts } from '../hooks/useReceipts';
 import { useTheme } from '../theme';
 import DesktopStyle from './DesktopStyle';
@@ -180,6 +181,7 @@ export default function DesktopShell() {
   const identity = useAppSelector((s: RootState) => s.auth.activeIdentity);
   const { role, isAdmin } = useRole();
   const { metals } = useMetals();
+  const { inventory } = useInventory();
   const { receipts, refresh: refreshReceipts } = useReceipts();
   const { mode, isLight, toggle: toggleTheme } = useTheme();
 
@@ -259,7 +261,10 @@ export default function DesktopShell() {
   });
   const titles: Record<TabId, { title: string; sub: string }> = {
     home: { title: 'Day book', sub: dateLabel },
-    inventory: { title: 'Inventory', sub: `${metals.length} metals · on hand` },
+    inventory: {
+      title: 'Inventory',
+      sub: `${inventory.length} metal${inventory.length === 1 ? '' : 's'} on hand`,
+    },
     sales: { title: 'Sales', sub: 'Outbound loads to processors' },
     compliance: { title: 'Compliance', sub: `${NM.act} · ${NM.registry}` },
     settings: { title: 'Settings', sub: 'Company, rules, materials & team' },

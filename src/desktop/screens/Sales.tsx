@@ -60,7 +60,13 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
   return (
     <div
       className="stagger in"
-      style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 18,
+        flex: 1,
+        minHeight: 0,
+      }}
     >
       {/* KPI row */}
       <div
@@ -68,6 +74,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: 16,
+          flexShrink: 0,
         }}
       >
         <StatTile
@@ -101,7 +108,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
         />
       </div>
 
-      <Card pad={0}>
+      <Card pad={0} style={{ flex: 1 }}>
         <div
           style={{
             padding: '16px 20px',
