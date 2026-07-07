@@ -87,9 +87,13 @@ const miniLabel = {
 export function BuyFlow({
   onClose,
   onDone,
+  onSaved,
 }: {
   onClose: () => void;
   onDone: () => void;
+  // Refresh the shell's data after each save without closing the ticket, so a
+  // rapid intake session keeps the day book counts current between tickets.
+  onSaved?: () => void;
 }) {
   const { metals } = useMetals();
   const { presets, create: createPreset } = useTarePresets();
@@ -107,6 +111,15 @@ export function BuyFlow({
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // After a save the ticket flips to a confirmation summary (quick mode) rather
+  // than closing, so a busy yard can start the next ticket in one tap.
+  const [saved, setSaved] = useState<{
+    number: string;
+    total: number;
+    weight: number;
+    items: number;
+    seller: string;
+  } | null>(null);
 
   const byId = useMemo(() => new Map(list.map((m) => [m.id, m])), [list]);
 
@@ -135,6 +148,24 @@ export function BuyFlow({
   const addMetal = (id: string) => {
     setItems([...items, { id, mode: 'net', net: 0, gross: 0, tare: 0 }]);
     setAdding(false);
+  };
+
+  // Start a fresh ticket after a save. `keepSeller` carries the seller's name +
+  // license over for a regular dropping multiple loads; everything transaction-
+  // specific (materials, vehicle, affirmation, payment) always resets, and the
+  // ownership affirmation is re-taken per ticket.
+  const reset = (keepSeller: boolean) => {
+    setItems([]);
+    setVehiclePlate('');
+    setAffirmed(false);
+    setPay('cash');
+    setAdding(false);
+    setErr(null);
+    setSaved(null);
+    if (!keepSeller) {
+      setSeller('');
+      setDl('');
+    }
   };
 
   // Save the tare an operator just keyed as a reusable preset (e.g. a regular's
@@ -210,7 +241,7 @@ export function BuyFlow({
           isCatalytic: !!m.is_catalytic,
         };
       });
-      await createReceipt({
+      const receipt = await createReceipt({
         customerName: seller.trim(),
         customerPhone: '',
         type: 'buy',
@@ -224,7 +255,16 @@ export function BuyFlow({
         sellerAffirmed: needsCompliance ? affirmed : undefined,
         lineItems,
       });
-      onDone();
+      // Refresh the shell's data behind the slide-over, then show the summary
+      // (quick mode) instead of closing so the next ticket is one tap away.
+      onSaved?.();
+      setSaved({
+        number: (receipt as { receipt_number?: string })?.receipt_number ?? '—',
+        total,
+        weight,
+        items: items.length,
+        seller: seller.trim(),
+      });
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -240,696 +280,881 @@ export function BuyFlow({
         onClose={onClose}
         icon="receipt"
       />
-      <div
-        className="screen-scroll"
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: 22,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 18,
-        }}
-      >
-        {/* seller */}
-        <div>
-          <GroupLabel style={{ marginBottom: 9 }}>Seller</GroupLabel>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <Field label="Name">
-              <TextInput
-                value={seller}
-                onChange={setSeller}
-                placeholder="Seller full name"
-              />
-            </Field>
-            <Field label="Driver license (regulated)">
-              <TextInput
-                value={dl}
-                onChange={setDl}
-                placeholder="DL number"
-                mono
-              />
-            </Field>
-          </div>
-        </div>
-
-        {/* line items */}
-        <div>
+      {saved ? (
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+          }}
+        >
           <div
+            className="screen-scroll"
             style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: 22,
               display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 9,
+              flexDirection: 'column',
+              gap: 18,
             }}
           >
-            <GroupLabel>Materials · {items.length}</GroupLabel>
-            <button
-              className="tap mono"
-              onClick={() => setAdding((a) => !a)}
+            <div
               style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--accent)',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                gap: 3,
+                textAlign: 'center',
+                gap: 12,
+                paddingTop: 18,
               }}
             >
-              <Icon name="plus" size={14} color="var(--accent)" stroke={2.4} />
-              Add metal
-            </button>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-            {items.map((it, i) => {
-              const m = byId.get(it.id);
-              if (!m) return null;
-              const net = netOf(it);
-              const sub = net * m.price_per_lb;
-              const wInput = {
-                height: 34,
-                textAlign: 'right' as const,
-                border: '1px solid var(--line)',
-                borderRadius: 9,
-                background: 'var(--surface-2)',
-                color: 'var(--ink)',
-                fontSize: 14,
-                fontWeight: 600,
-                padding: '0 8px',
-                outline: 'none',
-              };
-              return (
+              <div
+                style={{
+                  width: 62,
+                  height: 62,
+                  borderRadius: 17,
+                  background: 'var(--accent-soft)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon
+                  name="check"
+                  size={31}
+                  color="var(--accent)"
+                  stroke={2.4}
+                />
+              </div>
+              <div>
                 <div
-                  key={i}
+                  className="exp"
                   style={{
-                    padding: '12px 14px',
-                    background: 'var(--surface)',
-                    border: '1px solid var(--line)',
-                    borderRadius: 12,
-                    borderLeft: `3px solid ${metalTone(m)}`,
+                    fontSize: 21,
+                    fontWeight: 800,
+                    color: 'var(--ink)',
+                    letterSpacing: -0.4,
                   }}
                 >
-                  {/* header: metal · subtotal · remove */}
-                  <div
-                    style={{ display: 'flex', alignItems: 'center', gap: 12 }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 13.5,
-                          fontWeight: 600,
-                          color: 'var(--ink)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {m.name}
-                      </div>
-                      <div
-                        className="mono num"
-                        style={{
-                          fontSize: 11,
-                          color: 'var(--ink-3)',
-                          marginTop: 3,
-                        }}
-                      >
-                        {money(m.price_per_lb)}/lb ·{' '}
-                        <span
-                          style={{
-                            color: tierTone(tierOf(m)),
-                            fontWeight: 600,
-                          }}
-                        >
-                          {tierOf(m)}
-                        </span>
-                      </div>
-                    </div>
-                    <span
-                      className="mono num"
-                      style={{
-                        width: 78,
-                        textAlign: 'right',
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: 'var(--ink)',
-                      }}
-                    >
-                      {money(sub)}
-                    </span>
-                    <button
-                      className="tap"
-                      onClick={() => remove(i)}
-                      style={{
-                        width: 28,
-                        height: 28,
-                        borderRadius: 8,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'var(--ink-3)',
-                      }}
-                    >
-                      <Icon
-                        name="x"
-                        size={15}
-                        color="var(--ink-3)"
-                        stroke={2.2}
-                      />
-                    </button>
-                  </div>
-
-                  {/* weigh-in — key net directly, or gross − tare on the scale */}
-                  <div
+                  Ticket saved
+                </div>
+                <div
+                  className="mono num"
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--ink-3)',
+                    marginTop: 4,
+                  }}
+                >
+                  {saved.number}
+                </div>
+              </div>
+            </div>
+            <Card pad={18}>
+              {(
+                [
+                  ['Paid', money(saved.total)],
+                  ['Weight', `${lbs(saved.weight)} lb`],
+                  ['Items', String(saved.items)],
+                  ['Seller', saved.seller || 'Walk-in'],
+                ] as const
+              ).map(([k, v], idx, arr) => (
+                <div
+                  key={k}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '11px 0',
+                    borderBottom:
+                      idx < arr.length - 1 ? '1px solid var(--line)' : 'none',
+                  }}
+                >
+                  <span style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>
+                    {k}
+                  </span>
+                  <span
+                    className="mono num"
                     style={{
-                      marginTop: 11,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 9,
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: 'var(--ink)',
                     }}
                   >
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {(['net', 'tare'] as const).map((md) => {
-                        const on = it.mode === md;
-                        return (
-                          <button
-                            key={md}
-                            className="tap mono"
-                            onClick={() => patch(i, { mode: md })}
-                            style={{
-                              flex: 1,
-                              padding: '7px 0',
-                              borderRadius: 8,
-                              fontSize: 10.5,
-                              fontWeight: 700,
-                              letterSpacing: 0.3,
-                              textTransform: 'uppercase',
-                              background: on
-                                ? 'var(--accent-soft)'
-                                : 'var(--surface-2)',
-                              color: on ? 'var(--accent)' : 'var(--ink-3)',
-                              border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
-                            }}
-                          >
-                            {md === 'net' ? 'Net weight' : 'Gross − tare'}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {it.mode === 'net' ? (
+                    {v}
+                  </span>
+                </div>
+              ))}
+            </Card>
+          </div>
+          {/* quick-mode actions — next ticket in one tap */}
+          <div
+            style={{
+              padding: '18px 22px',
+              borderTop: '1px solid var(--line)',
+              background: 'var(--surface)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              flexShrink: 0,
+            }}
+          >
+            <Btn
+              variant="primary"
+              icon="plus"
+              full
+              onClick={() => reset(false)}
+            >
+              New ticket
+            </Btn>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Btn variant="ghost" icon="scan" full onClick={() => reset(true)}>
+                Same seller
+              </Btn>
+              <Btn variant="ghost" full onClick={onDone}>
+                Done
+              </Btn>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div
+            className="screen-scroll"
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: 22,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
+            }}
+          >
+            {/* seller */}
+            <div>
+              <GroupLabel style={{ marginBottom: 9 }}>Seller</GroupLabel>
+              <div
+                style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+              >
+                <Field label="Name">
+                  <TextInput
+                    value={seller}
+                    onChange={setSeller}
+                    placeholder="Seller full name"
+                  />
+                </Field>
+                <Field label="Driver license (regulated)">
+                  <TextInput
+                    value={dl}
+                    onChange={setDl}
+                    placeholder="DL number"
+                    mono
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* line items */}
+            <div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 9,
+                }}
+              >
+                <GroupLabel>Materials · {items.length}</GroupLabel>
+                <button
+                  className="tap mono"
+                  onClick={() => setAdding((a) => !a)}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'var(--accent)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                  }}
+                >
+                  <Icon
+                    name="plus"
+                    size={14}
+                    color="var(--accent)"
+                    stroke={2.4}
+                  />
+                  Add metal
+                </button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                {items.map((it, i) => {
+                  const m = byId.get(it.id);
+                  if (!m) return null;
+                  const net = netOf(it);
+                  const sub = net * m.price_per_lb;
+                  const wInput = {
+                    height: 34,
+                    textAlign: 'right' as const,
+                    border: '1px solid var(--line)',
+                    borderRadius: 9,
+                    background: 'var(--surface-2)',
+                    color: 'var(--ink)',
+                    fontSize: 14,
+                    fontWeight: 600,
+                    padding: '0 8px',
+                    outline: 'none',
+                  };
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        padding: '12px 14px',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--line)',
+                        borderRadius: 12,
+                        borderLeft: `3px solid ${metalTone(m)}`,
+                      }}
+                    >
+                      {/* header: metal · subtotal · remove */}
                       <div
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'flex-end',
-                          gap: 7,
+                          gap: 12,
                         }}
                       >
-                        <input
-                          type="number"
-                          value={it.net || ''}
-                          onChange={(e) =>
-                            patch(i, { net: Number(e.target.value) })
-                          }
-                          placeholder="0"
-                          className="mono num"
-                          style={{ ...wInput, width: 100 }}
-                        />
-                        <span
-                          className="mono"
-                          style={{ fontSize: 11, color: 'var(--ink-3)' }}
-                        >
-                          lb
-                        </span>
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 8,
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 7,
-                            flexWrap: 'wrap',
-                          }}
-                        >
-                          <span style={miniLabel}>Gross</span>
-                          <input
-                            type="number"
-                            value={it.gross || ''}
-                            onChange={(e) =>
-                              patch(i, { gross: Number(e.target.value) })
-                            }
-                            placeholder="0"
-                            className="mono num"
-                            style={{ ...wInput, width: 76 }}
-                          />
-                          <span
-                            style={{ color: 'var(--ink-3)', fontWeight: 600 }}
-                          >
-                            −
-                          </span>
-                          <span style={miniLabel}>Tare</span>
-                          <input
-                            type="number"
-                            value={it.tare || ''}
-                            onChange={(e) =>
-                              patch(i, { tare: Number(e.target.value) })
-                            }
-                            placeholder="0"
-                            className="mono num"
-                            style={{ ...wInput, width: 76 }}
-                          />
-                          <span
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div
                             style={{
-                              marginLeft: 'auto',
-                              display: 'flex',
-                              alignItems: 'baseline',
-                              gap: 5,
+                              fontSize: 13.5,
+                              fontWeight: 600,
+                              color: 'var(--ink)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
                             }}
                           >
-                            <span style={miniLabel}>Net</span>
+                            {m.name}
+                          </div>
+                          <div
+                            className="mono num"
+                            style={{
+                              fontSize: 11,
+                              color: 'var(--ink-3)',
+                              marginTop: 3,
+                            }}
+                          >
+                            {money(m.price_per_lb)}/lb ·{' '}
                             <span
-                              className="mono num"
                               style={{
-                                fontSize: 14,
-                                fontWeight: 700,
-                                color: net > 0 ? 'var(--ink)' : 'var(--ink-3)',
+                                color: tierTone(tierOf(m)),
+                                fontWeight: 600,
                               }}
                             >
-                              {lbs(net)} lb
+                              {tierOf(m)}
                             </span>
-                          </span>
+                          </div>
                         </div>
-                        {/* saved tares — pick a regular's rig, or save this one */}
-                        <div
+                        <span
+                          className="mono num"
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 7,
+                            width: 78,
+                            textAlign: 'right',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: 'var(--ink)',
                           }}
                         >
-                          <select
-                            value=""
-                            onChange={(e) => {
-                              const p = presets.find(
-                                (x) => x.id === e.target.value
-                              );
-                              if (p) patch(i, { tare: p.tare_weight });
-                            }}
-                            className="mono"
+                          {money(sub)}
+                        </span>
+                        <button
+                          className="tap"
+                          onClick={() => remove(i)}
+                          style={{
+                            width: 28,
+                            height: 28,
+                            borderRadius: 8,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'var(--ink-3)',
+                          }}
+                        >
+                          <Icon
+                            name="x"
+                            size={15}
+                            color="var(--ink-3)"
+                            stroke={2.2}
+                          />
+                        </button>
+                      </div>
+
+                      {/* weigh-in — key net directly, or gross − tare on the scale */}
+                      <div
+                        style={{
+                          marginTop: 11,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 9,
+                        }}
+                      >
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          {(['net', 'tare'] as const).map((md) => {
+                            const on = it.mode === md;
+                            return (
+                              <button
+                                key={md}
+                                className="tap mono"
+                                onClick={() => patch(i, { mode: md })}
+                                style={{
+                                  flex: 1,
+                                  padding: '7px 0',
+                                  borderRadius: 8,
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  letterSpacing: 0.3,
+                                  textTransform: 'uppercase',
+                                  background: on
+                                    ? 'var(--accent-soft)'
+                                    : 'var(--surface-2)',
+                                  color: on ? 'var(--accent)' : 'var(--ink-3)',
+                                  border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
+                                }}
+                              >
+                                {md === 'net' ? 'Net weight' : 'Gross − tare'}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {it.mode === 'net' ? (
+                          <div
                             style={{
-                              flex: 1,
-                              height: 32,
-                              padding: '0 8px',
-                              background: 'var(--surface-2)',
-                              border: '1px solid var(--line)',
-                              borderRadius: 8,
-                              color: presets.length
-                                ? 'var(--ink-2)'
-                                : 'var(--ink-3)',
-                              fontSize: 12,
-                              outline: 'none',
-                            }}
-                          >
-                            <option value="">
-                              {presets.length
-                                ? 'Tare preset…'
-                                : 'No saved tares yet'}
-                            </option>
-                            {presets.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.name} — {lbs(p.tare_weight)} lb
-                              </option>
-                            ))}
-                          </select>
-                          <button
-                            className="tap mono"
-                            onClick={() => savePreset(it.tare)}
-                            disabled={!it.tare}
-                            style={{
-                              height: 32,
-                              padding: '0 11px',
-                              borderRadius: 8,
-                              fontSize: 11.5,
-                              fontWeight: 600,
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 4,
-                              background: 'var(--surface)',
-                              border: '1px solid var(--line)',
-                              color: it.tare ? 'var(--accent)' : 'var(--ink-3)',
-                              opacity: it.tare ? 1 : 0.5,
+                              justifyContent: 'flex-end',
+                              gap: 7,
                             }}
                           >
-                            <Icon
-                              name="plus"
-                              size={13}
-                              color={it.tare ? 'var(--accent)' : 'var(--ink-3)'}
-                              stroke={2.4}
+                            <input
+                              type="number"
+                              value={it.net || ''}
+                              onChange={(e) =>
+                                patch(i, { net: Number(e.target.value) })
+                              }
+                              placeholder="0"
+                              className="mono num"
+                              style={{ ...wInput, width: 100 }}
                             />
-                            Save
-                          </button>
-                        </div>
+                            <span
+                              className="mono"
+                              style={{ fontSize: 11, color: 'var(--ink-3)' }}
+                            >
+                              lb
+                            </span>
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 8,
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 7,
+                                flexWrap: 'wrap',
+                              }}
+                            >
+                              <span style={miniLabel}>Gross</span>
+                              <input
+                                type="number"
+                                value={it.gross || ''}
+                                onChange={(e) =>
+                                  patch(i, { gross: Number(e.target.value) })
+                                }
+                                placeholder="0"
+                                className="mono num"
+                                style={{ ...wInput, width: 76 }}
+                              />
+                              <span
+                                style={{
+                                  color: 'var(--ink-3)',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                −
+                              </span>
+                              <span style={miniLabel}>Tare</span>
+                              <input
+                                type="number"
+                                value={it.tare || ''}
+                                onChange={(e) =>
+                                  patch(i, { tare: Number(e.target.value) })
+                                }
+                                placeholder="0"
+                                className="mono num"
+                                style={{ ...wInput, width: 76 }}
+                              />
+                              <span
+                                style={{
+                                  marginLeft: 'auto',
+                                  display: 'flex',
+                                  alignItems: 'baseline',
+                                  gap: 5,
+                                }}
+                              >
+                                <span style={miniLabel}>Net</span>
+                                <span
+                                  className="mono num"
+                                  style={{
+                                    fontSize: 14,
+                                    fontWeight: 700,
+                                    color:
+                                      net > 0 ? 'var(--ink)' : 'var(--ink-3)',
+                                  }}
+                                >
+                                  {lbs(net)} lb
+                                </span>
+                              </span>
+                            </div>
+                            {/* saved tares — pick a regular's rig, or save this one */}
+                            <div
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 7,
+                              }}
+                            >
+                              <select
+                                value=""
+                                onChange={(e) => {
+                                  const p = presets.find(
+                                    (x) => x.id === e.target.value
+                                  );
+                                  if (p) patch(i, { tare: p.tare_weight });
+                                }}
+                                className="mono"
+                                style={{
+                                  flex: 1,
+                                  height: 32,
+                                  padding: '0 8px',
+                                  background: 'var(--surface-2)',
+                                  border: '1px solid var(--line)',
+                                  borderRadius: 8,
+                                  color: presets.length
+                                    ? 'var(--ink-2)'
+                                    : 'var(--ink-3)',
+                                  fontSize: 12,
+                                  outline: 'none',
+                                }}
+                              >
+                                <option value="">
+                                  {presets.length
+                                    ? 'Tare preset…'
+                                    : 'No saved tares yet'}
+                                </option>
+                                {presets.map((p) => (
+                                  <option key={p.id} value={p.id}>
+                                    {p.name} — {lbs(p.tare_weight)} lb
+                                  </option>
+                                ))}
+                              </select>
+                              <button
+                                className="tap mono"
+                                onClick={() => savePreset(it.tare)}
+                                disabled={!it.tare}
+                                style={{
+                                  height: 32,
+                                  padding: '0 11px',
+                                  borderRadius: 8,
+                                  fontSize: 11.5,
+                                  fontWeight: 600,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  background: 'var(--surface)',
+                                  border: '1px solid var(--line)',
+                                  color: it.tare
+                                    ? 'var(--accent)'
+                                    : 'var(--ink-3)',
+                                  opacity: it.tare ? 1 : 0.5,
+                                }}
+                              >
+                                <Icon
+                                  name="plus"
+                                  size={13}
+                                  color={
+                                    it.tare ? 'var(--accent)' : 'var(--ink-3)'
+                                  }
+                                  stroke={2.4}
+                                />
+                                Save
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-            {items.length === 0 && (
-              <div
-                className="mono"
-                style={{ fontSize: 12, color: 'var(--ink-3)' }}
-              >
-                Add a metal to start the ticket.
-              </div>
-            )}
-          </div>
-          {adding && (
-            <div
-              style={{
-                marginTop: 9,
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 7,
-                padding: 12,
-                background: 'var(--surface-2)',
-                borderRadius: 12,
-                border: '1px solid var(--line)',
-              }}
-            >
-              {list
-                .filter((m) => !items.find((it) => it.id === m.id))
-                .map((m) => (
-                  <button
-                    key={m.id}
-                    className="tap"
-                    onClick={() => addMetal(m.id)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '7px 11px',
-                      borderRadius: 99,
-                      background: 'var(--surface)',
-                      border: '1px solid var(--line)',
-                      fontSize: 12.5,
-                      fontWeight: 550,
-                      color: 'var(--ink)',
-                    }}
+                    </div>
+                  );
+                })}
+                {items.length === 0 && (
+                  <div
+                    className="mono"
+                    style={{ fontSize: 12, color: 'var(--ink-3)' }}
                   >
-                    <MetalDot
-                      tone={
-                        tierOf(m) === 'open'
-                          ? 'moss'
-                          : (tierTone(tierOf(m)) as string)
-                      }
-                    />
-                    {m.name}
-                  </button>
-                ))}
-            </div>
-          )}
-        </div>
-
-        {/* compliance banner */}
-        {tier && (
-          <Card
-            pad={16}
-            style={{
-              border: `1px solid color-mix(in oklab, ${tierTone(tier)} 30%, var(--line))`,
-              background: `color-mix(in oklab, ${tierTone(tier)} 7%, var(--surface))`,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 9,
-                marginBottom: 9,
-              }}
-            >
-              <Icon name="shield" size={18} color={tierTone(tier)} stroke={2} />
-              <span
-                className="exp"
-                style={{
-                  fontSize: 14,
-                  fontWeight: 700,
-                  color: 'var(--ink)',
-                  textTransform: 'capitalize',
-                }}
-              >
-                {tier}
-              </span>
-              <span
-                className="mono"
-                style={{
-                  fontSize: 10.5,
-                  color: 'var(--ink-3)',
-                  marginLeft: 'auto',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                }}
-              >
-                governing tier
-              </span>
-            </div>
-            <div
-              style={{
-                fontSize: 12.5,
-                color: 'var(--ink-2)',
-                lineHeight: 1.5,
-                marginBottom: 11,
-              }}
-            >
-              {TIER_NOTE[tier]}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-              {tier !== 'open' && (
-                <Pill tone="var(--ink-3)" icon="scan">
-                  Seller ID
-                </Pill>
-              )}
-              {tier !== 'open' && (
-                <Pill tone="var(--ink-3)" icon="car">
-                  Vehicle
-                </Pill>
-              )}
-              {tier !== 'open' && (
-                <Pill tone="var(--ink-3)" icon="sign">
-                  Affirmation
-                </Pill>
-              )}
-              {checkOnly && (
-                <Pill tone="var(--rust)" icon="x">
-                  No cash
-                </Pill>
-              )}
-            </div>
-          </Card>
-        )}
-
-        {/* regulated capture — required so we never save an incomplete record */}
-        {needsCompliance && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <GroupLabel>Required for {tier}</GroupLabel>
-            <Field label="Vehicle plate">
-              <TextInput
-                value={vehiclePlate}
-                onChange={setVehiclePlate}
-                placeholder="Plate #"
-                mono
-              />
-            </Field>
-            <button
-              className="tap"
-              onClick={() => setAffirmed((a) => !a)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 11,
-                padding: '13px 14px',
-                borderRadius: 12,
-                textAlign: 'left',
-                background: affirmed ? 'var(--accent-soft)' : 'var(--surface)',
-                border: `1.5px solid ${affirmed ? 'var(--accent)' : 'var(--line)'}`,
-              }}
-            >
-              <div
-                style={{
-                  width: 22,
-                  height: 22,
-                  borderRadius: 6,
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: affirmed ? 'var(--accent)' : 'transparent',
-                  border: `1.5px solid ${affirmed ? 'var(--accent)' : 'var(--line-strong)'}`,
-                }}
-              >
-                {affirmed && (
-                  <Icon
-                    name="check"
-                    size={14}
-                    color="var(--accent-ink)"
-                    stroke={2.6}
-                  />
+                    Add a metal to start the ticket.
+                  </div>
                 )}
               </div>
-              <span
-                style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.4 }}
-              >
-                Seller affirms lawful ownership of the material.
-              </span>
-            </button>
-          </div>
-        )}
-
-        {/* payment */}
-        <div>
-          <GroupLabel style={{ marginBottom: 9 }}>Payment method</GroupLabel>
-          <div style={{ display: 'flex', gap: 10 }}>
-            {(['cash', 'check'] as const).map((p) => {
-              const disabled = checkOnly && p === 'cash';
-              const on = effectivePay === p;
-              return (
-                <button
-                  key={p}
-                  className="tap"
-                  disabled={disabled}
-                  onClick={() => setPay(p)}
+              {adding && (
+                <div
                   style={{
-                    flex: 1,
-                    padding: '13px',
+                    marginTop: 9,
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 7,
+                    padding: 12,
+                    background: 'var(--surface-2)',
                     borderRadius: 12,
-                    background: on ? 'var(--accent-soft)' : 'var(--surface)',
-                    border: `1.5px solid ${on ? 'var(--accent)' : 'var(--line)'}`,
+                    border: '1px solid var(--line)',
+                  }}
+                >
+                  {list
+                    .filter((m) => !items.find((it) => it.id === m.id))
+                    .map((m) => (
+                      <button
+                        key={m.id}
+                        className="tap"
+                        onClick={() => addMetal(m.id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '7px 11px',
+                          borderRadius: 99,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--line)',
+                          fontSize: 12.5,
+                          fontWeight: 550,
+                          color: 'var(--ink)',
+                        }}
+                      >
+                        <MetalDot
+                          tone={
+                            tierOf(m) === 'open'
+                              ? 'moss'
+                              : (tierTone(tierOf(m)) as string)
+                          }
+                        />
+                        {m.name}
+                      </button>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* compliance banner */}
+            {tier && (
+              <Card
+                pad={16}
+                style={{
+                  border: `1px solid color-mix(in oklab, ${tierTone(tier)} 30%, var(--line))`,
+                  background: `color-mix(in oklab, ${tierTone(tier)} 7%, var(--surface))`,
+                }}
+              >
+                <div
+                  style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    opacity: disabled ? 0.45 : 1,
-                    color: on ? 'var(--accent)' : 'var(--ink)',
-                    fontSize: 14,
-                    fontWeight: 650,
-                    textTransform: 'capitalize',
+                    gap: 9,
+                    marginBottom: 9,
                   }}
                 >
                   <Icon
-                    name={p === 'cash' ? 'receipt' : 'edit'}
-                    size={17}
-                    color={on ? 'var(--accent)' : 'var(--ink-2)'}
-                    stroke={1.9}
+                    name="shield"
+                    size={18}
+                    color={tierTone(tier)}
+                    stroke={2}
                   />
-                  {p}
-                  {disabled && (
-                    <span
-                      className="mono"
-                      style={{ fontSize: 9.5, color: 'var(--rust)' }}
-                    >
-                      locked
-                    </span>
+                  <span
+                    className="exp"
+                    style={{
+                      fontSize: 14,
+                      fontWeight: 700,
+                      color: 'var(--ink)',
+                      textTransform: 'capitalize',
+                    }}
+                  >
+                    {tier}
+                  </span>
+                  <span
+                    className="mono"
+                    style={{
+                      fontSize: 10.5,
+                      color: 'var(--ink-3)',
+                      marginLeft: 'auto',
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    governing tier
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--ink-2)',
+                    lineHeight: 1.5,
+                    marginBottom: 11,
+                  }}
+                >
+                  {TIER_NOTE[tier]}
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                  {tier !== 'open' && (
+                    <Pill tone="var(--ink-3)" icon="scan">
+                      Seller ID
+                    </Pill>
                   )}
+                  {tier !== 'open' && (
+                    <Pill tone="var(--ink-3)" icon="car">
+                      Vehicle
+                    </Pill>
+                  )}
+                  {tier !== 'open' && (
+                    <Pill tone="var(--ink-3)" icon="sign">
+                      Affirmation
+                    </Pill>
+                  )}
+                  {checkOnly && (
+                    <Pill tone="var(--rust)" icon="x">
+                      No cash
+                    </Pill>
+                  )}
+                </div>
+              </Card>
+            )}
+
+            {/* regulated capture — required so we never save an incomplete record */}
+            {needsCompliance && (
+              <div
+                style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
+              >
+                <GroupLabel>Required for {tier}</GroupLabel>
+                <Field label="Vehicle plate">
+                  <TextInput
+                    value={vehiclePlate}
+                    onChange={setVehiclePlate}
+                    placeholder="Plate #"
+                    mono
+                  />
+                </Field>
+                <button
+                  className="tap"
+                  onClick={() => setAffirmed((a) => !a)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 11,
+                    padding: '13px 14px',
+                    borderRadius: 12,
+                    textAlign: 'left',
+                    background: affirmed
+                      ? 'var(--accent-soft)'
+                      : 'var(--surface)',
+                    border: `1.5px solid ${affirmed ? 'var(--accent)' : 'var(--line)'}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: affirmed ? 'var(--accent)' : 'transparent',
+                      border: `1.5px solid ${affirmed ? 'var(--accent)' : 'var(--line-strong)'}`,
+                    }}
+                  >
+                    {affirmed && (
+                      <Icon
+                        name="check"
+                        size={14}
+                        color="var(--accent-ink)"
+                        stroke={2.6}
+                      />
+                    )}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      color: 'var(--ink-2)',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Seller affirms lawful ownership of the material.
+                  </span>
                 </button>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+            )}
 
-        {err && (
-          <div className="mono" style={{ fontSize: 12, color: 'var(--rust)' }}>
-            {err}
-          </div>
-        )}
-      </div>
+            {/* payment */}
+            <div>
+              <GroupLabel style={{ marginBottom: 9 }}>
+                Payment method
+              </GroupLabel>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {(['cash', 'check'] as const).map((p) => {
+                  const disabled = checkOnly && p === 'cash';
+                  const on = effectivePay === p;
+                  return (
+                    <button
+                      key={p}
+                      className="tap"
+                      disabled={disabled}
+                      onClick={() => setPay(p)}
+                      style={{
+                        flex: 1,
+                        padding: '13px',
+                        borderRadius: 12,
+                        background: on
+                          ? 'var(--accent-soft)'
+                          : 'var(--surface)',
+                        border: `1.5px solid ${on ? 'var(--accent)' : 'var(--line)'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        opacity: disabled ? 0.45 : 1,
+                        color: on ? 'var(--accent)' : 'var(--ink)',
+                        fontSize: 14,
+                        fontWeight: 650,
+                        textTransform: 'capitalize',
+                      }}
+                    >
+                      <Icon
+                        name={p === 'cash' ? 'receipt' : 'edit'}
+                        size={17}
+                        color={on ? 'var(--accent)' : 'var(--ink-2)'}
+                        stroke={1.9}
+                      />
+                      {p}
+                      {disabled && (
+                        <span
+                          className="mono"
+                          style={{ fontSize: 9.5, color: 'var(--rust)' }}
+                        >
+                          locked
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-      {/* footer */}
-      <div
-        style={{
-          padding: '18px 22px',
-          borderTop: '1px solid var(--line)',
-          background: 'var(--surface)',
-          flexShrink: 0,
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 14,
-          }}
-        >
-          <div>
+            {err && (
+              <div
+                className="mono"
+                style={{ fontSize: 12, color: 'var(--rust)' }}
+              >
+                {err}
+              </div>
+            )}
+          </div>
+
+          {/* footer */}
+          <div
+            style={{
+              padding: '18px 22px',
+              borderTop: '1px solid var(--line)',
+              background: 'var(--surface)',
+              flexShrink: 0,
+            }}
+          >
             <div
-              className="mono"
               style={{
-                fontSize: 10.5,
-                fontWeight: 600,
-                letterSpacing: 0.6,
-                textTransform: 'uppercase',
-                color: 'var(--ink-3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 14,
               }}
             >
-              Total payout · {effectivePay}
+              <div>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 10.5,
+                    fontWeight: 600,
+                    letterSpacing: 0.6,
+                    textTransform: 'uppercase',
+                    color: 'var(--ink-3)',
+                  }}
+                >
+                  Total payout · {effectivePay}
+                </div>
+                <div
+                  className="mono num"
+                  style={{
+                    fontSize: 11.5,
+                    color: 'var(--ink-3)',
+                    marginTop: 2,
+                  }}
+                >
+                  {lbs(weight)} lb · {items.length} item
+                  {items.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+              <div
+                className="exp num"
+                style={{
+                  fontSize: 34,
+                  fontWeight: 800,
+                  color: 'var(--ink)',
+                  letterSpacing: -1,
+                }}
+              >
+                {money(total)}
+              </div>
             </div>
-            <div
-              className="mono num"
-              style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}
-            >
-              {lbs(weight)} lb · {items.length} item
-              {items.length !== 1 ? 's' : ''}
+            {disabledReason && !busy && (
+              <div
+                className="mono"
+                style={{
+                  fontSize: 11.5,
+                  fontWeight: 600,
+                  color: 'var(--gold)',
+                  textAlign: 'center',
+                  textTransform: 'capitalize',
+                  marginBottom: 10,
+                }}
+              >
+                {disabledReason}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Btn variant="ghost" onClick={onClose}>
+                Cancel
+              </Btn>
+              <Btn
+                variant="primary"
+                icon="check"
+                full
+                disabled={!canSave}
+                onClick={complete}
+              >
+                {busy ? 'Saving…' : 'Complete & save'}
+              </Btn>
             </div>
           </div>
-          <div
-            className="exp num"
-            style={{
-              fontSize: 34,
-              fontWeight: 800,
-              color: 'var(--ink)',
-              letterSpacing: -1,
-            }}
-          >
-            {money(total)}
-          </div>
-        </div>
-        {disabledReason && !busy && (
-          <div
-            className="mono"
-            style={{
-              fontSize: 11.5,
-              fontWeight: 600,
-              color: 'var(--gold)',
-              textAlign: 'center',
-              textTransform: 'capitalize',
-              marginBottom: 10,
-            }}
-          >
-            {disabledReason}
-          </div>
-        )}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Btn variant="ghost" onClick={onClose}>
-            Cancel
-          </Btn>
-          <Btn
-            variant="primary"
-            icon="check"
-            full
-            disabled={!canSave}
-            onClick={complete}
-          >
-            {busy ? 'Saving…' : 'Complete & save'}
-          </Btn>
-        </div>
-      </div>
+        </>
+      )}
     </SlideOver>
   );
 }

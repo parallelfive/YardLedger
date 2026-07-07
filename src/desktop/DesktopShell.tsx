@@ -352,7 +352,11 @@ export default function DesktopShell() {
             <TicketDetail t={overlay.data} onClose={nav.close} />
           )}
           {overlay?.type === 'buy' && (
-            <BuyFlow onClose={nav.close} onDone={done} />
+            <BuyFlow
+              onClose={nav.close}
+              onDone={done}
+              onSaved={refreshReceipts}
+            />
           )}
           {overlay?.type === 'sale' && (
             <SaleFlow onClose={nav.close} onDone={done} />
