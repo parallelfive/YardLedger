@@ -191,10 +191,17 @@ export default function NewTransactionScreen({ navigation }: Props) {
   );
 
   // Add a line item from the keypad sheet, applying any authorized override.
+  // weightData carries the gross/tare reading when the line was weighed on the
+  // scale, so the receipt records it alongside the net.
   const handleAddMaterial = useCallback(
-    (metal: Metal, weight: number, overridePrice: number | null) => {
+    (
+      metal: Metal,
+      weight: number,
+      overridePrice: number | null,
+      weightData?: { net: number; gross?: number; tare?: number }
+    ) => {
       const newIndex = tx.lineItems.length;
-      tx.addLineItem(metal, weight);
+      tx.addLineItem(metal, weight, weightData);
       setShowAddSheet(false);
       if (overridePrice != null) {
         // Open the access-code gate for the new line's index directly. The

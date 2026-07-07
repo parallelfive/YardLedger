@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { Metal } from '../types';
 import { fetchMetals } from '../services/metals';
 import { addToRecentMetals } from './AddLineItemModal';
+import { useTarePresets } from '../hooks/useTarePresets';
 import { useT } from '../hooks/useT';
 import { MetalDot, Tag, fmtMoney, type Tone } from './foundry';
 import { type Palette, spacing, borderRadius, fonts } from '../constants';
@@ -34,14 +35,27 @@ function tierLabel(
   return null;
 }
 
+interface WeightData {
+  net: number;
+  gross?: number;
+  tare?: number;
+}
+
 interface AddMaterialKeypadProps {
   /**
    * Called when the operator commits a line. `overridePrice` is non-null only
    * when the operator entered a different unit price — the parent screen then
    * routes it through the existing AccessCodeModal override flow so the price
-   * change is still admin-gated and tracked per line item.
+   * change is still admin-gated and tracked per line item. `weightData` is set
+   * only when the line was weighed gross − tare, so the receipt records the
+   * scale reading alongside the net.
    */
-  onAdd: (metal: Metal, weight: number, overridePrice: number | null) => void;
+  onAdd: (
+    metal: Metal,
+    weight: number,
+    overridePrice: number | null,
+    weightData?: WeightData
+  ) => void;
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'del'];
@@ -50,6 +64,7 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
   const { t } = useT();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
+  const { presets } = useTarePresets();
   const [metals, setMetals] = useState<Metal[]>([]);
   const [loading, setLoading] = useState(true);
   const [metal, setMetal] = useState<Metal | null>(null);
@@ -57,6 +72,12 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
   const [overridePrice, setOverridePrice] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const [draftPrice, setDraftPrice] = useState('');
+  // Weigh-in: net keyed directly, or gross − tare (a vehicle on the scale). In
+  // tare mode the keypad drives whichever field is active.
+  const [weighMode, setWeighMode] = useState<'net' | 'tare'>('net');
+  const [grossStr, setGrossStr] = useState('');
+  const [tareStr, setTareStr] = useState('');
+  const [activeField, setActiveField] = useState<'gross' | 'tare'>('gross');
 
   useEffect(() => {
     let active = true;
@@ -75,22 +96,42 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
     };
   }, []);
 
-  const weight = parseFloat(weightStr) || 0;
+  const grossW = parseFloat(grossStr) || 0;
+  const tareW = parseFloat(tareStr) || 0;
+  // Net drives pricing in both modes: direct entry, or gross − tare clamped ≥ 0.
+  const netWeight =
+    weighMode === 'tare'
+      ? Math.max(0, grossW - tareW)
+      : parseFloat(weightStr) || 0;
   const price = overridePrice ?? (metal ? Number(metal.price_per_lb) : 0);
-  const total = weight * price;
+  const total = netWeight * price;
   const overridden =
     metal != null &&
     overridePrice != null &&
     overridePrice !== Number(metal.price_per_lb);
 
+  // The keypad edits one string at a time — the net field, or the focused
+  // gross/tare field in tare mode.
+  const activeStr =
+    weighMode === 'net'
+      ? weightStr
+      : activeField === 'gross'
+        ? grossStr
+        : tareStr;
+  const setActiveStr = (fn: (w: string) => string) => {
+    if (weighMode === 'net') setWeightStr(fn);
+    else if (activeField === 'gross') setGrossStr(fn);
+    else setTareStr(fn);
+  };
+
   const onKey = (k: string) => {
     if (k === 'del') {
-      setWeightStr((w) => w.slice(0, -1));
+      setActiveStr((w) => w.slice(0, -1));
       return;
     }
-    if (k === '.' && weightStr.includes('.')) return;
-    if (weightStr.replace('.', '').length >= 6) return;
-    setWeightStr((w) => w + k);
+    if (k === '.' && activeStr.includes('.')) return;
+    if (activeStr.replace('.', '').length >= 6) return;
+    setActiveStr((w) => w + k);
   };
 
   const resetMetal = (m: Metal) => {
@@ -98,6 +139,10 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
     setOverridePrice(null);
     setEditing(false);
     setWeightStr('');
+    setGrossStr('');
+    setTareStr('');
+    setWeighMode('net');
+    setActiveField('gross');
   };
 
   const commitDraftPrice = () => {
@@ -107,9 +152,13 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
   };
 
   const handleAdd = () => {
-    if (!metal || weight <= 0) return;
+    if (!metal || netWeight <= 0) return;
     addToRecentMetals(metal);
-    onAdd(metal, weight, overridden ? price : null);
+    const weightData: WeightData | undefined =
+      weighMode === 'tare'
+        ? { net: netWeight, gross: grossW, tare: tareW }
+        : undefined;
+    onAdd(metal, netWeight, overridden ? price : null, weightData);
   };
 
   const list = useMemo(() => metals, [metals]);
@@ -187,16 +236,96 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
         ) : null}
       </TouchableOpacity>
 
-      {/* Big weight readout */}
-      <View style={styles.readout}>
-        <Text style={styles.readoutWeight}>
-          {weightStr || '0'}
-          <Text style={styles.readoutUnit}> lb</Text>
-        </Text>
-        <Text style={styles.readoutPrice}>
-          {fmtMoney(price)}/lb · = {fmtMoney(total)}
-        </Text>
+      {/* Weigh mode: net keyed directly, or gross − tare on the scale */}
+      <View style={styles.modeRow}>
+        {(['net', 'tare'] as const).map((md) => {
+          const on = weighMode === md;
+          return (
+            <TouchableOpacity
+              key={md}
+              style={[styles.modeBtn, on && styles.modeBtnActive]}
+              onPress={() => setWeighMode(md)}
+              activeOpacity={0.7}
+            >
+              <Text
+                style={[styles.modeBtnText, on && styles.modeBtnTextActive]}
+              >
+                {md === 'net' ? t.netWeight : t.grossTare}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
+
+      {weighMode === 'net' ? (
+        /* Big net readout */
+        <View style={styles.readout}>
+          <Text style={styles.readoutWeight}>
+            {weightStr || '0'}
+            <Text style={styles.readoutUnit}> lb</Text>
+          </Text>
+          <Text style={styles.readoutPrice}>
+            {fmtMoney(price)}/lb · = {fmtMoney(total)}
+          </Text>
+        </View>
+      ) : (
+        /* Gross − tare: keypad drives the highlighted field */
+        <View style={styles.tareReadout}>
+          <View style={styles.tareFields}>
+            <TouchableOpacity
+              style={[
+                styles.tareField,
+                activeField === 'gross' && styles.tareFieldActive,
+              ]}
+              onPress={() => setActiveField('gross')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.tareFieldLabel}>{t.grossWeightLabel}</Text>
+              <Text style={styles.tareFieldValue}>{grossStr || '0'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.tareMinus}>−</Text>
+            <TouchableOpacity
+              style={[
+                styles.tareField,
+                activeField === 'tare' && styles.tareFieldActive,
+              ]}
+              onPress={() => setActiveField('tare')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.tareFieldLabel}>{t.tareWeightLabel}</Text>
+              <Text style={styles.tareFieldValue}>{tareStr || '0'}</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.tareNet}>
+            {t.netWeightResult} {netWeight.toFixed(2)} lb · {fmtMoney(total)}
+          </Text>
+          {presets.length > 0 ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.presetRow}
+              keyboardShouldPersistTaps="handled"
+            >
+              {presets.map((p) => (
+                <TouchableOpacity
+                  key={p.id}
+                  style={styles.presetChip}
+                  onPress={() => {
+                    setTareStr(String(p.tare_weight));
+                    setActiveField('gross');
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.presetChipName}>{p.name}</Text>
+                  <Text style={styles.presetChipWeight}>
+                    {p.tare_weight} lb
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          ) : null}
+        </View>
+      )}
 
       {/* Unit price + override */}
       <View
@@ -283,19 +412,19 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
       </View>
 
       <TouchableOpacity
-        style={[styles.addButton, weight <= 0 && styles.addButtonDisabled]}
+        style={[styles.addButton, netWeight <= 0 && styles.addButtonDisabled]}
         onPress={handleAdd}
-        disabled={weight <= 0}
+        disabled={netWeight <= 0}
       >
         <Ionicons
           name="add"
           size={18}
-          color={weight <= 0 ? colors.textTertiary : colors.accentInk}
+          color={netWeight <= 0 ? colors.textTertiary : colors.accentInk}
         />
         <Text
           style={[
             styles.addButtonText,
-            weight <= 0 && styles.addButtonTextDisabled,
+            netWeight <= 0 && styles.addButtonTextDisabled,
           ]}
         >
           {t.addAmount} {fmtMoney(total)}
@@ -391,6 +520,97 @@ const makeStyles = (colors: Palette) =>
       fontSize: 14,
       fontFamily: fonts.monoSemiBold,
       marginTop: spacing.sm,
+    },
+
+    modeRow: {
+      flexDirection: 'row',
+      gap: spacing.sm,
+      marginBottom: spacing.sm,
+    },
+    modeBtn: {
+      flex: 1,
+      paddingVertical: 9,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: 'center',
+    },
+    modeBtnActive: {
+      backgroundColor: colors.accentMuted,
+      borderColor: colors.accentLine,
+    },
+    modeBtnText: {
+      color: colors.textTertiary,
+      fontSize: 12,
+      fontFamily: fonts.monoSemiBold,
+      letterSpacing: 0.3,
+      textTransform: 'uppercase',
+    },
+    modeBtnTextActive: { color: colors.accent },
+
+    tareReadout: { paddingVertical: spacing.sm },
+    tareFields: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    tareField: {
+      flex: 1,
+      paddingVertical: 10,
+      paddingHorizontal: 12,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.surface,
+      borderWidth: 1.5,
+      borderColor: colors.border,
+    },
+    tareFieldActive: { borderColor: colors.accent },
+    tareFieldLabel: {
+      color: colors.textTertiary,
+      fontSize: 10,
+      fontFamily: fonts.mono,
+      letterSpacing: 0.5,
+      textTransform: 'uppercase',
+    },
+    tareFieldValue: {
+      color: colors.textPrimary,
+      fontSize: 24,
+      fontFamily: fonts.monoSemiBold,
+      marginTop: 2,
+    },
+    tareMinus: {
+      color: colors.textTertiary,
+      fontSize: 20,
+      fontFamily: fonts.monoSemiBold,
+    },
+    tareNet: {
+      color: colors.accent,
+      fontSize: 14,
+      fontFamily: fonts.monoSemiBold,
+      textAlign: 'center',
+      marginTop: spacing.sm,
+    },
+    presetRow: { gap: 7, paddingTop: spacing.sm, paddingRight: spacing.sm },
+    presetChip: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingVertical: 7,
+      paddingHorizontal: 11,
+      borderRadius: 99,
+      backgroundColor: colors.chip,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    presetChipName: {
+      color: colors.textSecondary,
+      fontSize: 12.5,
+      fontFamily: fonts.sansSemiBold,
+    },
+    presetChipWeight: {
+      color: colors.textTertiary,
+      fontSize: 11.5,
+      fontFamily: fonts.mono,
     },
 
     priceRow: {
