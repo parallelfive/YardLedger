@@ -412,7 +412,11 @@ export default function DesktopShell() {
             />
           )}
           {overlay?.type === 'sale' && (
-            <SaleFlow onClose={nav.close} onDone={done} />
+            <SaleFlow
+              onClose={nav.close}
+              onDone={done}
+              onSaved={refreshReceipts}
+            />
           )}
           {overlay?.type === 'closeday' && <CloseDay onClose={nav.close} />}
         </div>

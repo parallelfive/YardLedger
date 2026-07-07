@@ -1163,9 +1163,12 @@ export function BuyFlow({
 export function SaleFlow({
   onClose,
   onDone,
+  onSaved,
 }: {
   onClose: () => void;
   onDone: () => void;
+  // Refresh the shell's data after each load without closing (quick mode).
+  onSaved?: () => void;
 }) {
   const { metals } = useMetals();
   const list = metals as unknown as MetalRow[];
@@ -1179,17 +1182,35 @@ export function SaleFlow({
   const [price, setPrice] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [saved, setSaved] = useState<{
+    loadNo: string;
+    total: number;
+    weight: number;
+    buyer: string;
+    metal: string;
+  } | null>(null);
 
   const metal = list.find((m) => m.id === metalId) || list[0];
   const total = weight * price;
   const canSave = !!metal && weight > 0 && price > 0 && !busy;
+
+  // Start a fresh load after a save; keepBuyer carries the processor over for a
+  // yard shipping several loads to the same mill.
+  const reset = (keepBuyer: boolean) => {
+    setMetalId('');
+    setWeight(0);
+    setPrice(0);
+    setErr(null);
+    setSaved(null);
+    if (!keepBuyer) setBuyer('');
+  };
 
   const complete = async () => {
     if (!canSave || !metal) return;
     setBusy(true);
     setErr(null);
     try {
-      await createSale({
+      const sale = await createSale({
         metalId: metal.id,
         metalName: metal.name,
         weight,
@@ -1198,7 +1219,15 @@ export function SaleFlow({
         buyerName: buyer.trim() || undefined,
         workerId,
       });
-      onDone();
+      onSaved?.();
+      const id = (sale as { id?: string })?.id ?? '';
+      setSaved({
+        loadNo: id ? 'SO-' + id.slice(0, 8) : '—',
+        total,
+        weight,
+        buyer: buyer.trim(),
+        metal: metal.name,
+      });
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -1215,131 +1244,278 @@ export function SaleFlow({
         icon="truck"
         tone="var(--teal)"
       />
-      <div
-        className="screen-scroll"
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: 22,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 18,
-        }}
-      >
-        <Field label="Processor / buyer">
-          <TextInput
-            value={buyer}
-            onChange={setBuyer}
-            placeholder="e.g. Western Copper Mills"
-          />
-        </Field>
-        <Field label="Material">
-          <select
-            value={metalId}
-            onChange={(e) => setMetalId(e.target.value)}
-            style={{
-              width: '100%',
-              height: 44,
-              padding: '0 14px',
-              background: 'var(--surface)',
-              border: '1px solid var(--line)',
-              borderRadius: 11,
-              color: 'var(--ink)',
-              fontSize: 14.5,
-              fontWeight: 550,
-              outline: 'none',
-            }}
-          >
-            <option value="">Select a metal…</option>
-            {list.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <Field label="Weight (lb)">
-              <TextInput
-                value={weight || ''}
-                onChange={(v) => setWeight(Number(v) || 0)}
-                mono
-                align="right"
-              />
-            </Field>
-          </div>
-          <div style={{ flex: 1 }}>
-            <Field label="Price / lb">
-              <TextInput
-                value={price || ''}
-                onChange={(v) => setPrice(Number(v) || 0)}
-                mono
-                prefix="$"
-                align="right"
-              />
-            </Field>
-          </div>
-        </div>
-        <Card
-          pad={20}
+      {saved ? (
+        <div
           style={{
-            textAlign: 'center',
-            background: 'color-mix(in oklab, var(--teal) 7%, var(--surface))',
-            border:
-              '1px solid color-mix(in oklab, var(--teal) 24%, var(--line))',
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
           }}
         >
-          <GroupLabel>Load total</GroupLabel>
           <div
-            className="exp num"
+            className="screen-scroll"
             style={{
-              fontSize: 38,
-              fontWeight: 800,
-              color: 'var(--teal)',
-              letterSpacing: -1,
-              marginTop: 6,
+              flex: 1,
+              overflowY: 'auto',
+              padding: 22,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
             }}
           >
-            {money(total)}
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                gap: 12,
+                paddingTop: 18,
+              }}
+            >
+              <div
+                style={{
+                  width: 62,
+                  height: 62,
+                  borderRadius: 17,
+                  background:
+                    'color-mix(in oklab, var(--teal) 15%, transparent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Icon name="check" size={31} color="var(--teal)" stroke={2.4} />
+              </div>
+              <div>
+                <div
+                  className="exp"
+                  style={{
+                    fontSize: 21,
+                    fontWeight: 800,
+                    color: 'var(--ink)',
+                    letterSpacing: -0.4,
+                  }}
+                >
+                  Load shipped
+                </div>
+                <div
+                  className="mono num"
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--ink-3)',
+                    marginTop: 4,
+                  }}
+                >
+                  {saved.loadNo}
+                </div>
+              </div>
+            </div>
+            <Card pad={18}>
+              {(
+                [
+                  ['Revenue', money(saved.total)],
+                  ['Material', saved.metal],
+                  ['Weight', `${lbs(saved.weight)} lb`],
+                  ['Processor', saved.buyer || '—'],
+                ] as const
+              ).map(([k, v], idx, arr) => (
+                <div
+                  key={k}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    padding: '11px 0',
+                    borderBottom:
+                      idx < arr.length - 1 ? '1px solid var(--line)' : 'none',
+                  }}
+                >
+                  <span style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>
+                    {k}
+                  </span>
+                  <span
+                    className="mono num"
+                    style={{
+                      fontSize: 13.5,
+                      fontWeight: 600,
+                      color: 'var(--ink)',
+                    }}
+                  >
+                    {v}
+                  </span>
+                </div>
+              ))}
+            </Card>
           </div>
           <div
-            className="mono num"
-            style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}
+            style={{
+              padding: '18px 22px',
+              borderTop: '1px solid var(--line)',
+              background: 'var(--surface)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              flexShrink: 0,
+            }}
           >
-            {lbs(weight)} lb @ {money(price)}/lb
+            <Btn
+              variant="primary"
+              tone="var(--teal)"
+              icon="plus"
+              full
+              onClick={() => reset(false)}
+            >
+              New load
+            </Btn>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Btn
+                variant="ghost"
+                icon="truck"
+                full
+                onClick={() => reset(true)}
+              >
+                Same processor
+              </Btn>
+              <Btn variant="ghost" full onClick={onDone}>
+                Done
+              </Btn>
+            </div>
           </div>
-        </Card>
-        {err && (
-          <div className="mono" style={{ fontSize: 12, color: 'var(--rust)' }}>
-            {err}
+        </div>
+      ) : (
+        <>
+          <div
+            className="screen-scroll"
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: 22,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
+            }}
+          >
+            <Field label="Processor / buyer">
+              <TextInput
+                value={buyer}
+                onChange={setBuyer}
+                placeholder="e.g. Western Copper Mills"
+              />
+            </Field>
+            <Field label="Material">
+              <select
+                value={metalId}
+                onChange={(e) => setMetalId(e.target.value)}
+                style={{
+                  width: '100%',
+                  height: 44,
+                  padding: '0 14px',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--line)',
+                  borderRadius: 11,
+                  color: 'var(--ink)',
+                  fontSize: 14.5,
+                  fontWeight: 550,
+                  outline: 'none',
+                }}
+              >
+                <option value="">Select a metal…</option>
+                {list.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <Field label="Weight (lb)">
+                  <TextInput
+                    value={weight || ''}
+                    onChange={(v) => setWeight(Number(v) || 0)}
+                    mono
+                    align="right"
+                  />
+                </Field>
+              </div>
+              <div style={{ flex: 1 }}>
+                <Field label="Price / lb">
+                  <TextInput
+                    value={price || ''}
+                    onChange={(v) => setPrice(Number(v) || 0)}
+                    mono
+                    prefix="$"
+                    align="right"
+                  />
+                </Field>
+              </div>
+            </div>
+            <Card
+              pad={20}
+              style={{
+                textAlign: 'center',
+                background:
+                  'color-mix(in oklab, var(--teal) 7%, var(--surface))',
+                border:
+                  '1px solid color-mix(in oklab, var(--teal) 24%, var(--line))',
+              }}
+            >
+              <GroupLabel>Load total</GroupLabel>
+              <div
+                className="exp num"
+                style={{
+                  fontSize: 38,
+                  fontWeight: 800,
+                  color: 'var(--teal)',
+                  letterSpacing: -1,
+                  marginTop: 6,
+                }}
+              >
+                {money(total)}
+              </div>
+              <div
+                className="mono num"
+                style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}
+              >
+                {lbs(weight)} lb @ {money(price)}/lb
+              </div>
+            </Card>
+            {err && (
+              <div
+                className="mono"
+                style={{ fontSize: 12, color: 'var(--rust)' }}
+              >
+                {err}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      <div
-        style={{
-          padding: '18px 22px',
-          borderTop: '1px solid var(--line)',
-          background: 'var(--surface)',
-          display: 'flex',
-          gap: 10,
-          flexShrink: 0,
-        }}
-      >
-        <Btn variant="ghost" onClick={onClose}>
-          Cancel
-        </Btn>
-        <Btn
-          variant="primary"
-          tone="var(--teal)"
-          icon="check"
-          full
-          disabled={!canSave}
-          onClick={complete}
-        >
-          {busy ? 'Saving…' : 'Create load'}
-        </Btn>
-      </div>
+          <div
+            style={{
+              padding: '18px 22px',
+              borderTop: '1px solid var(--line)',
+              background: 'var(--surface)',
+              display: 'flex',
+              gap: 10,
+              flexShrink: 0,
+            }}
+          >
+            <Btn variant="ghost" onClick={onClose}>
+              Cancel
+            </Btn>
+            <Btn
+              variant="primary"
+              tone="var(--teal)"
+              icon="check"
+              full
+              disabled={!canSave}
+              onClick={complete}
+            >
+              {busy ? 'Saving…' : 'Create load'}
+            </Btn>
+          </div>
+        </>
+      )}
     </SlideOver>
   );
 }
