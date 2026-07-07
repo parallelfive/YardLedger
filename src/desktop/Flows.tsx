@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAppSelector, type RootState } from '../store';
 import { useMetals } from '../hooks/useMetals';
+import { useTarePresets } from '../hooks/useTarePresets';
 import { createReceipt } from '../services/receipts';
 import { createSale } from '../services/sales';
 import type { LineItemInput } from '../types';
@@ -91,6 +92,7 @@ export function BuyFlow({
   onDone: () => void;
 }) {
   const { metals } = useMetals();
+  const { presets, create: createPreset } = useTarePresets();
   const list = metals as unknown as MetalRow[];
   const workerId = useAppSelector(
     (s: RootState) => s.auth.activeIdentity?.user_id ?? s.auth.profile?.id ?? ''
@@ -133,6 +135,26 @@ export function BuyFlow({
   const addMetal = (id: string) => {
     setItems([...items, { id, mode: 'net', net: 0, gross: 0, tare: 0 }]);
     setAdding(false);
+  };
+
+  // Save the tare an operator just keyed as a reusable preset (e.g. a regular's
+  // truck), so next time they pick it instead of re-weighing empty.
+  const savePreset = async (tare: number) => {
+    if (!tare || tare <= 0) return;
+    const name =
+      typeof window !== 'undefined' && window.prompt
+        ? window.prompt('Name this tare (e.g. Blue Peterbilt)')?.trim()
+        : '';
+    if (!name) return;
+    try {
+      await createPreset({
+        name,
+        tareWeight: tare,
+        createdBy: workerId || null,
+      });
+    } catch (e) {
+      setErr((e as Error).message);
+    }
   };
 
   // Regulated / restricted / catalytic buys legally require seller ID, a
@@ -444,58 +466,136 @@ export function BuyFlow({
                       <div
                         style={{
                           display: 'flex',
-                          alignItems: 'center',
-                          gap: 7,
-                          flexWrap: 'wrap',
+                          flexDirection: 'column',
+                          gap: 8,
                         }}
                       >
-                        <span style={miniLabel}>Gross</span>
-                        <input
-                          type="number"
-                          value={it.gross || ''}
-                          onChange={(e) =>
-                            patch(i, { gross: Number(e.target.value) })
-                          }
-                          placeholder="0"
-                          className="mono num"
-                          style={{ ...wInput, width: 76 }}
-                        />
-                        <span
-                          style={{ color: 'var(--ink-3)', fontWeight: 600 }}
-                        >
-                          −
-                        </span>
-                        <span style={miniLabel}>Tare</span>
-                        <input
-                          type="number"
-                          value={it.tare || ''}
-                          onChange={(e) =>
-                            patch(i, { tare: Number(e.target.value) })
-                          }
-                          placeholder="0"
-                          className="mono num"
-                          style={{ ...wInput, width: 76 }}
-                        />
-                        <span
+                        <div
                           style={{
-                            marginLeft: 'auto',
                             display: 'flex',
-                            alignItems: 'baseline',
-                            gap: 5,
+                            alignItems: 'center',
+                            gap: 7,
+                            flexWrap: 'wrap',
                           }}
                         >
-                          <span style={miniLabel}>Net</span>
-                          <span
+                          <span style={miniLabel}>Gross</span>
+                          <input
+                            type="number"
+                            value={it.gross || ''}
+                            onChange={(e) =>
+                              patch(i, { gross: Number(e.target.value) })
+                            }
+                            placeholder="0"
                             className="mono num"
+                            style={{ ...wInput, width: 76 }}
+                          />
+                          <span
+                            style={{ color: 'var(--ink-3)', fontWeight: 600 }}
+                          >
+                            −
+                          </span>
+                          <span style={miniLabel}>Tare</span>
+                          <input
+                            type="number"
+                            value={it.tare || ''}
+                            onChange={(e) =>
+                              patch(i, { tare: Number(e.target.value) })
+                            }
+                            placeholder="0"
+                            className="mono num"
+                            style={{ ...wInput, width: 76 }}
+                          />
+                          <span
                             style={{
-                              fontSize: 14,
-                              fontWeight: 700,
-                              color: net > 0 ? 'var(--ink)' : 'var(--ink-3)',
+                              marginLeft: 'auto',
+                              display: 'flex',
+                              alignItems: 'baseline',
+                              gap: 5,
                             }}
                           >
-                            {lbs(net)} lb
+                            <span style={miniLabel}>Net</span>
+                            <span
+                              className="mono num"
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 700,
+                                color: net > 0 ? 'var(--ink)' : 'var(--ink-3)',
+                              }}
+                            >
+                              {lbs(net)} lb
+                            </span>
                           </span>
-                        </span>
+                        </div>
+                        {/* saved tares — pick a regular's rig, or save this one */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 7,
+                          }}
+                        >
+                          <select
+                            value=""
+                            onChange={(e) => {
+                              const p = presets.find(
+                                (x) => x.id === e.target.value
+                              );
+                              if (p) patch(i, { tare: p.tare_weight });
+                            }}
+                            className="mono"
+                            style={{
+                              flex: 1,
+                              height: 32,
+                              padding: '0 8px',
+                              background: 'var(--surface-2)',
+                              border: '1px solid var(--line)',
+                              borderRadius: 8,
+                              color: presets.length
+                                ? 'var(--ink-2)'
+                                : 'var(--ink-3)',
+                              fontSize: 12,
+                              outline: 'none',
+                            }}
+                          >
+                            <option value="">
+                              {presets.length
+                                ? 'Tare preset…'
+                                : 'No saved tares yet'}
+                            </option>
+                            {presets.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} — {lbs(p.tare_weight)} lb
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            className="tap mono"
+                            onClick={() => savePreset(it.tare)}
+                            disabled={!it.tare}
+                            style={{
+                              height: 32,
+                              padding: '0 11px',
+                              borderRadius: 8,
+                              fontSize: 11.5,
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              background: 'var(--surface)',
+                              border: '1px solid var(--line)',
+                              color: it.tare ? 'var(--accent)' : 'var(--ink-3)',
+                              opacity: it.tare ? 1 : 0.5,
+                            }}
+                          >
+                            <Icon
+                              name="plus"
+                              size={13}
+                              color={it.tare ? 'var(--accent)' : 'var(--ink-3)'}
+                              stroke={2.4}
+                            />
+                            Save
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
