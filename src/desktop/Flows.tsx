@@ -4,6 +4,7 @@ import { useMetals } from '../hooks/useMetals';
 import { useTarePresets } from '../hooks/useTarePresets';
 import { createReceipt } from '../services/receipts';
 import { createSale } from '../services/sales';
+import { printComplianceRecord } from './print';
 import type { LineItemInput } from '../types';
 import Icon from './Icon';
 import {
@@ -119,6 +120,12 @@ export function BuyFlow({
     weight: number;
     items: number;
     seller: string;
+    dl: string;
+    plate: string;
+    affirmed: boolean;
+    materials: string;
+    pay: string;
+    regulated: boolean;
   } | null>(null);
 
   const byId = useMemo(() => new Map(list.map((m) => [m.id, m])), [list]);
@@ -264,6 +271,15 @@ export function BuyFlow({
         weight,
         items: items.length,
         seller: seller.trim(),
+        dl: dl.trim(),
+        plate: vehiclePlate.trim(),
+        affirmed: needsCompliance ? affirmed : false,
+        materials: items
+          .map((it) => byId.get(it.id)?.name)
+          .filter(Boolean)
+          .join(', '),
+        pay: effectivePay,
+        regulated: needsCompliance,
       });
     } catch (e) {
       setErr((e as Error).message);
@@ -416,6 +432,27 @@ export function BuyFlow({
                 Done
               </Btn>
             </div>
+            <Btn
+              variant="ghost"
+              icon="printer"
+              full
+              onClick={() =>
+                printComplianceRecord({
+                  no: saved.number,
+                  seller: saved.seller || 'Walk-in',
+                  dl: saved.dl || '—',
+                  plate: saved.plate || '—',
+                  vehicle: '—',
+                  materials: saved.materials,
+                  weight: saved.weight,
+                  paid: saved.total,
+                  pay: saved.pay,
+                  affirmed: saved.affirmed,
+                }).catch(() => {})
+              }
+            >
+              {saved.regulated ? 'Print purchase record' : 'Print record'}
+            </Btn>
           </div>
         </div>
       ) : (
