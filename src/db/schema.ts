@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb';
 
 export const schema = appSchema({
-  version: 1,
+  version: 2,
   tables: [
     // Admin-managed metal catalog with pricing
     tableSchema({
@@ -55,7 +55,9 @@ export const schema = appSchema({
         { name: 'receipt_id', type: 'string' },
         { name: 'metal_id', type: 'string' },
         { name: 'metal_name', type: 'string' }, // denormalized for offline display
-        { name: 'weight', type: 'number' },
+        { name: 'weight', type: 'number' }, // net weight (gross − tare, or keyed directly)
+        { name: 'gross_weight', type: 'number', isOptional: true }, // scale reading incl. vehicle/container
+        { name: 'tare_weight', type: 'number', isOptional: true }, // empty vehicle/container weight
         { name: 'price_per_lb', type: 'number' }, // snapshot at time of transaction
         { name: 'original_price_per_lb', type: 'number' }, // catalog price before any override
         { name: 'is_price_override', type: 'boolean' },

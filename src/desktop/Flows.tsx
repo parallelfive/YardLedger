@@ -56,6 +56,32 @@ const RANK: Record<Tier, number> = {
   catalytic: 3,
 };
 
+// A line on the buy ticket. Weight is captured either as a net figure keyed
+// straight in (walk-ins) or as gross − tare (a truck on the scale), matching
+// the mobile AddLineItemModal. `net` mirrors the mobile stored net weight.
+type WeighMode = 'net' | 'tare';
+interface BuyItem {
+  id: string;
+  mode: WeighMode;
+  net: number;
+  gross: number;
+  tare: number;
+}
+// Effective net weight for a line — gross minus tare when weighing a vehicle,
+// clamped at 0 so a half-entered gross/tare never goes negative.
+const netOf = (it: BuyItem): number =>
+  it.mode === 'tare'
+    ? Math.max(0, (it.gross || 0) - (it.tare || 0))
+    : it.net || 0;
+
+const miniLabel = {
+  fontSize: 10.5,
+  fontWeight: 600,
+  color: 'var(--ink-3)',
+  textTransform: 'uppercase',
+  letterSpacing: 0.4,
+} as const;
+
 // ── Buy intake ──────────────────────────────────────────────────────────────
 export function BuyFlow({
   onClose,
@@ -74,7 +100,7 @@ export function BuyFlow({
   const [dl, setDl] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
   const [affirmed, setAffirmed] = useState(false);
-  const [items, setItems] = useState<{ id: string; weight: number }[]>([]);
+  const [items, setItems] = useState<BuyItem[]>([]);
   const [pay, setPay] = useState<'cash' | 'check'>('cash');
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -96,16 +122,16 @@ export function BuyFlow({
   const checkOnly = tier === 'catalytic';
   const effectivePay: 'cash' | 'check' = checkOnly ? 'check' : pay;
   const total = items.reduce(
-    (s, it) => s + it.weight * (byId.get(it.id)?.price_per_lb ?? 0),
+    (s, it) => s + netOf(it) * (byId.get(it.id)?.price_per_lb ?? 0),
     0
   );
-  const weight = items.reduce((s, it) => s + it.weight, 0);
+  const weight = items.reduce((s, it) => s + netOf(it), 0);
 
-  const setW = (idx: number, w: number) =>
-    setItems(items.map((it, i) => (i === idx ? { ...it, weight: w } : it)));
+  const patch = (idx: number, p: Partial<BuyItem>) =>
+    setItems(items.map((it, i) => (i === idx ? { ...it, ...p } : it)));
   const remove = (idx: number) => setItems(items.filter((_, i) => i !== idx));
   const addMetal = (id: string) => {
-    setItems([...items, { id, weight: 0 }]);
+    setItems([...items, { id, mode: 'net', net: 0, gross: 0, tare: 0 }]);
     setAdding(false);
   };
 
@@ -143,15 +169,20 @@ export function BuyFlow({
     try {
       const lineItems: LineItemInput[] = items.map((it) => {
         const m = byId.get(it.id)!;
+        const net = netOf(it);
         return {
           metalId: m.id,
           metalName: m.name,
-          weight: it.weight,
+          weight: net,
+          // Persist the scale reading only when tare was actually used, so a
+          // straight net entry doesn't record a phantom 0-lb gross/tare.
+          grossWeight: it.mode === 'tare' ? it.gross || 0 : null,
+          tareWeight: it.mode === 'tare' ? it.tare || 0 : null,
           pricePerLb: m.price_per_lb,
           originalPricePerLb: m.price_per_lb,
           isPriceOverride: false,
           overrideApprovedBy: null,
-          total: it.weight * m.price_per_lb,
+          total: net * m.price_per_lb,
           isRegulated: !!m.is_regulated,
           isRestricted: !!m.is_restricted,
           isCatalytic: !!m.is_catalytic,
@@ -251,14 +282,24 @@ export function BuyFlow({
             {items.map((it, i) => {
               const m = byId.get(it.id);
               if (!m) return null;
-              const sub = it.weight * m.price_per_lb;
+              const net = netOf(it);
+              const sub = net * m.price_per_lb;
+              const wInput = {
+                height: 34,
+                textAlign: 'right' as const,
+                border: '1px solid var(--line)',
+                borderRadius: 9,
+                background: 'var(--surface-2)',
+                color: 'var(--ink)',
+                fontSize: 14,
+                fontWeight: 600,
+                padding: '0 8px',
+                outline: 'none',
+              };
               return (
                 <div
                   key={i}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
                     padding: '12px 14px',
                     background: 'var(--surface)',
                     border: '1px solid var(--line)',
@@ -266,92 +307,198 @@ export function BuyFlow({
                     borderLeft: `3px solid ${metalTone(m)}`,
                   }}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontSize: 13.5,
-                        fontWeight: 600,
-                        color: 'var(--ink)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {m.name}
+                  {/* header: metal · subtotal · remove */}
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 12 }}
+                  >
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontSize: 13.5,
+                          fontWeight: 600,
+                          color: 'var(--ink)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {m.name}
+                      </div>
+                      <div
+                        className="mono num"
+                        style={{
+                          fontSize: 11,
+                          color: 'var(--ink-3)',
+                          marginTop: 3,
+                        }}
+                      >
+                        {money(m.price_per_lb)}/lb ·{' '}
+                        <span
+                          style={{
+                            color: tierTone(tierOf(m)),
+                            fontWeight: 600,
+                          }}
+                        >
+                          {tierOf(m)}
+                        </span>
+                      </div>
                     </div>
-                    <div
+                    <span
                       className="mono num"
                       style={{
-                        fontSize: 11,
-                        color: 'var(--ink-3)',
-                        marginTop: 3,
+                        width: 78,
+                        textAlign: 'right',
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: 'var(--ink)',
                       }}
                     >
-                      {money(m.price_per_lb)}/lb ·{' '}
-                      <span
-                        style={{ color: tierTone(tierOf(m)), fontWeight: 600 }}
-                      >
-                        {tierOf(m)}
-                      </span>
-                    </div>
+                      {money(sub)}
+                    </span>
+                    <button
+                      className="tap"
+                      onClick={() => remove(i)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--ink-3)',
+                      }}
+                    >
+                      <Icon
+                        name="x"
+                        size={15}
+                        color="var(--ink-3)"
+                        stroke={2.2}
+                      />
+                    </button>
                   </div>
-                  <input
-                    type="number"
-                    value={it.weight || ''}
-                    onChange={(e) => setW(i, Number(e.target.value))}
-                    className="mono num"
+
+                  {/* weigh-in — key net directly, or gross − tare on the scale */}
+                  <div
                     style={{
-                      width: 72,
-                      height: 36,
-                      textAlign: 'right',
-                      border: '1px solid var(--line)',
-                      borderRadius: 9,
-                      background: 'var(--surface-2)',
-                      color: 'var(--ink)',
-                      fontSize: 14,
-                      fontWeight: 600,
-                      padding: '0 8px',
-                      outline: 'none',
-                    }}
-                  />
-                  <span
-                    className="mono"
-                    style={{ fontSize: 11, color: 'var(--ink-3)' }}
-                  >
-                    lb
-                  </span>
-                  <span
-                    className="mono num"
-                    style={{
-                      width: 78,
-                      textAlign: 'right',
-                      fontSize: 14,
-                      fontWeight: 700,
-                      color: 'var(--ink)',
-                    }}
-                  >
-                    {money(sub)}
-                  </span>
-                  <button
-                    className="tap"
-                    onClick={() => remove(i)}
-                    style={{
-                      width: 28,
-                      height: 28,
-                      borderRadius: 8,
+                      marginTop: 11,
                       display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--ink-3)',
+                      flexDirection: 'column',
+                      gap: 9,
                     }}
                   >
-                    <Icon
-                      name="x"
-                      size={15}
-                      color="var(--ink-3)"
-                      stroke={2.2}
-                    />
-                  </button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {(['net', 'tare'] as const).map((md) => {
+                        const on = it.mode === md;
+                        return (
+                          <button
+                            key={md}
+                            className="tap mono"
+                            onClick={() => patch(i, { mode: md })}
+                            style={{
+                              flex: 1,
+                              padding: '7px 0',
+                              borderRadius: 8,
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              letterSpacing: 0.3,
+                              textTransform: 'uppercase',
+                              background: on
+                                ? 'var(--accent-soft)'
+                                : 'var(--surface-2)',
+                              color: on ? 'var(--accent)' : 'var(--ink-3)',
+                              border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
+                            }}
+                          >
+                            {md === 'net' ? 'Net weight' : 'Gross − tare'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {it.mode === 'net' ? (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'flex-end',
+                          gap: 7,
+                        }}
+                      >
+                        <input
+                          type="number"
+                          value={it.net || ''}
+                          onChange={(e) =>
+                            patch(i, { net: Number(e.target.value) })
+                          }
+                          placeholder="0"
+                          className="mono num"
+                          style={{ ...wInput, width: 100 }}
+                        />
+                        <span
+                          className="mono"
+                          style={{ fontSize: 11, color: 'var(--ink-3)' }}
+                        >
+                          lb
+                        </span>
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 7,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <span style={miniLabel}>Gross</span>
+                        <input
+                          type="number"
+                          value={it.gross || ''}
+                          onChange={(e) =>
+                            patch(i, { gross: Number(e.target.value) })
+                          }
+                          placeholder="0"
+                          className="mono num"
+                          style={{ ...wInput, width: 76 }}
+                        />
+                        <span
+                          style={{ color: 'var(--ink-3)', fontWeight: 600 }}
+                        >
+                          −
+                        </span>
+                        <span style={miniLabel}>Tare</span>
+                        <input
+                          type="number"
+                          value={it.tare || ''}
+                          onChange={(e) =>
+                            patch(i, { tare: Number(e.target.value) })
+                          }
+                          placeholder="0"
+                          className="mono num"
+                          style={{ ...wInput, width: 76 }}
+                        />
+                        <span
+                          style={{
+                            marginLeft: 'auto',
+                            display: 'flex',
+                            alignItems: 'baseline',
+                            gap: 5,
+                          }}
+                        >
+                          <span style={miniLabel}>Net</span>
+                          <span
+                            className="mono num"
+                            style={{
+                              fontSize: 14,
+                              fontWeight: 700,
+                              color: net > 0 ? 'var(--ink)' : 'var(--ink-3)',
+                            }}
+                          >
+                            {lbs(net)} lb
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
