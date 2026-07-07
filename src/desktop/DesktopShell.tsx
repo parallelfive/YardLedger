@@ -14,6 +14,7 @@ import Sales from './screens/Sales';
 import Compliance from './screens/Compliance';
 import Settings from './screens/Settings';
 import { BuyFlow, SaleFlow } from './Flows';
+import CloseDay from './CloseDay';
 import { DeskAdminProvider } from './AdminActions';
 import { printReceipt } from '../utils/printReceipt';
 import {
@@ -174,6 +175,7 @@ type Overlay =
   | { type: 'ticket'; data: ReceiptRow }
   | { type: 'buy' }
   | { type: 'sale' }
+  | { type: 'closeday' }
   | null;
 
 export default function DesktopShell() {
@@ -249,6 +251,7 @@ export default function DesktopShell() {
     openBuy: () => setOverlay({ type: 'buy' }),
     openSale: () => setOverlay({ type: 'sale' }),
     openTicket: (r: ReceiptRow) => setOverlay({ type: 'ticket', data: r }),
+    openCloseDay: () => setOverlay({ type: 'closeday' }),
     close: () => setOverlay(null),
   };
 
@@ -361,6 +364,7 @@ export default function DesktopShell() {
           {overlay?.type === 'sale' && (
             <SaleFlow onClose={nav.close} onDone={done} />
           )}
+          {overlay?.type === 'closeday' && <CloseDay onClose={nav.close} />}
         </div>
       </DeskAdminProvider>
     </div>

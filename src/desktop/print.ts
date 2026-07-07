@@ -68,6 +68,56 @@ export async function printComplianceRecord(
   await Print.printAsync({ html: shell('Purchase Record', body) });
 }
 
+export interface DayCloseDoc {
+  date: string;
+  buysCount: number;
+  cashOut: number;
+  checkOut: number;
+  buysTotal: number;
+  weightBought: number;
+  salesCount: number;
+  salesRevenue: number;
+  weightSold: number;
+  profit: number;
+  unreported: number;
+  materials: { name: string; weight: number; value: number }[];
+}
+
+export async function printDayClose(d: DayCloseDoc): Promise<void> {
+  const lbs = (n: number) => Number(n).toLocaleString() + ' lb';
+  const kv: [string, string][] = [
+    ['Buys', `${d.buysCount}`],
+    ['Weight bought', lbs(d.weightBought)],
+    ['Cash paid out', money(d.cashOut)],
+    ['Check paid out', money(d.checkOut)],
+    ['Sales', `${d.salesCount}`],
+    ['Sales revenue', money(d.salesRevenue)],
+    ['Weight sold', lbs(d.weightSold)],
+    ['Est. gross profit', money(d.profit)],
+    ['Unreported (restricted/catalytic)', `${d.unreported}`],
+  ];
+  const materials = d.materials.length
+    ? `<table>
+        <thead><tr><th>Material</th><th style="text-align:right">Weight</th><th style="text-align:right">Value</th></tr></thead>
+        <tbody>${d.materials
+          .map(
+            (m) =>
+              `<tr><td>${escapeHtml(m.name)}</td><td style="text-align:right">${lbs(m.weight)}</td><td style="text-align:right">${money(m.value)}</td></tr>`
+          )
+          .join('')}</tbody>
+      </table>`
+    : '';
+  const body = `
+    <div class="sub">End-of-day close · ${escapeHtml(d.date)}</div>
+    <div class="grid">
+      ${kv.map(([k, v]) => `<div><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`).join('')}
+    </div>
+    ${materials ? '<div class="k">Materials bought today</div>' + materials : ''}
+    <div class="total"><span>Cash paid out today</span><span>${money(d.cashOut)}</span></div>
+    <div class="foot">Generated ${new Date().toLocaleString()} · Tare</div>`;
+  await Print.printAsync({ html: shell('Day Close', body) });
+}
+
 export interface BillOfLadingDoc {
   no: string;
   buyer: string;
