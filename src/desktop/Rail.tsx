@@ -3,13 +3,27 @@ import { TareMark, initialsOf, vars } from './ui';
 
 export type TabId = 'home' | 'inventory' | 'sales' | 'compliance' | 'settings';
 
-const NAV: { id: TabId; icon: IconName; label: string }[] = [
-  { id: 'home', icon: 'home', label: 'Day book' },
-  { id: 'inventory', icon: 'stack', label: 'Inventory' },
-  { id: 'sales', icon: 'truck', label: 'Sales' },
-  { id: 'compliance', icon: 'shield', label: 'Compliance' },
-  { id: 'settings', icon: 'cog', label: 'Settings' },
+const NAV: { id: TabId; icon: IconName; label: string; hint: string }[] = [
+  { id: 'home', icon: 'home', label: 'Day book', hint: '1' },
+  { id: 'inventory', icon: 'stack', label: 'Inventory', hint: '2' },
+  { id: 'sales', icon: 'truck', label: 'Sales', hint: '3' },
+  { id: 'compliance', icon: 'shield', label: 'Compliance', hint: '4' },
+  { id: 'settings', icon: 'cog', label: 'Settings', hint: '5' },
 ];
+
+// Muted keycap badge advertising a keyboard shortcut on the rail.
+const kbd = {
+  marginLeft: 'auto',
+  fontSize: 10,
+  fontWeight: 600,
+  color: 'var(--rail-ink-3)',
+  background: 'var(--rail-2)',
+  border: '1px solid var(--rail-line)',
+  borderRadius: 5,
+  padding: '1px 6px',
+  minWidth: 18,
+  textAlign: 'center' as const,
+} as const;
 
 export interface RailCompany {
   abbr: string;
@@ -92,6 +106,7 @@ export default function Rail({
         className="tap"
         onClick={onNewBuy}
         style={{
+          position: 'relative',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -109,6 +124,21 @@ export default function Rail({
       >
         <Icon name="plus" size={19} color="var(--accent-ink)" stroke={2.5} />
         New buy
+        <span
+          className="mono"
+          style={{
+            position: 'absolute',
+            right: 10,
+            fontSize: 10,
+            fontWeight: 700,
+            color: 'var(--accent-ink)',
+            background: 'color-mix(in oklab, #000 18%, transparent)',
+            borderRadius: 5,
+            padding: '1px 6px',
+          }}
+        >
+          B
+        </span>
       </button>
 
       {/* nav */}
@@ -175,7 +205,7 @@ export default function Rail({
               <span style={{ fontSize: 14, fontWeight: on ? 650 : 550 }}>
                 {n.label}
               </span>
-              {n.id === 'compliance' && queued > 0 && (
+              {n.id === 'compliance' && queued > 0 ? (
                 <span
                   className="mono num"
                   style={{
@@ -189,6 +219,10 @@ export default function Rail({
                   }}
                 >
                   {queued}
+                </span>
+              ) : (
+                <span className="mono" style={kbd}>
+                  {n.hint}
                 </span>
               )}
             </button>

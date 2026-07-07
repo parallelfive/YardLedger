@@ -205,6 +205,56 @@ export default function DesktopShell() {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [tab]);
 
+  // Counter-terminal keyboard shortcuts. Single keys (no modifier) drive the
+  // common actions so an operator rarely reaches for the mouse. Ignored while
+  // typing in a field or when a slide-over is open (except Esc, which closes
+  // it). Cmd/Ctrl/Alt combos are left to the browser.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'Escape') {
+        if (overlay) setOverlay(null);
+        return;
+      }
+      const el = e.target as HTMLElement | null;
+      const tag = el?.tagName;
+      if (
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        el?.isContentEditable
+      )
+        return;
+      if (overlay) return; // don't fire nav shortcuts behind an open ticket
+      const k = e.key.toLowerCase();
+      if (k === 'b') {
+        e.preventDefault();
+        setOverlay({ type: 'buy' });
+      } else if (k === 's') {
+        e.preventDefault();
+        setOverlay({ type: 'sale' });
+      } else if (k === 'c') {
+        e.preventDefault();
+        setOverlay({ type: 'closeday' });
+      } else if (k === '/') {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>('.yl-app input')?.focus();
+      } else if (k >= '1' && k <= '5') {
+        e.preventDefault();
+        const tabs: TabId[] = [
+          'home',
+          'inventory',
+          'sales',
+          'compliance',
+          'settings',
+        ];
+        setTab(tabs[Number(k) - 1]);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [overlay]);
+
   const queued = receipts.filter(
     (r) =>
       r.type === 'buy' &&
