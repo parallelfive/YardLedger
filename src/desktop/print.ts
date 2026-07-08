@@ -42,6 +42,11 @@ export interface ComplianceRecordDoc {
   paid: number;
   pay: string;
   affirmed: boolean;
+  // Dealer (the yard) identity — NM records must carry the buyer's license /
+  // registration. Optional so an unconfigured yard still prints.
+  dealerName?: string;
+  dealerLicense?: string;
+  dealerRegistry?: string;
 }
 
 export async function printComplianceRecord(
@@ -56,8 +61,24 @@ export async function printComplianceRecord(
     ['Payment', r.pay],
     ['Ownership affirmed', r.affirmed ? 'Yes' : 'No'],
   ];
+  // Dealer identity banner — shows the yard, its license, and registry ID.
+  const dealerBits = [
+    r.dealerLicense ? `License ${r.dealerLicense}` : '',
+    r.dealerRegistry ? `Registry ${r.dealerRegistry}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const dealer =
+    r.dealerName || dealerBits
+      ? `<div style="border:1px solid #d7d0c2;border-radius:8px;padding:10px 12px;margin-bottom:16px">
+          <div class="k">Licensed dealer</div>
+          <div class="v">${escapeHtml(r.dealerName || '—')}</div>
+          ${dealerBits ? `<div class="mono" style="font-size:12px;color:#6a6258;margin-top:3px">${escapeHtml(dealerBits)}</div>` : ''}
+        </div>`
+      : '';
   const body = `
     <div class="sub">Purchase record · NM Sale of Recycled Metals Act</div>
+    ${dealer}
     <div class="grid">
       ${rows.map(([k, v]) => `<div><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`).join('')}
     </div>

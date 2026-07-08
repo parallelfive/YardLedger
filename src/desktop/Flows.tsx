@@ -7,6 +7,7 @@ import { createReceipt } from '../services/receipts';
 import { createSale } from '../services/sales';
 import { useSales } from '../hooks/useSales';
 import { searchCustomers, type Customer } from '../services/customers';
+import { fetchCompanySettings } from '../services/companySettings';
 import { printComplianceRecord } from './print';
 import type { LineItemInput } from '../types';
 import Icon from './Icon';
@@ -138,6 +139,25 @@ export function BuyFlow({
     pay: string;
     regulated: boolean;
   } | null>(null);
+  // The yard's own identity for the printed purchase record (NM requires the
+  // dealer's license/registry on the record). Loaded once when the ticket opens.
+  const [dealer, setDealer] = useState({ name: '', license: '', registry: '' });
+  useEffect(() => {
+    let active = true;
+    fetchCompanySettings()
+      .then((s) => {
+        if (active && s)
+          setDealer({
+            name: s.company_name || '',
+            license: s.license_number || '',
+            registry: s.registry_id || '',
+          });
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const byId = useMemo(() => new Map(list.map((m) => [m.id, m])), [list]);
 
@@ -496,6 +516,9 @@ export function BuyFlow({
                   paid: saved.total,
                   pay: saved.pay,
                   affirmed: saved.affirmed,
+                  dealerName: dealer.name || undefined,
+                  dealerLicense: dealer.license || undefined,
+                  dealerRegistry: dealer.registry || undefined,
                 }).catch(() => {})
               }
             >
