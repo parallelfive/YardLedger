@@ -1,6 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useInventory } from '../../hooks/useInventory';
 import { useDeskAdmin } from '../AdminActions';
+import {
+  fetchPriceHistory,
+  type PriceHistoryEntry,
+} from '../../services/metals';
 import Icon from '../Icon';
 import {
   Card,
@@ -76,6 +80,26 @@ function MetalDetail({
   nav: { openBuy: () => void };
 }) {
   const admin = useDeskAdmin();
+  // Pricing audit trail for this metal — fetched when the panel opens.
+  const [history, setHistory] = useState<PriceHistoryEntry[]>([]);
+  const metalId = m?.id ?? null;
+  useEffect(() => {
+    if (!metalId) {
+      setHistory([]);
+      return;
+    }
+    let active = true;
+    fetchPriceHistory(metalId)
+      .then((h) => {
+        if (active) setHistory(h);
+      })
+      .catch(() => {
+        if (active) setHistory([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [metalId]);
   if (!m) return null;
   const spread = m.price - m.avg;
   const up = spread >= 0;
@@ -179,6 +203,70 @@ function MetalDetail({
             </div>
           ))}
         </Card>
+
+        {/* pricing audit trail */}
+        <Card pad={18}>
+          <PanelHead title="Price history" sub="Recent changes" icon="clock" />
+          {history.length === 0 ? (
+            <div
+              className="mono"
+              style={{ fontSize: 12, color: 'var(--ink-3)', paddingTop: 4 }}
+            >
+              No price changes recorded.
+            </div>
+          ) : (
+            history.map((h, i, a) => {
+              const up = Number(h.new_price) >= Number(h.old_price);
+              return (
+                <div
+                  key={h.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '10px 0',
+                    borderBottom:
+                      i < a.length - 1 ? '1px solid var(--line)' : 'none',
+                  }}
+                >
+                  <span
+                    className="mono"
+                    style={{ fontSize: 12, color: 'var(--ink-3)' }}
+                  >
+                    {new Date(h.created_at).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </span>
+                  <span
+                    className="mono num"
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      color: 'var(--ink)',
+                    }}
+                  >
+                    <span style={{ color: 'var(--ink-3)' }}>
+                      {money(Number(h.old_price))}
+                    </span>
+                    <Icon
+                      name={up ? 'up' : 'down'}
+                      size={11}
+                      color={up ? 'var(--moss)' : 'var(--rust)'}
+                      stroke={2.4}
+                    />
+                    {money(Number(h.new_price))}
+                  </span>
+                </div>
+              );
+            })
+          )}
+        </Card>
+
         <Card
           pad={18}
           style={{
