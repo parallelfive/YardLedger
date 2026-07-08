@@ -5,6 +5,7 @@ import { useInventory } from '../hooks/useInventory';
 import { useTarePresets } from '../hooks/useTarePresets';
 import { createReceipt } from '../services/receipts';
 import { createSale } from '../services/sales';
+import { useSales } from '../hooks/useSales';
 import { searchCustomers, type Customer } from '../services/customers';
 import { printComplianceRecord } from './print';
 import type { LineItemInput } from '../types';
@@ -1392,16 +1393,38 @@ export function SaleFlow({
     avg_cost_per_lb: number;
   }[];
   const onHandRows = stock.filter((r) => Number(r.weight) > 0);
+  // Yards ship to the same handful of mills, so suggest past processors as the
+  // buyer name is typed (derived client-side from prior sales — no lookup).
+  const { sales } = useSales();
+  const processors = useMemo(() => {
+    const seen = new Map<string, string>();
+    (sales as unknown as { buyer_name?: string }[]).forEach((s) => {
+      const n = (s.buyer_name || '').trim();
+      if (n && !seen.has(n.toLowerCase())) seen.set(n.toLowerCase(), n);
+    });
+    return [...seen.values()];
+  }, [sales]);
   const workerId = useAppSelector(
     (s: RootState) => s.auth.activeIdentity?.user_id ?? s.auth.profile?.id ?? ''
   );
 
   const [buyer, setBuyer] = useState('');
+  const [buyerFocus, setBuyerFocus] = useState(false);
   const [metalId, setMetalId] = useState('');
   const [weight, setWeight] = useState(0);
   const [price, setPrice] = useState(0);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+
+  const buyerSuggest =
+    buyerFocus && buyer.trim().length >= 1
+      ? processors
+          .filter((p) => {
+            const bl = buyer.trim().toLowerCase();
+            return p.toLowerCase().includes(bl) && p.toLowerCase() !== bl;
+          })
+          .slice(0, 6)
+      : [];
   const [saved, setSaved] = useState<{
     loadNo: string;
     total: number;
@@ -1623,11 +1646,76 @@ export function SaleFlow({
             }}
           >
             <Field label="Processor / buyer">
-              <TextInput
-                value={buyer}
-                onChange={setBuyer}
-                placeholder="e.g. Western Copper Mills"
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  value={buyer}
+                  onChange={(e) => setBuyer(e.target.value)}
+                  onFocus={() => setBuyerFocus(true)}
+                  onBlur={() => setTimeout(() => setBuyerFocus(false), 150)}
+                  placeholder="e.g. Western Copper Mills"
+                  style={{
+                    width: '100%',
+                    height: 44,
+                    padding: '0 14px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--line)',
+                    borderRadius: 11,
+                    color: 'var(--ink)',
+                    fontSize: 14.5,
+                    fontWeight: 550,
+                    outline: 'none',
+                  }}
+                />
+                {buyerSuggest.length > 0 && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      marginTop: 6,
+                      zIndex: 30,
+                      background: 'var(--surface)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 11,
+                      boxShadow: 'var(--shadow-lg)',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {buyerSuggest.map((p) => (
+                      <button
+                        key={p}
+                        className="tap"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setBuyer(p);
+                          setBuyerFocus(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '10px 14px',
+                          borderBottom: '1px solid var(--line)',
+                          fontSize: 14,
+                          fontWeight: 550,
+                          color: 'var(--ink)',
+                        }}
+                      >
+                        <Icon
+                          name="truck"
+                          size={14}
+                          color="var(--teal)"
+                          stroke={2}
+                        />
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Field>
             <Field label="Material (on hand)">
               <select
