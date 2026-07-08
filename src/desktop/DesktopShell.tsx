@@ -11,6 +11,7 @@ import TopBar, { type SearchResult } from './TopBar';
 import Dashboard from './screens/Dashboard';
 import Inventory from './screens/Inventory';
 import Sales from './screens/Sales';
+import Customers from './screens/Customers';
 import Compliance from './screens/Compliance';
 import Settings from './screens/Settings';
 import { BuyFlow, SaleFlow } from './Flows';
@@ -247,12 +248,13 @@ export default function DesktopShell() {
       } else if (k === '/') {
         e.preventDefault();
         document.querySelector<HTMLInputElement>('.yl-app input')?.focus();
-      } else if (k >= '1' && k <= '5') {
+      } else if (k >= '1' && k <= '6') {
         e.preventDefault();
         const tabs: TabId[] = [
           'home',
           'inventory',
           'sales',
+          'customers',
           'compliance',
           'settings',
         ];
@@ -327,6 +329,7 @@ export default function DesktopShell() {
       sub: `${inventory.length} metal${inventory.length === 1 ? '' : 's'} on hand`,
     },
     sales: { title: 'Sales', sub: 'Outbound loads to processors' },
+    customers: { title: 'Sellers', sub: 'Everyone the yard has bought from' },
     compliance: { title: 'Compliance', sub: `${NM.act} · ${NM.registry}` },
     settings: { title: 'Settings', sub: 'Company, rules, materials & team' },
   };
@@ -344,6 +347,7 @@ export default function DesktopShell() {
     );
   else if (tab === 'inventory') screen = <Inventory nav={nav} />;
   else if (tab === 'sales') screen = <Sales nav={nav} />;
+  else if (tab === 'customers') screen = <Customers nav={nav} />;
   else if (tab === 'compliance') screen = <Compliance canReport={isAdmin} />;
   else screen = <Settings canManage={isAdmin} />;
 

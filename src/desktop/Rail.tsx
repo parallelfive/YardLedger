@@ -1,14 +1,21 @@
 import Icon, { type IconName } from './Icon';
 import { TareMark, initialsOf, vars } from './ui';
 
-export type TabId = 'home' | 'inventory' | 'sales' | 'compliance' | 'settings';
+export type TabId =
+  | 'home'
+  | 'inventory'
+  | 'sales'
+  | 'customers'
+  | 'compliance'
+  | 'settings';
 
 const NAV: { id: TabId; icon: IconName; label: string; hint: string }[] = [
   { id: 'home', icon: 'home', label: 'Day book', hint: '1' },
   { id: 'inventory', icon: 'stack', label: 'Inventory', hint: '2' },
   { id: 'sales', icon: 'truck', label: 'Sales', hint: '3' },
-  { id: 'compliance', icon: 'shield', label: 'Compliance', hint: '4' },
-  { id: 'settings', icon: 'cog', label: 'Settings', hint: '5' },
+  { id: 'customers', icon: 'user', label: 'Sellers', hint: '4' },
+  { id: 'compliance', icon: 'shield', label: 'Compliance', hint: '5' },
+  { id: 'settings', icon: 'cog', label: 'Settings', hint: '6' },
 ];
 
 // Muted keycap badge advertising a keyboard shortcut on the rail.
