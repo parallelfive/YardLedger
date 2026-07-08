@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useAppSelector, type RootState } from '../store';
 import { useMetals } from '../hooks/useMetals';
+import { useInventory } from '../hooks/useInventory';
 import { useTarePresets } from '../hooks/useTarePresets';
 import { createReceipt } from '../services/receipts';
 import { createSale } from '../services/sales';
@@ -1380,8 +1381,17 @@ export function SaleFlow({
   // Refresh the shell's data after each load without closing (quick mode).
   onSaved?: () => void;
 }) {
-  const { metals } = useMetals();
-  const list = metals as unknown as MetalRow[];
+  // Sales ship what's on hand, so the picker is driven by inventory (not the
+  // catalog): each row carries the on-hand weight and weighted-avg cost, which
+  // becomes the sale's cost basis so profit is real (not revenue-as-profit).
+  const { inventory } = useInventory();
+  const stock = inventory as unknown as {
+    metal_id: string;
+    metal_name: string;
+    weight: number;
+    avg_cost_per_lb: number;
+  }[];
+  const onHandRows = stock.filter((r) => Number(r.weight) > 0);
   const workerId = useAppSelector(
     (s: RootState) => s.auth.activeIdentity?.user_id ?? s.auth.profile?.id ?? ''
   );
@@ -1400,9 +1410,15 @@ export function SaleFlow({
     metal: string;
   } | null>(null);
 
-  const metal = list.find((m) => m.id === metalId) || list[0];
+  const inv = onHandRows.find((r) => r.metal_id === metalId) || null;
+  const onHand = Number(inv?.weight ?? 0);
+  const avgCost = Number(inv?.avg_cost_per_lb ?? 0);
   const total = weight * price;
-  const canSave = !!metal && weight > 0 && price > 0 && !busy;
+  const profit = weight * (price - avgCost);
+  // The inventory table has a non-negative CHECK, so the server rejects an
+  // oversell — block it here with a clear message instead of a raw DB error.
+  const oversell = !!inv && weight > onHand;
+  const canSave = !!inv && weight > 0 && price > 0 && !oversell && !busy;
 
   // Start a fresh load after a save; keepBuyer carries the processor over for a
   // yard shipping several loads to the same mill.
@@ -1416,16 +1432,16 @@ export function SaleFlow({
   };
 
   const complete = async () => {
-    if (!canSave || !metal) return;
+    if (!canSave || !inv) return;
     setBusy(true);
     setErr(null);
     try {
       const sale = await createSale({
-        metalId: metal.id,
-        metalName: metal.name,
+        metalId: inv.metal_id,
+        metalName: inv.metal_name,
         weight,
         salePricePerLb: price,
-        costBasisPerLb: 0,
+        costBasisPerLb: avgCost,
         buyerName: buyer.trim() || undefined,
         workerId,
       });
@@ -1436,7 +1452,7 @@ export function SaleFlow({
         total,
         weight,
         buyer: buyer.trim(),
-        metal: metal.name,
+        metal: inv.metal_name,
       });
     } catch (e) {
       setErr((e as Error).message);
@@ -1613,7 +1629,7 @@ export function SaleFlow({
                 placeholder="e.g. Western Copper Mills"
               />
             </Field>
-            <Field label="Material">
+            <Field label="Material (on hand)">
               <select
                 value={metalId}
                 onChange={(e) => setMetalId(e.target.value)}
@@ -1630,14 +1646,45 @@ export function SaleFlow({
                   outline: 'none',
                 }}
               >
-                <option value="">Select a metal…</option>
-                {list.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
+                <option value="">
+                  {onHandRows.length ? 'Select a metal…' : 'Nothing on hand'}
+                </option>
+                {onHandRows.map((r) => (
+                  <option key={r.metal_id} value={r.metal_id}>
+                    {r.metal_name} — {lbs(r.weight)} lb on hand
                   </option>
                 ))}
               </select>
             </Field>
+            {inv && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  marginTop: -6,
+                }}
+              >
+                <span
+                  className="mono"
+                  style={{ fontSize: 11.5, color: 'var(--ink-3)' }}
+                >
+                  On hand {lbs(onHand)} lb · avg cost {money(avgCost)}/lb
+                </span>
+                {oversell && (
+                  <span
+                    className="mono"
+                    style={{
+                      fontSize: 11.5,
+                      fontWeight: 700,
+                      color: 'var(--rust)',
+                    }}
+                  >
+                    Exceeds on hand
+                  </span>
+                )}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 12 }}>
               <div style={{ flex: 1 }}>
                 <Field label="Weight (lb)">
@@ -1690,6 +1737,19 @@ export function SaleFlow({
               >
                 {lbs(weight)} lb @ {money(price)}/lb
               </div>
+              {inv && weight > 0 && price > 0 && (
+                <div
+                  className="mono num"
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    marginTop: 6,
+                    color: profit >= 0 ? 'var(--moss)' : 'var(--rust)',
+                  }}
+                >
+                  Est. profit {money(profit)} · cost {money(avgCost)}/lb
+                </div>
+              )}
             </Card>
             {err && (
               <div
