@@ -63,7 +63,8 @@ export async function fetchCustomerReceipts(customerId: string) {
 
 export async function upsertCustomer(
   name: string,
-  phone: string
+  phone: string,
+  driversLicense?: string
 ): Promise<Customer> {
   // Try to find an existing customer with the same name (case-insensitive).
   // maybeSingle() returns null (not a thrown PGRST116) when there's no match,
@@ -76,11 +77,17 @@ export async function upsertCustomer(
     .maybeSingle();
 
   if (existing) {
-    // Update phone if it changed
-    if (phone && phone !== existing.phone) {
+    // Refresh phone and/or driver's license when we have new values — this is
+    // how a returning seller's ID lands on their customer record so it can be
+    // suggested on the next buy.
+    const updates: { phone?: string; drivers_license?: string } = {};
+    if (phone && phone !== existing.phone) updates.phone = phone;
+    if (driversLicense && driversLicense !== existing.drivers_license)
+      updates.drivers_license = driversLicense;
+    if (Object.keys(updates).length > 0) {
       const { data: updated, error } = await supabase
         .from('customers')
-        .update({ phone })
+        .update(updates)
         .eq('id', existing.id)
         .select('*')
         .single();
@@ -93,7 +100,11 @@ export async function upsertCustomer(
   // Create new customer
   const { data: created, error } = await supabase
     .from('customers')
-    .insert({ name, phone })
+    .insert({
+      name,
+      phone,
+      ...(driversLicense ? { drivers_license: driversLicense } : {}),
+    })
     .select('*')
     .single();
   if (error) throw error;

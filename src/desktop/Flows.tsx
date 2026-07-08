@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAppSelector, type RootState } from '../store';
 import { useMetals } from '../hooks/useMetals';
 import { useTarePresets } from '../hooks/useTarePresets';
 import { createReceipt } from '../services/receipts';
 import { createSale } from '../services/sales';
+import { searchCustomers, type Customer } from '../services/customers';
 import { printComplianceRecord } from './print';
 import type { LineItemInput } from '../types';
 import Icon from './Icon';
@@ -107,6 +108,14 @@ export function BuyFlow({
   const [dl, setDl] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
   const [affirmed, setAffirmed] = useState(false);
+  // Returning-seller autofill: as the name is typed we suggest matching
+  // customers; picking one fills the license and links the existing record
+  // (customerId) instead of creating a duplicate. Flagged sellers surface a
+  // warning.
+  const [customerId, setCustomerId] = useState<string | null>(null);
+  const [suggestions, setSuggestions] = useState<Customer[]>([]);
+  const [sellerFocus, setSellerFocus] = useState(false);
+  const [flagged, setFlagged] = useState<{ reason: string } | null>(null);
   const [items, setItems] = useState<BuyItem[]>([]);
   const [pay, setPay] = useState<'cash' | 'check'>('cash');
   const [adding, setAdding] = useState(false);
@@ -129,6 +138,39 @@ export function BuyFlow({
   } | null>(null);
 
   const byId = useMemo(() => new Map(list.map((m) => [m.id, m])), [list]);
+
+  // Debounced customer lookup while typing the seller name. Skipped once a
+  // suggestion is linked (customerId set) so it doesn't re-search the exact name.
+  useEffect(() => {
+    const q = seller.trim();
+    if (customerId || q.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    let active = true;
+    const t = setTimeout(() => {
+      searchCustomers(q)
+        .then((rows) => {
+          if (active) setSuggestions(rows.slice(0, 6));
+        })
+        .catch(() => {
+          if (active) setSuggestions([]);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
+  }, [seller, customerId]);
+
+  const pickCustomer = (c: Customer) => {
+    setSeller(c.name);
+    setDl(c.drivers_license || '');
+    setCustomerId(c.id);
+    setSuggestions([]);
+    setSellerFocus(false);
+    setFlagged(c.is_flagged ? { reason: c.flag_reason } : null);
+  };
 
   const tier: Tier | null = useMemo(() => {
     if (items.length === 0) return null;
@@ -169,9 +211,12 @@ export function BuyFlow({
     setAdding(false);
     setErr(null);
     setSaved(null);
+    setSuggestions([]);
     if (!keepSeller) {
       setSeller('');
       setDl('');
+      setCustomerId(null);
+      setFlagged(null);
     }
   };
 
@@ -251,6 +296,7 @@ export function BuyFlow({
       const receipt = await createReceipt({
         customerName: seller.trim(),
         customerPhone: '',
+        customerId: customerId ?? undefined,
         type: 'buy',
         subtotal: total,
         workerId,
@@ -475,12 +521,139 @@ export function BuyFlow({
                 style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
               >
                 <Field label="Name">
-                  <TextInput
-                    value={seller}
-                    onChange={setSeller}
-                    placeholder="Seller full name"
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      value={seller}
+                      onChange={(e) => {
+                        setSeller(e.target.value);
+                        setCustomerId(null);
+                        setFlagged(null);
+                      }}
+                      onFocus={() => setSellerFocus(true)}
+                      // Delay the blur so a click on a suggestion registers first.
+                      onBlur={() =>
+                        setTimeout(() => setSellerFocus(false), 150)
+                      }
+                      placeholder="Seller full name"
+                      style={{
+                        width: '100%',
+                        height: 44,
+                        padding: '0 14px',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--line)',
+                        borderRadius: 11,
+                        color: 'var(--ink)',
+                        fontSize: 14.5,
+                        fontWeight: 550,
+                        outline: 'none',
+                      }}
+                    />
+                    {sellerFocus && suggestions.length > 0 && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: 0,
+                          right: 0,
+                          marginTop: 6,
+                          zIndex: 30,
+                          background: 'var(--surface)',
+                          border: '1px solid var(--line)',
+                          borderRadius: 11,
+                          boxShadow: 'var(--shadow-lg)',
+                          overflow: 'hidden',
+                          maxHeight: 260,
+                          overflowY: 'auto',
+                        }}
+                      >
+                        {suggestions.map((c) => (
+                          <button
+                            key={c.id}
+                            className="tap"
+                            // preventDefault so the input doesn't blur before onClick.
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pickCustomer(c)}
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'flex-start',
+                              gap: 2,
+                              width: '100%',
+                              textAlign: 'left',
+                              padding: '10px 14px',
+                              borderBottom: '1px solid var(--line)',
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 7,
+                                fontSize: 14,
+                                fontWeight: 600,
+                                color: 'var(--ink)',
+                              }}
+                            >
+                              {c.name}
+                              {c.is_flagged && (
+                                <span
+                                  className="mono"
+                                  style={{
+                                    fontSize: 9.5,
+                                    fontWeight: 700,
+                                    letterSpacing: 0.4,
+                                    textTransform: 'uppercase',
+                                    color: '#fff',
+                                    background: 'var(--rust)',
+                                    borderRadius: 5,
+                                    padding: '1px 5px',
+                                  }}
+                                >
+                                  Flagged
+                                </span>
+                              )}
+                            </span>
+                            <span
+                              className="mono"
+                              style={{ fontSize: 11.5, color: 'var(--ink-3)' }}
+                            >
+                              {c.drivers_license
+                                ? `ID ${c.drivers_license}`
+                                : 'No ID on file'}
+                              {c.phone ? ` · ${c.phone}` : ''}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </Field>
+                {flagged && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 9,
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      background:
+                        'color-mix(in oklab, var(--rust) 10%, var(--surface))',
+                      border:
+                        '1px solid color-mix(in oklab, var(--rust) 32%, var(--line))',
+                    }}
+                  >
+                    <Icon
+                      name="alert"
+                      size={16}
+                      color="var(--rust)"
+                      stroke={2.2}
+                    />
+                    <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
+                      Flagged customer
+                      {flagged.reason ? ` — ${flagged.reason}` : ''}
+                    </span>
+                  </div>
+                )}
                 <Field label="Driver license (regulated)">
                   <TextInput
                     value={dl}
