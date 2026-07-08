@@ -201,6 +201,14 @@ export default function DesktopShell() {
     refreshReceipts();
   };
 
+  // In quick mode the slide-over stays open, but we still remount the screen
+  // behind it so the day book / lists reflect each saved ticket live (the
+  // overlay is a sibling of the keyed content, so it isn't affected).
+  const refreshBehind = () => {
+    setReloadKey((k) => k + 1);
+    refreshReceipts();
+  };
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
   }, [tab]);
@@ -408,14 +416,14 @@ export default function DesktopShell() {
             <BuyFlow
               onClose={nav.close}
               onDone={done}
-              onSaved={refreshReceipts}
+              onSaved={refreshBehind}
             />
           )}
           {overlay?.type === 'sale' && (
             <SaleFlow
               onClose={nav.close}
               onDone={done}
-              onSaved={refreshReceipts}
+              onSaved={refreshBehind}
             />
           )}
           {overlay?.type === 'closeday' && <CloseDay onClose={nav.close} />}
