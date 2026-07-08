@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useReceipts } from '../../hooks/useReceipts';
 import { updateCustomer, type Customer } from '../../services/customers';
+import { shareTextFile } from '../../utils/shareFile';
 import Icon from '../Icon';
 import {
   Card,
@@ -133,6 +134,46 @@ export default function Customers({
     }
   };
 
+  // Seller roster → CSV for the yard's records. Every field quoted, embedded
+  // quotes doubled, so a comma in a name can't shift the columns.
+  const exportCsv = () => {
+    const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = [
+      'seller',
+      'drivers_license',
+      'phone',
+      'buys',
+      'volume_lb',
+      'paid',
+      'last_visit',
+      'flagged',
+      'flag_reason',
+    ];
+    const lines = rows.map(({ c, stat }) =>
+      [
+        c.name,
+        c.drivers_license,
+        c.phone,
+        stat.buys,
+        stat.weight.toFixed(2),
+        stat.paid.toFixed(2),
+        stat.lastAt ? new Date(stat.lastAt).toISOString().slice(0, 10) : '',
+        c.is_flagged ? 'yes' : 'no',
+        c.is_flagged ? c.flag_reason : '',
+      ]
+        .map(cell)
+        .join(',')
+    );
+    const csv = [header.map(cell).join(','), ...lines].join('\n');
+    const stamp = new Date().toISOString().slice(0, 10);
+    shareTextFile(
+      `sellers-${stamp}.csv`,
+      csv,
+      'text/csv',
+      'public.comma-separated-values-text'
+    ).catch(() => {});
+  };
+
   const cols: Col[] = [
     { key: 'name', label: 'Seller', w: '1.8fr' },
     { key: 'id', label: 'ID on file', w: '1.2fr' },
@@ -203,12 +244,23 @@ export default function Customers({
             sub="Everyone the yard has bought from"
             icon="user"
           />
-          <SearchBox
-            placeholder="Find seller…"
-            value={q}
-            onChange={setQ}
-            width={240}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <SearchBox
+              placeholder="Find seller…"
+              value={q}
+              onChange={setQ}
+              width={240}
+            />
+            <Btn
+              variant="ghost"
+              size="sm"
+              icon="download"
+              onClick={exportCsv}
+              disabled={rows.length === 0}
+            >
+              Export
+            </Btn>
+          </div>
         </div>
         {rows.length === 0 ? (
           <div
