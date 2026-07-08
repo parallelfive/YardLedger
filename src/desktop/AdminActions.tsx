@@ -32,6 +32,9 @@ export interface CompanyEdit {
   phone: string;
   address: string;
   state: string;
+  license_number: string;
+  ein: string;
+  registry_id: string;
 }
 
 interface DeskAdmin {
@@ -385,6 +388,9 @@ function EditCompanyModal({
   const [phone, setPhone] = useState(current.phone);
   const [address, setAddress] = useState(current.address);
   const [state, setState] = useState(current.state);
+  const [license, setLicense] = useState(current.license_number);
+  const [ein, setEin] = useState(current.ein);
+  const [registry, setRegistry] = useState(current.registry_id);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const ok = !!name.trim() && !busy;
@@ -399,6 +405,9 @@ function EditCompanyModal({
         phone: phone.trim(),
         address: address.trim(),
         state: state.trim().toUpperCase(),
+        license_number: license.trim(),
+        ein: ein.trim(),
+        registry_id: registry.trim(),
       });
     } catch (e) {
       setErr((e as Error).message);
@@ -437,6 +446,25 @@ function EditCompanyModal({
         </Field>
         <Field label="Operating state">
           <TextInput value={state} onChange={setState} placeholder="NM" />
+        </Field>
+        <Field label="License / registration #">
+          <TextInput
+            value={license}
+            onChange={setLicense}
+            placeholder="Dealer license #"
+            mono
+          />
+        </Field>
+        <Field label="Registry ID">
+          <TextInput
+            value={registry}
+            onChange={setRegistry}
+            placeholder="LeadsOnline / state registry ID"
+            mono
+          />
+        </Field>
+        <Field label="EIN">
+          <TextInput value={ein} onChange={setEin} placeholder="Tax ID" mono />
         </Field>
       </div>
       {err && (

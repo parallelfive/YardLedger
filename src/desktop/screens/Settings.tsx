@@ -16,7 +16,6 @@ import {
   Pill,
   Btn,
   Field,
-  GroupLabel,
   TareMark,
   money,
   toneColor,
@@ -198,6 +197,9 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                       phone: settings?.phone ?? '',
                       address: settings?.address ?? '',
                       state: settings?.state ?? 'NM',
+                      license_number: settings?.license_number ?? '',
+                      ein: settings?.ein ?? '',
+                      registry_id: settings?.registry_id ?? '',
                     })
                   }
                 >
@@ -236,14 +238,11 @@ export default function Settings({ canManage }: { canManage: boolean }) {
             </div>
           </div>
           <InfoRow k="Prefix" v={company?.prefix || '—'} />
-          <InfoRow k="License" v="—" />
-          <InfoRow k="EIN" v="—" />
-          <InfoRow k="Registry ID" v="—" />
+          <InfoRow k="License" v={settings?.license_number || '—'} />
+          <InfoRow k="Registry ID" v={settings?.registry_id || '—'} />
+          <InfoRow k="EIN" v={settings?.ein || '—'} />
           <InfoRow k="Phone" v={settings?.phone || '—'} />
           <InfoRow k="Address" v={settings?.address || '—'} />
-          <GroupLabel style={{ marginTop: 14, lineHeight: 1.5 }}>
-            License & EIN aren&apos;t tracked in this build.
-          </GroupLabel>
         </Card>
 
         {/* state rules */}
