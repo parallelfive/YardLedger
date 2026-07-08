@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useReceipts } from '../hooks/useReceipts';
 import { useSales } from '../hooks/useSales';
+import { shareTextFile } from '../utils/shareFile';
 import { printDayClose } from './print';
 import {
   Card,
@@ -94,6 +95,7 @@ export default function CloseDay({ onClose }: { onClose: () => void }) {
     const profit = todaySales.reduce((a, s) => a + Number(s.profit ?? 0), 0);
 
     return {
+      buys,
       buysCount: buys.length,
       cashOut,
       checkOut,
@@ -114,6 +116,55 @@ export default function CloseDay({ onClose }: { onClose: () => void }) {
     day: 'numeric',
     year: 'numeric',
   });
+
+  // Ticket-level CSV of today's buys for the bookkeeper. Quote every field and
+  // double embedded quotes so a comma in a name can't break the columns.
+  const exportCsv = () => {
+    const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const header = [
+      'receipt',
+      'time',
+      'seller',
+      'materials',
+      'weight_lb',
+      'paid',
+      'payment',
+      'tier',
+      'reported',
+    ];
+    const lines = m.buys.map((r) => {
+      const tier = r.is_catalytic
+        ? 'catalytic'
+        : rRestricted(r)
+          ? 'restricted'
+          : 'open';
+      const mats = (r.line_items ?? []).map((li) => li.metal_name).join('; ');
+      return [
+        r.receipt_number,
+        new Date(r.created_at).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
+        r.customer_name || 'Walk-in',
+        mats,
+        rWeight(r).toFixed(2),
+        Number(r.subtotal || 0).toFixed(2),
+        r.payment_method || '',
+        tier,
+        r.reported_at ? 'yes' : 'no',
+      ]
+        .map(cell)
+        .join(',');
+    });
+    const csv = [header.map(cell).join(','), ...lines].join('\n');
+    const stamp = new Date().toISOString().slice(0, 10);
+    shareTextFile(
+      `day-close-${stamp}.csv`,
+      csv,
+      'text/csv',
+      'public.comma-separated-values-text'
+    ).catch(() => {});
+  };
 
   const matCols: Col[] = [
     { key: 'name', label: 'Material', w: '1.8fr' },
@@ -352,6 +403,14 @@ export default function CloseDay({ onClose }: { onClose: () => void }) {
       >
         <Btn variant="ghost" onClick={onClose}>
           Close
+        </Btn>
+        <Btn
+          variant="ghost"
+          icon="download"
+          onClick={exportCsv}
+          disabled={m.buysCount === 0}
+        >
+          Export CSV
         </Btn>
         <Btn
           variant="primary"
