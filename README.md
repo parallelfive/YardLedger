@@ -18,12 +18,12 @@ company). Distributed as an unlisted iOS app; also runs as a desktop web app.
 
 ## Prerequisites
 
-| Tool               | Notes                                                                                                                                                      |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Node**           | Use a known-good LTS (e.g. 20 or 22). ⚠️ Node 26 broke the husky/npx pre-commit hook mid-development — pin your version. There's no `.nvmrc` yet; add one. |
-| **Docker Desktop** | Runs the local Supabase stack. Must be running before `npm run dev`.                                                                                       |
-| **Supabase CLI**   | `brew install supabase/tap/supabase`                                                                                                                       |
-| **Xcode**          | Only for the **iOS** build (the app uses native modules — document scanner, ML Kit, signature — so **Expo Go won't work**; you need a custom dev client).  |
+| Tool               | Notes                                                                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Node**           | Use a known-good LTS (e.g. 20 or 22). Pinned via `.nvmrc` (Node 20) — run `nvm use`. ⚠️ Node 26 broke the husky/npx pre-commit hook, so stick to the pinned LTS. |
+| **Docker Desktop** | Runs the local Supabase stack. Must be running before `npm run dev`.                                                                                             |
+| **Supabase CLI**   | `brew install supabase/tap/supabase`                                                                                                                             |
+| **Xcode**          | Only for the **iOS** build (the app uses native modules — document scanner, ML Kit, signature — so **Expo Go won't work**; you need a custom dev client).        |
 
 ## First-time setup
 
