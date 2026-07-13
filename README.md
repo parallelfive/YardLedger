@@ -25,6 +25,33 @@ company). Distributed as an unlisted iOS app; also runs as a desktop web app.
 | **Supabase CLI**   | `brew install supabase/tap/supabase`                                                                                                                             |
 | **Xcode**          | Only for the **iOS** build (the app uses native modules — document scanner, ML Kit, signature — so **Expo Go won't work**; you need a custom dev client).        |
 
+## Windows (use WSL2)
+
+Develop **inside WSL2** (Ubuntu) — the dev stack is bash-based (`scripts/dev.sh`
+uses `lsof`/`pkill`/`trap`), so PowerShell/CMD won't cut it and Git Bash lacks
+those tools. WSL2 gives you Docker, Node, the Supabase CLI, and bash all in one
+place.
+
+| Surface                                                   | Windows?                                                      |
+| --------------------------------------------------------- | ------------------------------------------------------------- |
+| **Desktop web** (`npm run web`, the `src/desktop/` shell) | ✅ Fully supported — the easy, cross-platform path            |
+| **Supabase + `npm run dev`**                              | ✅ In WSL2 (Docker Desktop → enable WSL integration)          |
+| **Android app**                                           | ✅ Android Studio + JDK + emulator/device (`android/` exists) |
+| **iOS app**                                               | ❌ Not possible on Windows — needs a Mac + Xcode              |
+
+Setup:
+
+1. `wsl --install` (Ubuntu), then **Docker Desktop → Settings → Resources → WSL
+   integration** → enable for your distro.
+2. **Clone the repo _inside_ the WSL filesystem** (e.g. `~/dev/…`), **not** under
+   `/mnt/c/…` — that's slow and re-introduces CRLF issues. `.gitattributes`
+   keeps shell scripts LF, but keep the checkout native to WSL to be safe.
+3. From WSL: `nvm use` → `npm install` → `npm run dev` (or `npm run web` for the
+   desktop shell only). Everything else below is identical.
+
+> `python3 -m http.server` (used to serve a web build) is `python3` in WSL; on
+> native Windows it may be `python`.
+
 ## First-time setup
 
 ```bash

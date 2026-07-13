@@ -1,0 +1,34 @@
+# Normalize line endings. Store LF in the repo; check out native by default.
+* text=auto
+
+# Shell scripts and git hooks MUST stay LF on every platform — a CRLF checkout
+# makes bash fail with "bad interpreter: /bin/bash^M", which would break
+# `npm run dev` (scripts/dev.sh) and every commit (.husky hooks) on Windows.
+*.sh   text eol=lf
+scripts/** text eol=lf
+.husky/**  text eol=lf
+
+# Source/config: LF everywhere so tooling behaves identically cross-platform.
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.sql  text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+
+# Binary assets — never touch.
+*.png     binary
+*.jpg     binary
+*.jpeg    binary
+*.gif     binary
+*.ico     binary
+*.svg     text eol=lf
+*.ttf     binary
+*.otf     binary
+*.woff    binary
+*.woff2   binary
+*.pdf     binary
+*.keystore binary
