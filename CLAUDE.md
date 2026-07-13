@@ -50,6 +50,42 @@ supabase/
 - **DB models**: PascalCase (Receipt.ts, LineItem.ts)
 - **Migrations**: `YYYYMMDDNNNNNN_snake_case.sql`
 
+## Desktop / Web shell (`src/desktop/`)
+
+The app runs on web via `react-native-web`. On a **wide browser viewport**
+(`useResponsive().isDesktop`, ≥1024px), `RootNavigator` mounts a **dedicated
+desktop shell** (`src/desktop/DesktopShell.tsx` when authed, `DesktopLogin.tsx`
+when not) instead of the mobile tab navigator. Native and narrow mobile-web are
+**untouched** — they keep the React Native screens.
+
+**`src/desktop/` is web-only DOM code.** Because it only ever renders through
+react-dom, raw JSX (`<div>`, `<select>`, `<svg>`, `<input>`) is valid and used
+throughout. It has its **own view layer, separate from mobile**:
+
+- `ui.tsx` — desktop component library (Card, Table, SlideOver, Btn, StatTile,
+  Field, TextInput, money/lbs helpers…). **Not** the mobile `components/foundry`.
+- `Icon.tsx` — desktop SVG icon set. `DesktopStyle.tsx` — injected global CSS
+  (theme tokens as CSS custom properties, fonts, animations).
+- `DesktopShell.tsx` — root: rail + top bar + active screen + slide-over overlays
+  - keyboard shortcuts.
+- `screens/` — Dashboard, Inventory, Sales, Customers, Compliance, Settings.
+- `Flows.tsx` — the Buy and Sale slide-overs. `CloseDay.tsx` — day-close summary.
+- `AdminActions.tsx` — admin-PIN **elevation** modals + `useDeskAdmin()`
+  (`addMaterial`, `editPrice`, `editCompany`, `ensureElevated`).
+- `print.ts` — purchase record / bill of lading / day-close via `Print.printAsync`.
+
+**Rules for the two trees:**
+
+- **Never import across trees.** Don't pull `src/components/` (RN) into
+  `src/desktop/`, or `src/desktop/ui.tsx` into a mobile screen.
+- The **data layer is shared** — desktop screens use the same `services/`,
+  `hooks/`, and `store/` as mobile. Only the view differs.
+- Privileged desktop writes go through `useDeskAdmin().ensureElevated()` (opens
+  an admin-PIN window) exactly like mobile's `useAdminElevation()`.
+- Flexbox scroll trap: a `flex:1` scroll child needs `min-height:0`
+  (see `.screen-scroll` / `.yl-col` in `DesktopStyle.tsx`) or it pushes pinned
+  footers off-screen instead of scrolling.
+
 ## Key Rules
 
 - All Supabase queries live in `services/` — never in screens
