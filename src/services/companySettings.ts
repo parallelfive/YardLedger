@@ -19,6 +19,10 @@ export interface CompanySettings {
   cat_converter_retention_years: number;
   // IANA timezone of the yard — drives legal receipt dates (migration 7).
   timezone: string;
+  // The yard's regulatory identity for reports/records (migration 20260708…).
+  license_number: string;
+  ein: string;
+  registry_id: string;
 }
 
 export async function fetchCompanySettings(): Promise<CompanySettings | null> {
@@ -43,6 +47,9 @@ export async function updateCompanySettings(
     general_retention_years?: number;
     cat_converter_retention_years?: number;
     timezone?: string;
+    license_number?: string;
+    ein?: string;
+    registry_id?: string;
   },
   userId: string,
   settingsId?: string | null
@@ -57,19 +64,32 @@ export async function updateCompanySettings(
     }
   }
 
-  if (settingsId) {
-    // Update existing row
+  // Resolve which row to update: the caller's id, or the current company's
+  // existing settings row (RLS scopes the lookup to this company). A blind
+  // insert trips the one-row-per-company unique constraint (409) — the desktop
+  // editCompany doesn't pass an id, so we must find the row before writing.
+  let targetId = settingsId ?? null;
+  if (!targetId) {
+    const { data: existing } = await supabase
+      .from('company_settings')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+    targetId = existing?.id ?? null;
+  }
+
+  if (targetId) {
     const { data, error } = await supabase
       .from('company_settings')
       .update({ ...updates, updated_by: userId })
-      .eq('id', settingsId)
+      .eq('id', targetId)
       .select()
       .single();
     if (error) throw error;
     return data;
   }
 
-  // Create first row
+  // No row yet for this company — create the first one.
   const { data, error } = await supabase
     .from('company_settings')
     .insert({ ...updates, updated_by: userId })

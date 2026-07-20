@@ -11,6 +11,22 @@ export interface InviteCode {
   created_at: string;
 }
 
+export type InviteCodeStatus = 'valid' | 'used' | 'invalid';
+
+/** Advisory pre-check for the sign-up screen (anon-callable). The
+ * handle_new_user trigger remains the authoritative gate; this only lets us
+ * show a clear message instead of the opaque "Database error saving new user"
+ * the auth path returns when the trigger rejects a bad/used code. */
+export async function validateInviteCode(
+  code: string
+): Promise<InviteCodeStatus> {
+  const { data, error } = await supabase.rpc('validate_invite_code', {
+    p_code: code.trim(),
+  });
+  if (error) throw error;
+  return (data as InviteCodeStatus) ?? 'invalid';
+}
+
 export async function createInviteCode(role: UserRole): Promise<string> {
   const { data, error } = await supabase.rpc('create_invite_code', {
     p_role: role,

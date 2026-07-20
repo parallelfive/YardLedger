@@ -96,10 +96,25 @@ export async function createReceipt(params: CreateReceiptParams) {
     materialPhotoUrl,
   ] = await Promise.all(photoInputs.map((p) => upload(p.uri, p.label)));
 
-  // Upsert customer record
-  const customer = params.customerId
-    ? { id: params.customerId }
-    : await upsertCustomer(params.customerName, params.customerPhone);
+  // Resolve the customer, capturing the seller's DL for next-visit autofill.
+  // A linked customerId still gets its license backfilled (a returning seller
+  // who had no ID on file); a create-by-name goes through the upsert.
+  let customer: { id: string };
+  if (params.customerId) {
+    if (params.sellerDlNumber) {
+      await supabase
+        .from('customers')
+        .update({ drivers_license: params.sellerDlNumber })
+        .eq('id', params.customerId);
+    }
+    customer = { id: params.customerId };
+  } else {
+    customer = await upsertCustomer(
+      params.customerName,
+      params.customerPhone,
+      params.sellerDlNumber
+    );
+  }
 
   // Insert the receipt and its line items in a single transaction. If anything
   // fails (e.g. the pricing trigger rejects an override), the whole thing rolls
@@ -201,7 +216,7 @@ export async function fetchReceipts(
     let query = supabase
       .from('receipts')
       .select(
-        'id, receipt_number, customer_name, type, subtotal, created_at, worker_id, line_items(id, metal_name, weight, total, is_restricted)'
+        'id, receipt_number, customer_name, type, subtotal, created_at, worker_id, payment_method, is_catalytic, reported_at, line_items(id, metal_name, weight, total, is_restricted)'
       )
       .order('created_at', { ascending: false });
 

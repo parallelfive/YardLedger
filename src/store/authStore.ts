@@ -4,6 +4,7 @@ import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
 import type { Company, UserProfile } from '../types';
 import type { PinIdentity } from '../services/pin';
+import { validateInviteCode } from '../services/inviteCodes';
 
 interface AuthState {
   session: Session | null;
@@ -145,6 +146,19 @@ export const signUp = createAsyncThunk(
     password: string;
     inviteCode: string;
   }) => {
+    // Pre-check the invite so a bad/used code shows a clear message instead of
+    // the opaque "Database error saving new user" the auth path returns when
+    // handle_new_user rejects it. The trigger stays the authoritative gate.
+    const status = await validateInviteCode(inviteCode);
+    if (status === 'used') {
+      throw new Error(
+        'That invite code has already been used. Ask an owner or admin for a new one.'
+      );
+    }
+    if (status !== 'valid') {
+      throw new Error('Invalid invite code — double-check it and try again.');
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,

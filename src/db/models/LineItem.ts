@@ -20,7 +20,9 @@ export default class LineItem extends Model {
   @field('receipt_id') receiptId!: string;
   @field('metal_id') metalId!: string;
   @field('metal_name') metalName!: string;
-  @field('weight') weight!: number;
+  @field('weight') weight!: number; // net weight
+  @field('gross_weight') grossWeight!: number | null;
+  @field('tare_weight') tareWeight!: number | null;
   @field('price_per_lb') pricePerLb!: number;
   @field('original_price_per_lb') originalPricePerLb!: number;
   @field('is_price_override') isPriceOverride!: boolean;
