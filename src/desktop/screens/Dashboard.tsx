@@ -128,6 +128,7 @@ export default function Dashboard({
     openSale: () => void;
     openTicket: (r: ReceiptRow) => void;
     openCloseDay: () => void;
+    openCashier: () => void;
   };
   canReport: boolean;
   reportBy: string;
@@ -701,14 +702,24 @@ export default function Dashboard({
                   Stock
                 </Btn>
               </div>
-              <Btn
-                variant="ghost"
-                icon="reports"
-                full
-                onClick={() => nav.openCloseDay()}
-              >
-                Close day
-              </Btn>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Btn
+                  variant="ghost"
+                  icon="user"
+                  full
+                  onClick={() => nav.openCashier()}
+                >
+                  Cashier queue
+                </Btn>
+                <Btn
+                  variant="ghost"
+                  icon="reports"
+                  full
+                  onClick={() => nav.openCloseDay()}
+                >
+                  Close day
+                </Btn>
+              </div>
             </div>
           </Card>
         </div>

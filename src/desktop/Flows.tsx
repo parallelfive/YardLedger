@@ -8,7 +8,12 @@ import { createSale } from '../services/sales';
 import { useSales } from '../hooks/useSales';
 import { searchCustomers, type Customer } from '../services/customers';
 import { fetchCompanySettings } from '../services/companySettings';
-import { printComplianceRecord } from './print';
+import {
+  createDraftTicket,
+  finalizeDraftTicket,
+  type DraftTicket,
+} from '../services/draftTickets';
+import { printComplianceRecord, printClaimStub } from './print';
 import type { LineItemInput } from '../types';
 import Icon from './Icon';
 import {
@@ -93,12 +98,16 @@ export function BuyFlow({
   onClose,
   onDone,
   onSaved,
+  draft,
 }: {
   onClose: () => void;
   onDone: () => void;
   // Refresh the shell's data after each save without closing the ticket, so a
   // rapid intake session keeps the day book counts current between tickets.
   onSaved?: () => void;
+  // When the cashier opens a pending scale ticket, its materials seed the flow
+  // and finalizing clears the draft (worker→cashier handoff).
+  draft?: DraftTicket;
 }) {
   const { metals } = useMetals();
   const { presets, create: createPreset } = useTarePresets();
@@ -107,7 +116,17 @@ export function BuyFlow({
     (s: RootState) => s.auth.activeIdentity?.user_id ?? s.auth.profile?.id ?? ''
   );
 
-  const [seller, setSeller] = useState('');
+  const [seller, setSeller] = useState(draft?.seller_name ?? '');
+  // Seed the materials from a draft (cashier side). Draft line items carry the
+  // weigh mode implicitly via gross/tare presence.
+  const seedItems = (): BuyItem[] =>
+    (draft?.line_items ?? []).map((li) => ({
+      id: li.metalId,
+      mode: li.grossWeight != null || li.tareWeight != null ? 'tare' : 'net',
+      net: Number(li.weight || 0),
+      gross: Number(li.grossWeight || 0),
+      tare: Number(li.tareWeight || 0),
+    }));
   const [dl, setDl] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
   const [vin, setVin] = useState('');
@@ -123,7 +142,7 @@ export function BuyFlow({
   const [suggestions, setSuggestions] = useState<Customer[]>([]);
   const [sellerFocus, setSellerFocus] = useState(false);
   const [flagged, setFlagged] = useState<{ reason: string } | null>(null);
-  const [items, setItems] = useState<BuyItem[]>([]);
+  const [items, setItems] = useState<BuyItem[]>(seedItems);
   const [pay, setPay] = useState<'cash' | 'check'>('cash');
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -305,6 +324,63 @@ export function BuyFlow({
                     ? `${tier} buy — confirm the no-theft attestation`
                     : null;
 
+  // Worker "sends" the weighed ticket to the cashier: stage a draft (materials +
+  // weights only) and optionally print the claim stub the customer carries to
+  // the front. Payment/ID are collected later by the cashier.
+  const canSend = items.length > 0 && weight > 0 && !busy;
+  const sendToCashier = async (print: boolean) => {
+    if (!canSend) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const lineItems = items.map((it) => {
+        const m = byId.get(it.id)!;
+        const net = netOf(it);
+        return {
+          metalId: m.id,
+          metalName: m.name,
+          weight: net,
+          grossWeight: it.mode === 'tare' ? it.gross || 0 : null,
+          tareWeight: it.mode === 'tare' ? it.tare || 0 : null,
+          pricePerLb: m.price_per_lb,
+          total: net * m.price_per_lb,
+          isRegulated: !!m.is_regulated,
+          isRestricted: !!m.is_restricted,
+          isCatalytic: !!m.is_catalytic,
+        };
+      });
+      const d = await createDraftTicket({
+        workerId,
+        sellerName: seller.trim() || undefined,
+        lineItems,
+        subtotal: total,
+        weight,
+      });
+      if (print) {
+        printClaimStub({
+          claimNumber: d.claim_number,
+          yardName: dealer.name,
+          materials: items
+            .map((it) => byId.get(it.id)?.name)
+            .filter(Boolean)
+            .join(', '),
+          weight,
+          time: new Date().toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          }),
+        }).catch(() => {});
+      }
+      onSaved?.();
+      onDone();
+    } catch (e) {
+      setErr((e as Error).message);
+      setBusy(false);
+    }
+  };
+
   const complete = async () => {
     if (!canSave) return;
     setBusy(true);
@@ -348,6 +424,12 @@ export function BuyFlow({
         sellerNoTheftAffirmed: needsCompliance ? noTheft : undefined,
         lineItems,
       });
+      // If this was a cashier finalizing a pending scale ticket, clear the draft
+      // (links it to the receipt for audit).
+      if (draft) {
+        const rid = (receipt as { id?: string })?.id;
+        if (rid) await finalizeDraftTicket(draft.id, rid).catch(() => {});
+      }
       // Refresh the shell's data behind the slide-over, then show the summary
       // (quick mode) instead of closing so the next ticket is one tap away.
       onSaved?.();
@@ -1449,6 +1531,32 @@ export function BuyFlow({
                 {disabledReason}
               </div>
             )}
+            {/* Worker mode (no draft): offer "send to cashier" so a second
+                person collects ID + payment. Single operators just hit
+                "Complete & save" to pay out now. Cashier mode (finalizing a
+                draft) shows only the payout button. */}
+            {!draft && (
+              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                <Btn
+                  variant="ghost"
+                  icon="truck"
+                  full
+                  disabled={!canSend}
+                  onClick={() => sendToCashier(false)}
+                >
+                  Send to cashier
+                </Btn>
+                <Btn
+                  variant="ghost"
+                  icon="printer"
+                  full
+                  disabled={!canSend}
+                  onClick={() => sendToCashier(true)}
+                >
+                  Send + print stub
+                </Btn>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="ghost" onClick={onClose}>
                 Cancel
@@ -1460,7 +1568,11 @@ export function BuyFlow({
                 disabled={!canSave}
                 onClick={complete}
               >
-                {busy ? 'Saving…' : 'Complete & save'}
+                {busy
+                  ? 'Saving…'
+                  : draft
+                    ? 'Finalize & pay out'
+                    : 'Complete & save'}
               </Btn>
             </div>
           </div>
