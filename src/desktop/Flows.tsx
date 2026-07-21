@@ -110,7 +110,11 @@ export function BuyFlow({
   const [seller, setSeller] = useState('');
   const [dl, setDl] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('');
+  const [vin, setVin] = useState('');
   const [affirmed, setAffirmed] = useState(false);
+  // NM §57-30-5 requires the seller to attest they have not been convicted of
+  // metal theft (separate from the ownership affirmation).
+  const [noTheft, setNoTheft] = useState(false);
   // Returning-seller autofill: as the name is typed we suggest matching
   // customers; picking one fills the license and links the existing record
   // (customerId) instead of creating a duplicate. Flagged sellers surface a
@@ -228,7 +232,9 @@ export function BuyFlow({
   const reset = (keepSeller: boolean) => {
     setItems([]);
     setVehiclePlate('');
+    setVin('');
     setAffirmed(false);
+    setNoTheft(false);
     setPay('cash');
     setAdding(false);
     setErr(null);
@@ -267,13 +273,19 @@ export function BuyFlow({
   // desktop can't create an incomplete compliance record (mobile gates these in
   // its stepper).
   const needsCompliance = tier !== null && tier !== 'open';
+  // Catalytic converters (§57-30-2.4) additionally require the transport
+  // vehicle's VIN (17 chars, like the mobile flow).
+  const catNeedsVin = tier === 'catalytic';
+  const vinOk = !catNeedsVin || vin.trim().length === 17;
   const complianceOk =
-    !needsCompliance || (!!dl.trim() && !!vehiclePlate.trim() && affirmed);
+    !needsCompliance ||
+    (!!dl.trim() && !!vehiclePlate.trim() && affirmed && noTheft && vinOk);
   const canSave =
     items.length > 0 && weight > 0 && !!seller.trim() && complianceOk && !busy;
 
   // Tell the operator exactly what's blocking the save (a regulated buy needs
-  // ID + vehicle + affirmation), so a disabled button is never a mystery.
+  // ID + vehicle + affirmation + no-theft attestation; catalytic also a VIN), so
+  // a disabled button is never a mystery.
   const disabledReason =
     items.length === 0
       ? 'Add a material to start the ticket'
@@ -285,9 +297,13 @@ export function BuyFlow({
             ? `${tier} buy — enter the driver license`
             : needsCompliance && !vehiclePlate.trim()
               ? `${tier} buy — enter the vehicle plate`
-              : needsCompliance && !affirmed
-                ? `${tier} buy — confirm the ownership affirmation`
-                : null;
+              : catNeedsVin && vin.trim().length !== 17
+                ? 'Catalytic buy — enter the 17-character vehicle VIN'
+                : needsCompliance && !affirmed
+                  ? `${tier} buy — confirm the ownership affirmation`
+                  : needsCompliance && !noTheft
+                    ? `${tier} buy — confirm the no-theft attestation`
+                    : null;
 
   const complete = async () => {
     if (!canSave) return;
@@ -327,7 +343,9 @@ export function BuyFlow({
         sellerName: seller.trim() || undefined,
         sellerDlNumber: dl.trim() || undefined,
         vehiclePlate: vehiclePlate.trim() || undefined,
+        transportVin: vin.trim() || undefined,
         sellerAffirmed: needsCompliance ? affirmed : undefined,
+        sellerNoTheftAffirmed: needsCompliance ? noTheft : undefined,
         lineItems,
       });
       // Refresh the shell's data behind the slide-over, then show the summary
@@ -1188,6 +1206,16 @@ export function BuyFlow({
                     mono
                   />
                 </Field>
+                {catNeedsVin && (
+                  <Field label="Transport vehicle VIN (17 chars)">
+                    <TextInput
+                      value={vin}
+                      onChange={(v) => setVin(v.toUpperCase())}
+                      placeholder="17-character VIN"
+                      mono
+                    />
+                  </Field>
+                )}
                 <button
                   className="tap"
                   onClick={() => setAffirmed((a) => !a)}
@@ -1234,6 +1262,54 @@ export function BuyFlow({
                     }}
                   >
                     Seller affirms lawful ownership of the material.
+                  </span>
+                </button>
+                <button
+                  className="tap"
+                  onClick={() => setNoTheft((a) => !a)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 11,
+                    padding: '13px 14px',
+                    borderRadius: 12,
+                    textAlign: 'left',
+                    background: noTheft
+                      ? 'var(--accent-soft)'
+                      : 'var(--surface)',
+                    border: `1.5px solid ${noTheft ? 'var(--accent)' : 'var(--line)'}`,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: 6,
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: noTheft ? 'var(--accent)' : 'transparent',
+                      border: `1.5px solid ${noTheft ? 'var(--accent)' : 'var(--line-strong)'}`,
+                    }}
+                  >
+                    {noTheft && (
+                      <Icon
+                        name="check"
+                        size={14}
+                        color="var(--accent-ink)"
+                        stroke={2.6}
+                      />
+                    )}
+                  </div>
+                  <span
+                    style={{
+                      fontSize: 13,
+                      color: 'var(--ink-2)',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    Seller attests they have not been convicted of metal theft.
                   </span>
                 </button>
               </div>
