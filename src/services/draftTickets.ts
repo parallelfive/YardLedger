@@ -28,6 +28,10 @@ export interface DraftTicket {
   line_items: DraftLineItem[];
   subtotal: number;
   weight: number;
+  // Captured at the scale by the worker (next to the truck); pre-fills the
+  // cashier's finalize step so the front desk never walks outside.
+  vehicle_plate: string;
+  transport_vin: string;
   status: 'pending' | 'finalized' | 'voided';
   receipt_id: string | null;
   created_at: string;
@@ -39,6 +43,8 @@ export async function createDraftTicket(input: {
   lineItems: DraftLineItem[];
   subtotal: number;
   weight: number;
+  vehiclePlate?: string;
+  transportVin?: string;
 }): Promise<DraftTicket> {
   const { data, error } = await supabase
     .from('draft_tickets')
@@ -48,6 +54,8 @@ export async function createDraftTicket(input: {
       line_items: input.lineItems,
       subtotal: input.subtotal,
       weight: input.weight,
+      vehicle_plate: input.vehiclePlate?.trim() ?? '',
+      transport_vin: input.transportVin?.trim() ?? '',
     })
     .select('*')
     .single();

@@ -14,8 +14,10 @@ import {
   type DraftTicket,
 } from '../services/draftTickets';
 import { printComplianceRecord, printClaimStub } from './print';
+import { parseAamva, looksLikeAamva } from '../utils/parseAamva';
 import type { LineItemInput } from '../types';
 import Icon from './Icon';
+import CameraCapture from './CameraCapture';
 import {
   Card,
   SlideOver,
@@ -128,12 +130,30 @@ export function BuyFlow({
       tare: Number(li.tareWeight || 0),
     }));
   const [dl, setDl] = useState('');
-  const [vehiclePlate, setVehiclePlate] = useState('');
-  const [vin, setVin] = useState('');
+  // Vehicle info is captured at the scale (worker is next to the truck) and
+  // rides on the draft; seed it here so the cashier sees it pre-filled and
+  // never has to walk outside. Still editable at the desk (hybrid capture).
+  const [vehiclePlate, setVehiclePlate] = useState(draft?.vehicle_plate ?? '');
+  const [vin, setVin] = useState(draft?.transport_vin ?? '');
   const [affirmed, setAffirmed] = useState(false);
   // NM §57-30-5 requires the seller to attest they have not been convicted of
   // metal theft (separate from the ownership affirmation).
   const [noTheft, setNoTheft] = useState(false);
+  // Fields read from the PDF417 barcode on the back of the seller's license by
+  // a USB scanner at the desk (see the keydown listener below). Held separately
+  // from the manual form — the scan fills name + DL directly, and these ride to
+  // the receipt so we capture DOB/address without hand-keying them.
+  const [idScan, setIdScan] = useState<{
+    dob: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    stateOfIssue: string;
+  } | null>(null);
+  // Seller ID photo captured from the desktop webcam (data URL until saved).
+  const [idPhoto, setIdPhoto] = useState<string | null>(null);
+  const [camOpen, setCamOpen] = useState(false);
   // Returning-seller autofill: as the name is typed we suggest matching
   // customers; picking one fills the license and links the existing record
   // (customerId) instead of creating a duplicate. Flagged sellers surface a
@@ -157,7 +177,9 @@ export function BuyFlow({
     seller: string;
     dl: string;
     plate: string;
+    vin: string;
     affirmed: boolean;
+    noTheft: boolean;
     materials: string;
     pay: string;
     regulated: boolean;
@@ -217,6 +239,63 @@ export function BuyFlow({
     setFlagged(c.is_flagged ? { reason: c.flag_reason } : null);
   };
 
+  // USB ID-scanner autofill (desktop counter). A HID barcode scanner emits the
+  // license's PDF417 payload as a keystroke burst (chars a few ms apart) that a
+  // human can't reproduce, so we buffer fast keys and, once the burst stops,
+  // parse it as AAMVA and fill the seller. Slow human typing gap-resets the
+  // buffer and never parses. Once a burst is detected we swallow the keys so the
+  // raw payload doesn't land in whatever field has focus.
+  useEffect(() => {
+    let buf = '';
+    let last = 0;
+    let hot = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const flush = () => {
+      const raw = buf;
+      buf = '';
+      hot = false;
+      if (raw.length > 40 && looksLikeAamva(raw)) {
+        const p = parseAamva(raw);
+        if (p.name) setSeller(p.name);
+        if (p.driversLicense) setDl(p.driversLicense);
+        setCustomerId(null);
+        setFlagged(null);
+        setIdScan({
+          dob: p.dob ?? '',
+          address: p.address ?? '',
+          city: p.city ?? '',
+          state: p.state ?? '',
+          zip: p.zip ?? '',
+          stateOfIssue: p.stateOfIssue ?? '',
+        });
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      const now = Date.now();
+      const gap = now - last;
+      last = now;
+      if (gap > 60) {
+        buf = '';
+        hot = false;
+      }
+      if (e.key === 'Enter') {
+        buf += '\n';
+        if (hot) e.preventDefault();
+      } else if (e.key.length === 1) {
+        buf += e.key;
+        if (gap > 0 && gap < 30 && buf.length >= 3) hot = true;
+        if (hot) e.preventDefault();
+      }
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(flush, 90);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
   const tier: Tier | null = useMemo(() => {
     if (items.length === 0) return null;
     return items
@@ -259,11 +338,13 @@ export function BuyFlow({
     setErr(null);
     setSaved(null);
     setSuggestions([]);
+    setIdPhoto(null);
     if (!keepSeller) {
       setSeller('');
       setDl('');
       setCustomerId(null);
       setFlagged(null);
+      setIdScan(null);
     }
   };
 
@@ -355,6 +436,9 @@ export function BuyFlow({
         lineItems,
         subtotal: total,
         weight,
+        // Worker captured these at the scale — carry them to the cashier.
+        vehiclePlate: vehiclePlate.trim() || undefined,
+        transportVin: vin.trim() || undefined,
       });
       if (print) {
         printClaimStub({
@@ -418,6 +502,14 @@ export function BuyFlow({
         isCatalytic: tier === 'catalytic',
         sellerName: seller.trim() || undefined,
         sellerDlNumber: dl.trim() || undefined,
+        // Captured by the desk ID scanner (parseAamva), if the license was read.
+        sellerDob: idScan?.dob || undefined,
+        sellerAddress: idScan?.address || undefined,
+        sellerCity: idScan?.city || undefined,
+        sellerState: idScan?.state || undefined,
+        sellerZip: idScan?.zip || undefined,
+        sellerStateOfIssue: idScan?.stateOfIssue || undefined,
+        sellerIdPhotoUri: idPhoto || undefined,
         vehiclePlate: vehiclePlate.trim() || undefined,
         transportVin: vin.trim() || undefined,
         sellerAffirmed: needsCompliance ? affirmed : undefined,
@@ -441,7 +533,9 @@ export function BuyFlow({
         seller: seller.trim(),
         dl: dl.trim(),
         plate: vehiclePlate.trim(),
+        vin: vin.trim(),
         affirmed: needsCompliance ? affirmed : false,
+        noTheft: needsCompliance ? noTheft : false,
         materials: items
           .map((it) => byId.get(it.id)?.name)
           .filter(Boolean)
@@ -458,6 +552,15 @@ export function BuyFlow({
 
   return (
     <SlideOver open onClose={onClose} width={560}>
+      {camOpen && (
+        <CameraCapture
+          onCapture={(d) => {
+            setIdPhoto(d);
+            setCamOpen(false);
+          }}
+          onClose={() => setCamOpen(false)}
+        />
+      )}
       <SlideHead
         title="New buy"
         sub="Intake ticket"
@@ -611,11 +714,13 @@ export function BuyFlow({
                   dl: saved.dl || '—',
                   plate: saved.plate || '—',
                   vehicle: '—',
+                  vin: saved.vin || undefined,
                   materials: saved.materials,
                   weight: saved.weight,
                   paid: saved.total,
                   pay: saved.pay,
                   affirmed: saved.affirmed,
+                  noTheftAffirmed: saved.noTheft,
                   dealerName: dealer.name || undefined,
                   dealerLicense: dealer.license || undefined,
                   dealerRegistry: dealer.registry || undefined,
@@ -787,6 +892,107 @@ export function BuyFlow({
                     mono
                   />
                 </Field>
+                {/* ID scanner + webcam capture (desktop counter). The scanner
+                    autofills name/DL/DOB/address; the photo backs up the record. */}
+                {idScan ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 9,
+                      padding: '9px 12px',
+                      borderRadius: 10,
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--accent)',
+                    }}
+                  >
+                    <Icon
+                      name="check"
+                      size={15}
+                      color="var(--accent)"
+                      stroke={2.4}
+                    />
+                    <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
+                      ID scanned
+                      {idScan.dob ? ` · DOB ${idScan.dob}` : ''}
+                      {idScan.stateOfIssue ? ` · ${idScan.stateOfIssue}` : ''}
+                    </span>
+                    <button
+                      className="tap mono"
+                      onClick={() => setIdScan(null)}
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: 11,
+                        color: 'var(--ink-3)',
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="mono"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      fontSize: 11,
+                      color: 'var(--ink-3)',
+                    }}
+                  >
+                    <Icon
+                      name="scan"
+                      size={13}
+                      color="var(--ink-3)"
+                      stroke={1.8}
+                    />
+                    Scan the license barcode to autofill
+                  </div>
+                )}
+                <button
+                  className="tap"
+                  onClick={() => setCamOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 9,
+                    padding: '11px 13px',
+                    borderRadius: 11,
+                    textAlign: 'left',
+                    background: idPhoto
+                      ? 'var(--accent-soft)'
+                      : 'var(--surface)',
+                    border: `1px solid ${idPhoto ? 'var(--accent)' : 'var(--line)'}`,
+                  }}
+                >
+                  <Icon
+                    name={idPhoto ? 'check' : 'scan'}
+                    size={16}
+                    color={idPhoto ? 'var(--accent)' : 'var(--ink-2)'}
+                    stroke={2}
+                  />
+                  <span style={{ fontSize: 13, color: 'var(--ink)' }}>
+                    {idPhoto
+                      ? 'ID photo captured — retake'
+                      : 'Capture ID photo'}
+                  </span>
+                  {idPhoto && (
+                    <span
+                      className="tap mono"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIdPhoto(null);
+                      }}
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: 11,
+                        color: 'var(--ink-3)',
+                      }}
+                    >
+                      Remove
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
 

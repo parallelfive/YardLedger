@@ -78,6 +78,10 @@ export interface ComplianceRecordDoc {
   paid: number;
   pay: string;
   affirmed: boolean;
+  // Transport VIN (catalytic buys) + the no-theft attestation — both statutory
+  // for regulated material. VIN shows only when captured.
+  vin?: string;
+  noTheftAffirmed?: boolean;
   // Dealer (the yard) identity — NM records must carry the buyer's license /
   // registration. Optional so an unconfigured yard still prints.
   dealerName?: string;
@@ -94,8 +98,11 @@ export async function printComplianceRecord(
     ['Driver license', r.dl],
     ['Vehicle', r.vehicle],
     ['Plate', r.plate],
+    // VIN is only relevant/captured for catalytic buys — omit when absent.
+    ...(r.vin ? ([['Transport VIN', r.vin]] as [string, string][]) : []),
     ['Payment', r.pay],
     ['Ownership affirmed', r.affirmed ? 'Yes' : 'No'],
+    ['No metal-theft conviction affirmed', r.noTheftAffirmed ? 'Yes' : 'No'],
   ];
   // Dealer identity banner — shows the yard, its license, and registry ID.
   const dealerBits = [
