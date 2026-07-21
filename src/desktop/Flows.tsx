@@ -15,6 +15,7 @@ import {
 } from '../services/draftTickets';
 import { printComplianceRecord, printClaimStub } from './print';
 import { parseAamva, looksLikeAamva } from '../utils/parseAamva';
+import { calculateNetWeight } from '../utils/calculations';
 import type { LineItemInput } from '../types';
 import Icon from './Icon';
 import CameraCapture from './CameraCapture';
@@ -81,11 +82,8 @@ interface BuyItem {
   tare: number;
 }
 // Effective net weight for a line — gross minus tare when weighing a vehicle,
-// clamped at 0 so a half-entered gross/tare never goes negative.
-const netOf = (it: BuyItem): number =>
-  it.mode === 'tare'
-    ? Math.max(0, (it.gross || 0) - (it.tare || 0))
-    : it.net || 0;
+// clamped at 0. Delegates to the shared, unit-tested calculateNetWeight.
+const netOf = (it: BuyItem): number => calculateNetWeight(it.mode, it);
 
 const miniLabel = {
   fontSize: 10.5,
