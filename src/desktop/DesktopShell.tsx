@@ -18,6 +18,7 @@ import { BuyFlow, SaleFlow } from './Flows';
 import CloseDay from './CloseDay';
 import { DeskAdminProvider } from './AdminActions';
 import { printReceipt } from '../utils/printReceipt';
+import { fetchReceiptById } from '../services/receipts';
 import {
   Card,
   PanelHead,
@@ -49,6 +50,23 @@ const ROLE_LABEL: Record<string, string> = {
 };
 
 function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
+  // The day-book list projection omits the seller/compliance columns for weight,
+  // so lazily fetch the full record when the detail opens — otherwise a
+  // regulated buy's VIN / ID / attestations (the whole reason we captured them)
+  // are invisible without reprinting.
+  const [full, setFull] = useState<Record<string, unknown> | null>(null);
+  useEffect(() => {
+    let active = true;
+    fetchReceiptById(t.id)
+      .then((r) => {
+        if (active) setFull(r as Record<string, unknown>);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [t.id]);
+
   const weight = (t.line_items ?? []).reduce(
     (a, li) => a + Number(li.weight || 0),
     0
@@ -63,6 +81,38 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
     hour: 'numeric',
     minute: '2-digit',
   });
+
+  // Seller + compliance detail from the full record (blank until it loads).
+  const f = full ?? {};
+  const sv = (k: string) => {
+    const v = f[k];
+    return typeof v === 'string' ? v.trim() : '';
+  };
+  const address = [
+    sv('seller_address'),
+    [sv('seller_city'), sv('seller_state'), sv('seller_zip')]
+      .filter(Boolean)
+      .join(', '),
+  ]
+    .filter(Boolean)
+    .join(', ');
+  const complianceRows: [string, string][] = (
+    [
+      ['Seller', sv('seller_name')],
+      [
+        'Driver license',
+        [sv('seller_dl_number'), sv('seller_state_of_issue')]
+          .filter(Boolean)
+          .join(' · '),
+      ],
+      ['Date of birth', sv('seller_dob')],
+      ['Address', address],
+      ['Vehicle plate', sv('vehicle_plate')],
+      ['Transport VIN', sv('transport_vin')],
+    ] as [string, string][]
+  ).filter(([, v]) => v);
+  const showCompliance =
+    full !== null && (tier !== 'buy' || complianceRows.length > 0);
   return (
     <SlideOver open onClose={onClose} width={480}>
       <SlideHead
@@ -117,6 +167,71 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
             {t.reported_at ? 'Reported' : 'Queued'}
           </Pill>
         </div>
+        {showCompliance && (
+          <Card pad={18}>
+            <PanelHead title="Seller & compliance" />
+            {complianceRows.map(([k, v]) => (
+              <div
+                key={k}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  padding: '9px 0',
+                  borderBottom: '1px solid var(--line)',
+                }}
+              >
+                <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+                  {k}
+                </span>
+                <span
+                  className="num"
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 550,
+                    color: 'var(--ink)',
+                    textAlign: 'right',
+                  }}
+                >
+                  {v}
+                </span>
+              </div>
+            ))}
+            {tier !== 'buy' &&
+              (
+                [
+                  ['Ownership affirmed', !!f['seller_affirmed']],
+                  [
+                    'No metal-theft conviction affirmed',
+                    !!f['seller_no_theft_affirmed'],
+                  ],
+                ] as [string, boolean][]
+              ).map(([k, ok]) => (
+                <div
+                  key={k}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '9px 0',
+                  }}
+                >
+                  <span style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
+                    {k}
+                  </span>
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 600,
+                      color: ok ? 'var(--moss)' : 'var(--rust)',
+                    }}
+                  >
+                    {ok ? '✓ Yes' : 'No'}
+                  </span>
+                </div>
+              ))}
+          </Card>
+        )}
         <Card pad={18}>
           <PanelHead title="Line items" />
           {(t.line_items ?? []).map((li, i, a) => (
