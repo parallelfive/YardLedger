@@ -568,7 +568,8 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
               <b style={{ color: 'var(--ink)' }}>
                 {restrictedCount} restricted
               </b>{' '}
-              tiers need documentation
+              {restrictedCount === 1 ? 'tier needs' : 'tiers need'}{' '}
+              documentation
             </span>
           </div>
         </Card>
