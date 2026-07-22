@@ -210,7 +210,15 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
   }, [range, reloadTick]);
 
   const vms = useMemo(() => records.map(toVM), [records]);
-  const queued = useMemo(() => vms.filter((r) => !r.reported), [vms]);
+  // The state-reporting queue: buys that legally must reach LeadsOnline — the
+  // restricted/regulated (incl. catalytic) ones not yet reported. Non-regulated
+  // scrap (e.g. aluminum cans) is NOT a reporting obligation, so it never
+  // queues. Matches the rail badge's definition in DesktopShell; using plain
+  // "unreported" here over-counted and mislabeled non-restricted buys.
+  const queued = useMemo(
+    () => vms.filter((r) => r.restricted && !r.reported),
+    [vms]
+  );
   const sent = useMemo(() => vms.filter((r) => r.reported), [vms]);
   const restrictedRows = useMemo(() => vms.filter((r) => r.restricted), [vms]);
 
@@ -261,7 +269,9 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
   // "Export & mark reported": download the CSV, then flag the queued buys.
   const exportAndReport = async () => {
     await exportCsv();
-    await markReported(records.filter((r) => !r.reported_at).map((r) => r.id));
+    // Mark only the buys that were actually in the reporting queue (restricted/
+    // regulated & unreported) — non-regulated scrap isn't a reporting obligation.
+    await markReported(queued.map((r) => r.id));
   };
 
   const cols: Col[] = [
@@ -348,7 +358,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                   lineHeight: 1.3,
                 }}
               >
-                buy awaiting upload to
+                {`buy${queued.length === 1 ? '' : 's'} awaiting upload to`}
                 <br />
                 <b style={{ color: 'var(--ink)' }}>{COMPANY.registry}</b>
               </span>
@@ -485,6 +495,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
           <span style={{ flex: 1, fontSize: 13, color: 'var(--ink-2)' }}>
             <b style={{ color: 'var(--ink)' }}>
               {queued.length} unreported transaction
+              {queued.length === 1 ? '' : 's'}
             </b>{' '}
             with a restricted item must reach {COMPANY.registry} by the{' '}
             {COMPANY.reportBy}.
