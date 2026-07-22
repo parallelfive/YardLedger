@@ -1,5 +1,7 @@
-// Edge function: upload unreported buy transactions to the state / LeadsOnline
-// database over SFTP, per company, then stamp them reported.
+// Edge function: upload unreported REGULATED buy transactions (restricted line
+// item or catalytic converter — the state-reporting obligation) to the state /
+// LeadsOnline database over SFTP, per company, then stamp them reported.
+// Non-regulated scrap is not reported.
 //
 // Two invocation modes:
 //   1. Authenticated owner/admin from the app ("Send now") — reports their own
@@ -171,16 +173,41 @@ async function reportCompany(admin: any, companyId: string) {
     return { companyId, status: 'skipped', reason: 'no SFTP credentials set' };
   }
 
-  // Atomically CLAIM the unreported buys by stamping reported_at as part of the
-  // same UPDATE that returns them. A concurrent invocation (cron racing a
-  // manual "Send now") running the identical update matches zero already-claimed
-  // rows, so the same receipts can never be uploaded to the state twice.
+  // Only regulated buys are a state-reporting obligation — a restricted line
+  // item, or a catalytic converter. Non-regulated scrap (e.g. aluminum cans) is
+  // NOT reported, so we don't ship that seller's PII to the state. This mirrors
+  // the in-app compliance queue (screens/Compliance.tsx) and the rail badge.
+  // First find the reportable unreported buys...
+  const { data: candidates, error: candErr } = await admin
+    .from('receipts')
+    .select('id, is_catalytic, line_items(is_restricted)')
+    .eq('company_id', companyId)
+    .eq('type', 'buy')
+    .is('reported_at', null);
+  if (candErr) return { companyId, status: 'error', reason: candErr.message };
+  const reportableIds = (candidates ?? [])
+    .filter(
+      (r: {
+        is_catalytic?: boolean;
+        line_items?: { is_restricted?: boolean }[];
+      }) =>
+        !!r.is_catalytic || (r.line_items ?? []).some((li) => li.is_restricted)
+    )
+    .map((r: { id: string }) => r.id);
+  if (reportableIds.length === 0) {
+    return { companyId, status: 'nothing-to-report', count: 0 };
+  }
+
+  // ...then atomically CLAIM them by stamping reported_at in the same UPDATE that
+  // returns them. The `.is('reported_at', null)` guard is kept, so a concurrent
+  // invocation (cron racing a manual "Send now") matches zero already-claimed
+  // rows — the same receipts can never be uploaded to the state twice.
   const claimedAt = new Date().toISOString();
   const { data: rows, error } = await admin
     .from('receipts')
     .update({ reported_at: claimedAt })
+    .in('id', reportableIds)
     .eq('company_id', companyId)
-    .eq('type', 'buy')
     .is('reported_at', null)
     .select('*, line_items(metal_name, weight, total)')
     .order('created_at', { ascending: true });
