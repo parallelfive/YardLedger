@@ -60,7 +60,7 @@ const TIER_NOTES: Record<string, string> = {
   open: 'No documentation required.',
   regulated: 'Seller ID, vehicle & ownership affirmation required.',
   restricted: 'Adds written proof of ownership.',
-  catalytic: 'Check only · VIN + serials · 60-day hold.',
+  catalytic: 'Check only · VIN + serials · 24-hour hold.',
 };
 
 const tierToneName = (tier: string): Tone =>
