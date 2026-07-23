@@ -55,7 +55,9 @@ async function uploadIdPhoto(
   // the same call works on both — the browser has no expo-file-system File.
   let base64: string;
   if (localUri.startsWith('data:')) {
-    base64 = localUri.slice(localUri.indexOf(',') + 1);
+    const comma = localUri.indexOf(',');
+    if (comma < 0) throw new Error('Malformed data URL for photo upload');
+    base64 = localUri.slice(comma + 1);
   } else {
     const file = new File(localUri);
     base64 = await file.base64();

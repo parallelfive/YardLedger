@@ -181,6 +181,7 @@ export function BuyFlow({
     materials: string;
     pay: string;
     regulated: boolean;
+    warning?: string;
   } | null>(null);
   // The yard's own identity for the printed purchase record (NM requires the
   // dealer's license/registry on the record). Loaded once when the ticket opens.
@@ -281,7 +282,12 @@ export function BuyFlow({
         if (hot) e.preventDefault();
       } else if (e.key.length === 1) {
         buf += e.key;
-        if (gap > 0 && gap < 30 && buf.length >= 3) hot = true;
+        // Only start swallowing keys once the buffer is arriving fast AND looks
+        // like an AAMVA payload (starts with '@' / carries the ANSI header).
+        // Normal typing — even very fast — never contains that signature, so a
+        // human's keystrokes are never diverted; a real scan trips it after the
+        // first char or two (which get overwritten on flush).
+        if (gap > 0 && gap < 30 && /@|ANSI/.test(buf)) hot = true;
         if (hot) e.preventDefault();
       }
       if (timer) clearTimeout(timer);
@@ -514,11 +520,28 @@ export function BuyFlow({
         sellerNoTheftAffirmed: needsCompliance ? noTheft : undefined,
         lineItems,
       });
-      // If this was a cashier finalizing a pending scale ticket, clear the draft
-      // (links it to the receipt for audit).
+      // If this was a cashier finalizing a pending scale ticket, link+finalize the
+      // draft so it leaves the queue. If this fails AFTER the receipt was created,
+      // the draft stays 'pending' and could be paid out a second time — so retry,
+      // and if it still won't clear, warn the cashier to void the claim manually.
+      // (The fully atomic fix is to flip the draft inside create_receipt_with_items;
+      // tracked as a follow-up.)
+      let draftWarning = '';
       if (draft) {
         const rid = (receipt as { id?: string })?.id;
-        if (rid) await finalizeDraftTicket(draft.id, rid).catch(() => {});
+        let linked = false;
+        for (let i = 0; i < 3 && !linked; i++) {
+          try {
+            if (!rid) throw new Error('no receipt id');
+            await finalizeDraftTicket(draft.id, rid);
+            linked = true;
+          } catch {
+            /* transient — retry */
+          }
+        }
+        if (!linked) {
+          draftWarning = `Paid out, but claim ${draft.claim_number} did not clear the queue — void it in the cashier queue to avoid a double payout.`;
+        }
       }
       // Refresh the shell's data behind the slide-over, then show the summary
       // (quick mode) instead of closing so the next ticket is one tap away.
@@ -540,6 +563,7 @@ export function BuyFlow({
           .join(', '),
         pay: effectivePay,
         regulated: needsCompliance,
+        warning: draftWarning || undefined,
       });
     } catch (e) {
       setErr((e as Error).message);
@@ -637,6 +661,32 @@ export function BuyFlow({
                 </div>
               </div>
             </div>
+            {saved.warning && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 9,
+                  padding: '11px 13px',
+                  borderRadius: 11,
+                  background:
+                    'color-mix(in oklab, var(--rust) 10%, var(--surface))',
+                  border:
+                    '1px solid color-mix(in oklab, var(--rust) 34%, var(--line))',
+                }}
+              >
+                <Icon name="alert" size={16} color="var(--rust)" stroke={2.2} />
+                <span
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--ink-2)',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {saved.warning}
+                </span>
+              </div>
+            )}
             <Card pad={18}>
               {(
                 [
