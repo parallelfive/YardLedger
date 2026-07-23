@@ -676,10 +676,20 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                   </span>,
                   <Pill
                     key="status"
-                    tone={r.reported ? 'var(--moss)' : 'var(--gold)'}
-                    icon={r.reported ? 'check' : 'clock'}
+                    tone={
+                      r.reported
+                        ? 'var(--moss)'
+                        : r.restricted
+                          ? 'var(--gold)'
+                          : 'var(--ink-3)'
+                    }
+                    icon={r.reported ? 'check' : r.restricted ? 'clock' : 'x'}
                   >
-                    {r.reported ? 'Reported' : 'Queued'}
+                    {r.reported
+                      ? 'Reported'
+                      : r.restricted
+                        ? 'Queued'
+                        : 'Not required'}
                   </Pill>,
                 ]}
               />
