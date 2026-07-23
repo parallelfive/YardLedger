@@ -319,6 +319,13 @@ export function BuyFlow({
   );
   const weight = items.reduce((s, it) => s + netOf(it), 0);
 
+  // A seeded draft line whose metal is no longer active (deactivated/removed
+  // between the scale and the desk) drops out of pricing silently — its weight
+  // counts but it contributes $0, understating the payout. Surface it so the
+  // cashier doesn't underpay. Gated on metals being loaded to avoid a flash.
+  const missingMetals =
+    draft && list.length > 0 ? items.filter((it) => !byId.get(it.id)) : [];
+
   const patch = (idx: number, p: Partial<BuyItem>) =>
     setItems(items.map((it, i) => (i === idx ? { ...it, ...p } : it)));
   const remove = (idx: number) => setItems(items.filter((_, i) => i !== idx));
@@ -1046,6 +1053,42 @@ export function BuyFlow({
 
             {/* line items */}
             <div>
+              {missingMetals.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 9,
+                    padding: '11px 13px',
+                    borderRadius: 11,
+                    marginBottom: 10,
+                    background:
+                      'color-mix(in oklab, var(--rust) 10%, var(--surface))',
+                    border:
+                      '1px solid color-mix(in oklab, var(--rust) 34%, var(--line))',
+                  }}
+                >
+                  <Icon
+                    name="alert"
+                    size={16}
+                    color="var(--rust)"
+                    stroke={2.2}
+                  />
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      color: 'var(--ink-2)',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {missingMetals.length} material
+                    {missingMetals.length === 1 ? '' : 's'} on this scale ticket
+                    {missingMetals.length === 1 ? ' is' : ' are'} no longer
+                    priced (the metal was changed since it was weighed) — it
+                    won&apos;t be paid out. Re-add it before finalizing.
+                  </span>
+                </div>
+              )}
               <div
                 style={{
                   display: 'flex',
