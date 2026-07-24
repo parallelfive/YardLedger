@@ -31,6 +31,42 @@ const shell = (title: string, body: string) => `
   </style></head>
   <body><div class="hd"><h1>${escapeHtml(title)}</h1></div>${body}</body></html>`;
 
+// ── Scale-ticket claim stub ──────────────────────────────────────────────────
+// A small ticket the customer carries from the scale to the cashier. It is NOT
+// a receipt and carries no money-owed promise — just the claim number so the
+// cashier can pull up the pending ticket. Optional (small yards can skip it).
+export interface ClaimStubDoc {
+  claimNumber: string;
+  yardName: string;
+  materials: string;
+  weight: number;
+  time: string;
+}
+
+export async function printClaimStub(s: ClaimStubDoc): Promise<void> {
+  const html = `
+    <!DOCTYPE html><html><head><meta charset="utf-8" />
+    <style>
+      @page { margin: 6mm; }
+      body { font-family: -apple-system, system-ui, sans-serif; color: #1b1813; width: 76mm; margin: 0 auto; text-align: center; }
+      .yard { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+      .lbl { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #6a6258; margin-top: 10px; }
+      .claim { font-size: 44px; font-weight: 800; letter-spacing: -1px; margin: 2px 0; }
+      .row { font-size: 12px; color: #1b1813; margin-top: 6px; }
+      .mats { font-size: 12px; color: #6a6258; margin: 8px 6px; line-height: 1.5; }
+      .note { font-size: 10px; color: #b5462f; font-weight: 700; letter-spacing: 0.5px; margin-top: 12px; border-top: 1px dashed #d7d0c2; padding-top: 8px; }
+    </style></head>
+    <body>
+      <div class="yard">${escapeHtml(s.yardName || 'Scale ticket')}</div>
+      <div class="lbl">Claim number</div>
+      <div class="claim">${escapeHtml(s.claimNumber)}</div>
+      <div class="row">${Number(s.weight).toLocaleString()} lb · ${escapeHtml(s.time)}</div>
+      <div class="mats">${escapeHtml(s.materials || '—')}</div>
+      <div class="note">NOT A RECEIPT — TAKE TO FRONT DESK FOR PAYOUT</div>
+    </body></html>`;
+  await Print.printAsync({ html });
+}
+
 export interface ComplianceRecordDoc {
   no: string;
   seller: string;
@@ -42,6 +78,10 @@ export interface ComplianceRecordDoc {
   paid: number;
   pay: string;
   affirmed: boolean;
+  // Transport VIN (catalytic buys) + the no-theft attestation — both statutory
+  // for regulated material. VIN shows only when captured.
+  vin?: string;
+  noTheftAffirmed?: boolean;
   // Dealer (the yard) identity — NM records must carry the buyer's license /
   // registration. Optional so an unconfigured yard still prints.
   dealerName?: string;
@@ -58,8 +98,11 @@ export async function printComplianceRecord(
     ['Driver license', r.dl],
     ['Vehicle', r.vehicle],
     ['Plate', r.plate],
+    // VIN is only relevant/captured for catalytic buys — omit when absent.
+    ...(r.vin ? ([['Transport VIN', r.vin]] as [string, string][]) : []),
     ['Payment', r.pay],
     ['Ownership affirmed', r.affirmed ? 'Yes' : 'No'],
+    ['No metal-theft conviction affirmed', r.noTheftAffirmed ? 'Yes' : 'No'],
   ];
   // Dealer identity banner — shows the yard, its license, and registry ID.
   const dealerBits = [
