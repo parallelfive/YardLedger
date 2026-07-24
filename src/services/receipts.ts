@@ -21,6 +21,7 @@ export interface CreateReceiptParams {
   vehicleModel?: string;
   vehicleColor?: string;
   sellerAffirmed?: boolean;
+  sellerNoTheftAffirmed?: boolean;
   sellerName?: string;
   sellerDlNumber?: string;
   sellerStateOfIssue?: string;
@@ -142,6 +143,7 @@ export async function createReceipt(params: CreateReceiptParams) {
     vehicle_model: params.vehicleModel ?? '',
     vehicle_color: params.vehicleColor ?? '',
     seller_affirmed: params.sellerAffirmed ?? false,
+    seller_no_theft_affirmed: params.sellerNoTheftAffirmed ?? false,
     seller_name: params.sellerName ?? '',
     seller_dl_number: params.sellerDlNumber ?? '',
     seller_state_of_issue: params.sellerStateOfIssue ?? '',

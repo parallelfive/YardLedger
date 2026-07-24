@@ -27,8 +27,12 @@ import {
 // company_settings (per-company state rules); this build ships New Mexico.
 const NM_RULES = {
   state: 'New Mexico',
+  // NM's Sale of Recycled Metals Act imposes a single 24-hour hold on all
+  // regulated material — there is NO separate longer catalytic hold. (Both
+  // holds are 1 day.) Catalytic converters DO require check payment and a
+  // 3-year record retention (see §57-30-2.4); those are correct elsewhere.
   holdGeneral: 1,
-  holdCatalytic: 60,
+  holdCatalytic: 1,
   retainGeneral: 1,
   act: 'NM Sale of Recycled Metals Act',
   registry: 'LeadsOnline',
