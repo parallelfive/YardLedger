@@ -8,9 +8,17 @@ import { createSale } from '../services/sales';
 import { useSales } from '../hooks/useSales';
 import { searchCustomers, type Customer } from '../services/customers';
 import { fetchCompanySettings } from '../services/companySettings';
-import { printComplianceRecord } from './print';
+import {
+  createDraftTicket,
+  finalizeDraftTicket,
+  type DraftTicket,
+} from '../services/draftTickets';
+import { printComplianceRecord, printClaimStub } from './print';
+import { parseAamva, looksLikeAamva } from '../utils/parseAamva';
+import { calculateNetWeight } from '../utils/calculations';
 import type { LineItemInput } from '../types';
 import Icon from './Icon';
+import CameraCapture from './CameraCapture';
 import {
   Card,
   SlideOver,
@@ -74,11 +82,8 @@ interface BuyItem {
   tare: number;
 }
 // Effective net weight for a line — gross minus tare when weighing a vehicle,
-// clamped at 0 so a half-entered gross/tare never goes negative.
-const netOf = (it: BuyItem): number =>
-  it.mode === 'tare'
-    ? Math.max(0, (it.gross || 0) - (it.tare || 0))
-    : it.net || 0;
+// clamped at 0. Delegates to the shared, unit-tested calculateNetWeight.
+const netOf = (it: BuyItem): number => calculateNetWeight(it.mode, it);
 
 const miniLabel = {
   fontSize: 10.5,
@@ -93,12 +98,16 @@ export function BuyFlow({
   onClose,
   onDone,
   onSaved,
+  draft,
 }: {
   onClose: () => void;
   onDone: () => void;
   // Refresh the shell's data after each save without closing the ticket, so a
   // rapid intake session keeps the day book counts current between tickets.
   onSaved?: () => void;
+  // When the cashier opens a pending scale ticket, its materials seed the flow
+  // and finalizing clears the draft (worker→cashier handoff).
+  draft?: DraftTicket;
 }) {
   const { metals } = useMetals();
   const { presets, create: createPreset } = useTarePresets();
@@ -107,14 +116,42 @@ export function BuyFlow({
     (s: RootState) => s.auth.activeIdentity?.user_id ?? s.auth.profile?.id ?? ''
   );
 
-  const [seller, setSeller] = useState('');
+  const [seller, setSeller] = useState(draft?.seller_name ?? '');
+  // Seed the materials from a draft (cashier side). Draft line items carry the
+  // weigh mode implicitly via gross/tare presence.
+  const seedItems = (): BuyItem[] =>
+    (draft?.line_items ?? []).map((li) => ({
+      id: li.metalId,
+      mode: li.grossWeight != null || li.tareWeight != null ? 'tare' : 'net',
+      net: Number(li.weight || 0),
+      gross: Number(li.grossWeight || 0),
+      tare: Number(li.tareWeight || 0),
+    }));
   const [dl, setDl] = useState('');
-  const [vehiclePlate, setVehiclePlate] = useState('');
-  const [vin, setVin] = useState('');
+  // Vehicle info is captured at the scale (worker is next to the truck) and
+  // rides on the draft; seed it here so the cashier sees it pre-filled and
+  // never has to walk outside. Still editable at the desk (hybrid capture).
+  const [vehiclePlate, setVehiclePlate] = useState(draft?.vehicle_plate ?? '');
+  const [vin, setVin] = useState(draft?.transport_vin ?? '');
   const [affirmed, setAffirmed] = useState(false);
   // NM §57-30-5 requires the seller to attest they have not been convicted of
   // metal theft (separate from the ownership affirmation).
   const [noTheft, setNoTheft] = useState(false);
+  // Fields read from the PDF417 barcode on the back of the seller's license by
+  // a USB scanner at the desk (see the keydown listener below). Held separately
+  // from the manual form — the scan fills name + DL directly, and these ride to
+  // the receipt so we capture DOB/address without hand-keying them.
+  const [idScan, setIdScan] = useState<{
+    dob: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    stateOfIssue: string;
+  } | null>(null);
+  // Seller ID photo captured from the desktop webcam (data URL until saved).
+  const [idPhoto, setIdPhoto] = useState<string | null>(null);
+  const [camOpen, setCamOpen] = useState(false);
   // Returning-seller autofill: as the name is typed we suggest matching
   // customers; picking one fills the license and links the existing record
   // (customerId) instead of creating a duplicate. Flagged sellers surface a
@@ -123,7 +160,7 @@ export function BuyFlow({
   const [suggestions, setSuggestions] = useState<Customer[]>([]);
   const [sellerFocus, setSellerFocus] = useState(false);
   const [flagged, setFlagged] = useState<{ reason: string } | null>(null);
-  const [items, setItems] = useState<BuyItem[]>([]);
+  const [items, setItems] = useState<BuyItem[]>(seedItems);
   const [pay, setPay] = useState<'cash' | 'check'>('cash');
   const [adding, setAdding] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -138,10 +175,13 @@ export function BuyFlow({
     seller: string;
     dl: string;
     plate: string;
+    vin: string;
     affirmed: boolean;
+    noTheft: boolean;
     materials: string;
     pay: string;
     regulated: boolean;
+    warning?: string;
   } | null>(null);
   // The yard's own identity for the printed purchase record (NM requires the
   // dealer's license/registry on the record). Loaded once when the ticket opens.
@@ -198,6 +238,68 @@ export function BuyFlow({
     setFlagged(c.is_flagged ? { reason: c.flag_reason } : null);
   };
 
+  // USB ID-scanner autofill (desktop counter). A HID barcode scanner emits the
+  // license's PDF417 payload as a keystroke burst (chars a few ms apart) that a
+  // human can't reproduce, so we buffer fast keys and, once the burst stops,
+  // parse it as AAMVA and fill the seller. Slow human typing gap-resets the
+  // buffer and never parses. Once a burst is detected we swallow the keys so the
+  // raw payload doesn't land in whatever field has focus.
+  useEffect(() => {
+    let buf = '';
+    let last = 0;
+    let hot = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const flush = () => {
+      const raw = buf;
+      buf = '';
+      hot = false;
+      if (raw.length > 40 && looksLikeAamva(raw)) {
+        const p = parseAamva(raw);
+        if (p.name) setSeller(p.name);
+        if (p.driversLicense) setDl(p.driversLicense);
+        setCustomerId(null);
+        setFlagged(null);
+        setIdScan({
+          dob: p.dob ?? '',
+          address: p.address ?? '',
+          city: p.city ?? '',
+          state: p.state ?? '',
+          zip: p.zip ?? '',
+          stateOfIssue: p.stateOfIssue ?? '',
+        });
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      const now = Date.now();
+      const gap = now - last;
+      last = now;
+      if (gap > 60) {
+        buf = '';
+        hot = false;
+      }
+      if (e.key === 'Enter') {
+        buf += '\n';
+        if (hot) e.preventDefault();
+      } else if (e.key.length === 1) {
+        buf += e.key;
+        // Only start swallowing keys once the buffer is arriving fast AND looks
+        // like an AAMVA payload (starts with '@' / carries the ANSI header).
+        // Normal typing — even very fast — never contains that signature, so a
+        // human's keystrokes are never diverted; a real scan trips it after the
+        // first char or two (which get overwritten on flush).
+        if (gap > 0 && gap < 30 && /@|ANSI/.test(buf)) hot = true;
+        if (hot) e.preventDefault();
+      }
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(flush, 90);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
   const tier: Tier | null = useMemo(() => {
     if (items.length === 0) return null;
     return items
@@ -216,6 +318,13 @@ export function BuyFlow({
     0
   );
   const weight = items.reduce((s, it) => s + netOf(it), 0);
+
+  // A seeded draft line whose metal is no longer active (deactivated/removed
+  // between the scale and the desk) drops out of pricing silently — its weight
+  // counts but it contributes $0, understating the payout. Surface it so the
+  // cashier doesn't underpay. Gated on metals being loaded to avoid a flash.
+  const missingMetals =
+    draft && list.length > 0 ? items.filter((it) => !byId.get(it.id)) : [];
 
   const patch = (idx: number, p: Partial<BuyItem>) =>
     setItems(items.map((it, i) => (i === idx ? { ...it, ...p } : it)));
@@ -240,11 +349,13 @@ export function BuyFlow({
     setErr(null);
     setSaved(null);
     setSuggestions([]);
+    setIdPhoto(null);
     if (!keepSeller) {
       setSeller('');
       setDl('');
       setCustomerId(null);
       setFlagged(null);
+      setIdScan(null);
     }
   };
 
@@ -305,6 +416,66 @@ export function BuyFlow({
                     ? `${tier} buy — confirm the no-theft attestation`
                     : null;
 
+  // Worker "sends" the weighed ticket to the cashier: stage a draft (materials +
+  // weights only) and optionally print the claim stub the customer carries to
+  // the front. Payment/ID are collected later by the cashier.
+  const canSend = items.length > 0 && weight > 0 && !busy;
+  const sendToCashier = async (print: boolean) => {
+    if (!canSend) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const lineItems = items.map((it) => {
+        const m = byId.get(it.id)!;
+        const net = netOf(it);
+        return {
+          metalId: m.id,
+          metalName: m.name,
+          weight: net,
+          grossWeight: it.mode === 'tare' ? it.gross || 0 : null,
+          tareWeight: it.mode === 'tare' ? it.tare || 0 : null,
+          pricePerLb: m.price_per_lb,
+          total: net * m.price_per_lb,
+          isRegulated: !!m.is_regulated,
+          isRestricted: !!m.is_restricted,
+          isCatalytic: !!m.is_catalytic,
+        };
+      });
+      const d = await createDraftTicket({
+        workerId,
+        sellerName: seller.trim() || undefined,
+        lineItems,
+        subtotal: total,
+        weight,
+        // Worker captured these at the scale — carry them to the cashier.
+        vehiclePlate: vehiclePlate.trim() || undefined,
+        transportVin: vin.trim() || undefined,
+      });
+      if (print) {
+        printClaimStub({
+          claimNumber: d.claim_number,
+          yardName: dealer.name,
+          materials: items
+            .map((it) => byId.get(it.id)?.name)
+            .filter(Boolean)
+            .join(', '),
+          weight,
+          time: new Date().toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          }),
+        }).catch(() => {});
+      }
+      onSaved?.();
+      onDone();
+    } catch (e) {
+      setErr((e as Error).message);
+      setBusy(false);
+    }
+  };
+
   const complete = async () => {
     if (!canSave) return;
     setBusy(true);
@@ -342,12 +513,43 @@ export function BuyFlow({
         isCatalytic: tier === 'catalytic',
         sellerName: seller.trim() || undefined,
         sellerDlNumber: dl.trim() || undefined,
+        // Captured by the desk ID scanner (parseAamva), if the license was read.
+        sellerDob: idScan?.dob || undefined,
+        sellerAddress: idScan?.address || undefined,
+        sellerCity: idScan?.city || undefined,
+        sellerState: idScan?.state || undefined,
+        sellerZip: idScan?.zip || undefined,
+        sellerStateOfIssue: idScan?.stateOfIssue || undefined,
+        sellerIdPhotoUri: idPhoto || undefined,
         vehiclePlate: vehiclePlate.trim() || undefined,
         transportVin: vin.trim() || undefined,
         sellerAffirmed: needsCompliance ? affirmed : undefined,
         sellerNoTheftAffirmed: needsCompliance ? noTheft : undefined,
         lineItems,
       });
+      // If this was a cashier finalizing a pending scale ticket, link+finalize the
+      // draft so it leaves the queue. If this fails AFTER the receipt was created,
+      // the draft stays 'pending' and could be paid out a second time — so retry,
+      // and if it still won't clear, warn the cashier to void the claim manually.
+      // (The fully atomic fix is to flip the draft inside create_receipt_with_items;
+      // tracked as a follow-up.)
+      let draftWarning = '';
+      if (draft) {
+        const rid = (receipt as { id?: string })?.id;
+        let linked = false;
+        for (let i = 0; i < 3 && !linked; i++) {
+          try {
+            if (!rid) throw new Error('no receipt id');
+            await finalizeDraftTicket(draft.id, rid);
+            linked = true;
+          } catch {
+            /* transient — retry */
+          }
+        }
+        if (!linked) {
+          draftWarning = `Paid out, but claim ${draft.claim_number} did not clear the queue — void it in the cashier queue to avoid a double payout.`;
+        }
+      }
       // Refresh the shell's data behind the slide-over, then show the summary
       // (quick mode) instead of closing so the next ticket is one tap away.
       onSaved?.();
@@ -359,13 +561,16 @@ export function BuyFlow({
         seller: seller.trim(),
         dl: dl.trim(),
         plate: vehiclePlate.trim(),
+        vin: vin.trim(),
         affirmed: needsCompliance ? affirmed : false,
+        noTheft: needsCompliance ? noTheft : false,
         materials: items
           .map((it) => byId.get(it.id)?.name)
           .filter(Boolean)
           .join(', '),
         pay: effectivePay,
         regulated: needsCompliance,
+        warning: draftWarning || undefined,
       });
     } catch (e) {
       setErr((e as Error).message);
@@ -376,6 +581,15 @@ export function BuyFlow({
 
   return (
     <SlideOver open onClose={onClose} width={560}>
+      {camOpen && (
+        <CameraCapture
+          onCapture={(d) => {
+            setIdPhoto(d);
+            setCamOpen(false);
+          }}
+          onClose={() => setCamOpen(false)}
+        />
+      )}
       <SlideHead
         title="New buy"
         sub="Intake ticket"
@@ -454,6 +668,32 @@ export function BuyFlow({
                 </div>
               </div>
             </div>
+            {saved.warning && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 9,
+                  padding: '11px 13px',
+                  borderRadius: 11,
+                  background:
+                    'color-mix(in oklab, var(--rust) 10%, var(--surface))',
+                  border:
+                    '1px solid color-mix(in oklab, var(--rust) 34%, var(--line))',
+                }}
+              >
+                <Icon name="alert" size={16} color="var(--rust)" stroke={2.2} />
+                <span
+                  style={{
+                    fontSize: 12.5,
+                    color: 'var(--ink-2)',
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {saved.warning}
+                </span>
+              </div>
+            )}
             <Card pad={18}>
               {(
                 [
@@ -529,11 +769,13 @@ export function BuyFlow({
                   dl: saved.dl || '—',
                   plate: saved.plate || '—',
                   vehicle: '—',
+                  vin: saved.vin || undefined,
                   materials: saved.materials,
                   weight: saved.weight,
                   paid: saved.total,
                   pay: saved.pay,
                   affirmed: saved.affirmed,
+                  noTheftAffirmed: saved.noTheft,
                   dealerName: dealer.name || undefined,
                   dealerLicense: dealer.license || undefined,
                   dealerRegistry: dealer.registry || undefined,
@@ -705,11 +947,148 @@ export function BuyFlow({
                     mono
                   />
                 </Field>
+                {/* ID scanner + webcam capture (desktop counter). The scanner
+                    autofills name/DL/DOB/address; the photo backs up the record. */}
+                {idScan ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 9,
+                      padding: '9px 12px',
+                      borderRadius: 10,
+                      background: 'var(--accent-soft)',
+                      border: '1px solid var(--accent)',
+                    }}
+                  >
+                    <Icon
+                      name="check"
+                      size={15}
+                      color="var(--accent)"
+                      stroke={2.4}
+                    />
+                    <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
+                      ID scanned
+                      {idScan.dob ? ` · DOB ${idScan.dob}` : ''}
+                      {idScan.stateOfIssue ? ` · ${idScan.stateOfIssue}` : ''}
+                    </span>
+                    <button
+                      className="tap mono"
+                      onClick={() => setIdScan(null)}
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: 11,
+                        color: 'var(--ink-3)',
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="mono"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 7,
+                      fontSize: 11,
+                      color: 'var(--ink-3)',
+                    }}
+                  >
+                    <Icon
+                      name="scan"
+                      size={13}
+                      color="var(--ink-3)"
+                      stroke={1.8}
+                    />
+                    Scan the license barcode to autofill
+                  </div>
+                )}
+                <button
+                  className="tap"
+                  onClick={() => setCamOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 9,
+                    padding: '11px 13px',
+                    borderRadius: 11,
+                    textAlign: 'left',
+                    background: idPhoto
+                      ? 'var(--accent-soft)'
+                      : 'var(--surface)',
+                    border: `1px solid ${idPhoto ? 'var(--accent)' : 'var(--line)'}`,
+                  }}
+                >
+                  <Icon
+                    name={idPhoto ? 'check' : 'scan'}
+                    size={16}
+                    color={idPhoto ? 'var(--accent)' : 'var(--ink-2)'}
+                    stroke={2}
+                  />
+                  <span style={{ fontSize: 13, color: 'var(--ink)' }}>
+                    {idPhoto
+                      ? 'ID photo captured — retake'
+                      : 'Capture ID photo'}
+                  </span>
+                  {idPhoto && (
+                    <span
+                      className="tap mono"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIdPhoto(null);
+                      }}
+                      style={{
+                        marginLeft: 'auto',
+                        fontSize: 11,
+                        color: 'var(--ink-3)',
+                      }}
+                    >
+                      Remove
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
 
             {/* line items */}
             <div>
+              {missingMetals.length > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 9,
+                    padding: '11px 13px',
+                    borderRadius: 11,
+                    marginBottom: 10,
+                    background:
+                      'color-mix(in oklab, var(--rust) 10%, var(--surface))',
+                    border:
+                      '1px solid color-mix(in oklab, var(--rust) 34%, var(--line))',
+                  }}
+                >
+                  <Icon
+                    name="alert"
+                    size={16}
+                    color="var(--rust)"
+                    stroke={2.2}
+                  />
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      color: 'var(--ink-2)',
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {missingMetals.length} material
+                    {missingMetals.length === 1 ? '' : 's'} on this scale ticket
+                    {missingMetals.length === 1 ? ' is' : ' are'} no longer
+                    priced (the metal was changed since it was weighed) — it
+                    won&apos;t be paid out. Re-add it before finalizing.
+                  </span>
+                </div>
+              )}
               <div
                 style={{
                   display: 'flex',
@@ -1449,6 +1828,32 @@ export function BuyFlow({
                 {disabledReason}
               </div>
             )}
+            {/* Worker mode (no draft): offer "send to cashier" so a second
+                person collects ID + payment. Single operators just hit
+                "Complete & save" to pay out now. Cashier mode (finalizing a
+                draft) shows only the payout button. */}
+            {!draft && (
+              <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                <Btn
+                  variant="ghost"
+                  icon="truck"
+                  full
+                  disabled={!canSend}
+                  onClick={() => sendToCashier(false)}
+                >
+                  Send to cashier
+                </Btn>
+                <Btn
+                  variant="ghost"
+                  icon="printer"
+                  full
+                  disabled={!canSend}
+                  onClick={() => sendToCashier(true)}
+                >
+                  Send + print stub
+                </Btn>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10 }}>
               <Btn variant="ghost" onClick={onClose}>
                 Cancel
@@ -1460,7 +1865,11 @@ export function BuyFlow({
                 disabled={!canSave}
                 onClick={complete}
               >
-                {busy ? 'Saving…' : 'Complete & save'}
+                {busy
+                  ? 'Saving…'
+                  : draft
+                    ? 'Finalize & pay out'
+                    : 'Complete & save'}
               </Btn>
             </div>
           </div>

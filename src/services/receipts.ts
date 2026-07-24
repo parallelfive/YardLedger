@@ -50,8 +50,18 @@ async function uploadIdPhoto(
   label: string
 ): Promise<string> {
   const filePath = `${companyId}/${label}_${Date.now()}.jpg`;
-  const file = new File(localUri);
-  const base64 = await file.base64();
+  // The desktop webcam hands us a base64 data URL (data:image/jpeg;base64,…);
+  // native image pickers hand a file:// URI read via expo-file-system. Branch so
+  // the same call works on both — the browser has no expo-file-system File.
+  let base64: string;
+  if (localUri.startsWith('data:')) {
+    const comma = localUri.indexOf(',');
+    if (comma < 0) throw new Error('Malformed data URL for photo upload');
+    base64 = localUri.slice(comma + 1);
+  } else {
+    const file = new File(localUri);
+    base64 = await file.base64();
+  }
   const { error } = await supabase.storage
     .from('customer-ids')
     .upload(filePath, decode(base64), {

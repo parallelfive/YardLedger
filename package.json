@@ -12,6 +12,8 @@
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prepare": "husky",
     "dev": "bash scripts/dev.sh start",
     "dev:clear": "bash scripts/dev.sh start --clear",
@@ -72,7 +74,8 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.3.3",
     "prettier": "^3.8.1",
-    "typescript": "~5.9.2"
+    "typescript": "~5.9.2",
+    "vitest": "^4.1.10"
   },
   "overrides": {
     "shell-quote": "^1.8.4",

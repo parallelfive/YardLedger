@@ -16,6 +16,8 @@ import Compliance from './screens/Compliance';
 import Settings from './screens/Settings';
 import { BuyFlow, SaleFlow } from './Flows';
 import CloseDay from './CloseDay';
+import CashierQueue from './CashierQueue';
+import { type DraftTicket } from '../services/draftTickets';
 import { DeskAdminProvider } from './AdminActions';
 import { printReceipt } from '../utils/printReceipt';
 import { fetchReceiptById } from '../services/receipts';
@@ -289,9 +291,10 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
 
 type Overlay =
   | { type: 'ticket'; data: ReceiptRow }
-  | { type: 'buy' }
+  | { type: 'buy'; draft?: DraftTicket }
   | { type: 'sale' }
   | { type: 'closeday' }
+  | { type: 'cashier' }
   | null;
 
 export default function DesktopShell() {
@@ -427,6 +430,7 @@ export default function DesktopShell() {
     openSale: () => setOverlay({ type: 'sale' }),
     openTicket: (r: ReceiptRow) => setOverlay({ type: 'ticket', data: r }),
     openCloseDay: () => setOverlay({ type: 'closeday' }),
+    openCashier: () => setOverlay({ type: 'cashier' }),
     close: () => setOverlay(null),
   };
 
@@ -536,6 +540,13 @@ export default function DesktopShell() {
               onClose={nav.close}
               onDone={done}
               onSaved={refreshBehind}
+              draft={overlay.draft}
+            />
+          )}
+          {overlay?.type === 'cashier' && (
+            <CashierQueue
+              onClose={nav.close}
+              onPick={(d) => setOverlay({ type: 'buy', draft: d })}
             />
           )}
           {overlay?.type === 'sale' && (
