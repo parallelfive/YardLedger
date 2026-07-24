@@ -607,7 +607,6 @@ export default {
   awaitingStateReport: 'Awaiting state report',
   sent: 'sent',
   hold24: '24-hour hold',
-  disposalHold60: '60-day disposal hold',
   held: 'held',
   retention: 'Retention',
   retention1: '1 year',

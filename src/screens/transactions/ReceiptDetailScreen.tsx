@@ -206,7 +206,7 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
   const restricted = !!receipt.is_catalytic;
   const reported = !!receipt.reported_at;
   const holdActive = !!receipt.hold_until && !receipt.disposed_at;
-  const longHold = restricted; // catalytic => 60-day / 3-year retention
+  const longHold = restricted; // catalytic => 3-year record retention (hold is 24h for all)
   const paymentLabel = receipt.payment_method
     ? receipt.payment_method === 'cash'
       ? t.paymentCash
@@ -259,12 +259,13 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
             </View>
           ) : null}
 
-          {/* Hold notice (24h / 60-day) with held tag */}
+          {/* Hold notice — 24h for all tiers incl. catalytic (NM 57-30, corrected
+              from the old 60-day). Record retention differs and is shown below. */}
           {holdActive ? (
             <View style={styles.holdNotice}>
               <Ionicons name="time-outline" size={18} color={colors.gold} />
               <Text style={styles.noticeText}>
-                {longHold ? t.disposalHold60 : t.hold24}
+                {t.hold24}
                 {heldUntilText ? ` · ${t.holdUntil} ${heldUntilText}` : ''}
               </Text>
               <Tag

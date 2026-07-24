@@ -612,7 +612,6 @@ export default {
   awaitingStateReport: 'Esperando reporte al estado',
   sent: 'enviado',
   hold24: 'Retención de 24 horas',
-  disposalHold60: 'Retención de 60 días',
   held: 'retenido',
   retention: 'Retención',
   retention1: '1 año',
