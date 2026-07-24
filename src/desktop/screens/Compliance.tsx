@@ -11,6 +11,7 @@ import { useAppSelector, type RootState } from '../../store';
 import { useDeskAdmin } from '../AdminActions';
 import { printComplianceRecord } from '../print';
 import Icon, { type IconName } from '../Icon';
+import { receiptIsReportable } from '../../utils/reporting';
 import {
   Card,
   PanelHead,
@@ -72,7 +73,8 @@ interface RecordVM {
   materials: string;
   weight: number;
   paid: number;
-  restricted: boolean;
+  restricted: boolean; // material TYPE (burnt/utility/catalytic) — for the filter
+  reportable: boolean; // state-reporting obligation (Kennon rule) — for the queue
   reported: boolean;
   affirmed: boolean;
   pay: string;
@@ -97,6 +99,7 @@ const toVM = (r: ComplianceReceiptRow): RecordVM => {
     weight: items.reduce((a, li) => a + Number(li.weight || 0), 0),
     paid: Number(r.subtotal || 0),
     restricted: items.some((li) => li.is_restricted) || !!r.is_catalytic,
+    reportable: receiptIsReportable(r),
     reported: !!r.reported_at,
     affirmed: !!r.seller_affirmed,
     pay: r.payment_method || '—',
@@ -210,7 +213,13 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
   }, [range, reloadTick]);
 
   const vms = useMemo(() => records.map(toVM), [records]);
-  const queued = useMemo(() => vms.filter((r) => !r.reported), [vms]);
+  // The state-reporting queue: buys that must reach LeadsOnline (the Kennon rule
+  // — regulated material minus below-a-ton aluminum/steel) and aren't reported
+  // yet. Matches the rail badge (DesktopShell) and the report-to-state edge fn.
+  const queued = useMemo(
+    () => vms.filter((r) => r.reportable && !r.reported),
+    [vms]
+  );
   const sent = useMemo(() => vms.filter((r) => r.reported), [vms]);
   const restrictedRows = useMemo(() => vms.filter((r) => r.restricted), [vms]);
 
@@ -258,10 +267,11 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
     }
   };
 
-  // "Export & mark reported": download the CSV, then flag the queued buys.
+  // "Export & mark reported": download the CSV, then flag only the buys that
+  // were actually in the reporting queue (reportable & unreported).
   const exportAndReport = async () => {
     await exportCsv();
-    await markReported(records.filter((r) => !r.reported_at).map((r) => r.id));
+    await markReported(queued.map((r) => r.id));
   };
 
   const cols: Col[] = [
@@ -485,8 +495,9 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
           <span style={{ flex: 1, fontSize: 13, color: 'var(--ink-2)' }}>
             <b style={{ color: 'var(--ink)' }}>
               {queued.length} unreported transaction
+              {queued.length === 1 ? '' : 's'}
             </b>{' '}
-            with a restricted item must reach {COMPANY.registry} by the{' '}
+            with regulated material must reach {COMPANY.registry} by the{' '}
             {COMPANY.reportBy}.
           </span>
           <Btn
@@ -665,10 +676,20 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                   </span>,
                   <Pill
                     key="status"
-                    tone={r.reported ? 'var(--moss)' : 'var(--gold)'}
-                    icon={r.reported ? 'check' : 'clock'}
+                    tone={
+                      r.reported
+                        ? 'var(--moss)'
+                        : r.reportable
+                          ? 'var(--gold)'
+                          : 'var(--ink-3)'
+                    }
+                    icon={r.reported ? 'check' : r.reportable ? 'clock' : 'x'}
                   >
-                    {r.reported ? 'Reported' : 'Queued'}
+                    {r.reported
+                      ? 'Reported'
+                      : r.reportable
+                        ? 'Queued'
+                        : 'Not required'}
                   </Pill>,
                 ]}
               />

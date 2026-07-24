@@ -451,6 +451,9 @@ export interface ComplianceReceiptRow {
     weight: number;
     total: number;
     is_restricted: boolean;
+    is_regulated: boolean;
+    // Joined from the metal — governs the below-a-ton reporting exemption.
+    metals?: { is_report_exempt: boolean | null } | null;
   }[];
 }
 
@@ -460,7 +463,9 @@ export async function fetchComplianceReport(
 ): Promise<ComplianceReceiptRow[]> {
   const { data, error } = await supabase
     .from('receipts')
-    .select('*, line_items(metal_name, weight, total, is_restricted)')
+    .select(
+      '*, line_items(metal_name, weight, total, is_restricted, is_regulated, metals(is_report_exempt))'
+    )
     .eq('type', 'buy')
     .gte('created_at', startOfLocalDayUtc(startDate))
     .lte('created_at', endOfLocalDayUtc(endDate))
@@ -509,7 +514,9 @@ export async function fetchUnreportedReceipts(): Promise<
 > {
   const { data, error } = await supabase
     .from('receipts')
-    .select('*, line_items(metal_name, weight, total, is_restricted)')
+    .select(
+      '*, line_items(metal_name, weight, total, is_restricted, is_regulated, metals(is_report_exempt))'
+    )
     .eq('type', 'buy')
     .is('reported_at', null)
     .order('created_at', { ascending: true });
