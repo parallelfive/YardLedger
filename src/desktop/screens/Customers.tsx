@@ -214,14 +214,14 @@ export default function Customers({
         <StatTile
           label="With ID"
           value={withId}
-          sub="license captured"
+          sub={withId === 1 ? 'license captured' : 'licenses captured'}
           tone="steel"
           icon="scan"
         />
         <StatTile
           label="Flagged"
           value={flaggedCount}
-          sub="need review"
+          sub={flaggedCount === 1 ? 'needs review' : 'need review'}
           tone={flaggedCount > 0 ? 'rust' : 'moss'}
           icon="alert"
         />
