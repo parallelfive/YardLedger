@@ -37,7 +37,7 @@ export interface CompanyEdit {
   registry_id: string;
 }
 
-interface DeskAdmin {
+export interface DeskAdmin {
   addMaterial: () => void;
   editPrice: (metal: EditTarget) => void;
   editCompany: (current: CompanyEdit) => void;
