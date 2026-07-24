@@ -30,6 +30,7 @@ import {
   lbs,
   tierTone,
 } from './ui';
+import { receiptIsReportable } from '../utils/reporting';
 
 type ReceiptRow = ReturnType<typeof useReceipts>['receipts'][number];
 
@@ -266,10 +267,7 @@ export default function DesktopShell() {
   }, [overlay]);
 
   const queued = receipts.filter(
-    (r) =>
-      r.type === 'buy' &&
-      !r.reported_at &&
-      ((r.line_items ?? []).some((li) => li.is_restricted) || !!r.is_catalytic)
+    (r) => r.type === 'buy' && !r.reported_at && receiptIsReportable(r)
   ).length;
 
   // Global search: metals (→ Inventory) + receipts by seller / receipt #
