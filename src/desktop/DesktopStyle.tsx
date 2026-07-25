@@ -75,6 +75,21 @@ const CSS = `
 @keyframes ylSlideR { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes ylBar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes ylPop { from { opacity: 0; transform: translate(-50%, -50%) scale(.97); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes ylSpin { to { transform: rotate(360deg); } }
+@keyframes ylShimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+
+.yl-app .yl-spin { animation: ylSpin .6s linear infinite; }
+/* Skeleton loading blocks — a muted shimmer stand-in while data loads. */
+.yl-app .yl-skel {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--line) 37%, var(--surface-2) 63%);
+  background-size: 800px 100%;
+  animation: ylShimmer 1.3s ease-in-out infinite;
+  border-radius: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .yl-app .yl-skel { animation: none; }
+  .yl-app .yl-spin { animation-duration: 1.2s; }
+}
 
 .yl-app .stagger.in > * { opacity: 0; animation: ylFade .5s cubic-bezier(.2,.7,.2,1) forwards; }
 .yl-app .stagger.in > *:nth-child(1) { animation-delay: .02s; }

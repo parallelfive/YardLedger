@@ -16,6 +16,7 @@ export type IconName =
   | 'sign'
   | 'printer'
   | 'download'
+  | 'reload'
   | 'del'
   | 'upload'
   | 'check'
@@ -152,6 +153,12 @@ export default function Icon({
       <>
         <path d="M12 3v11m0 0 4-4m-4 4-4-4" {...p} />
         <path d="M4 20h16" {...p} />
+      </>
+    ),
+    reload: (
+      <>
+        <path d="M20 12a8 8 0 1 1-2.34-5.66" {...p} />
+        <path d="M20 4v4h-4" {...p} />
       </>
     ),
     del: (

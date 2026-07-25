@@ -19,6 +19,8 @@ import {
   GroupLabel,
   Sparkline,
   DeltaTag,
+  EmptyState,
+  SkeletonRows,
   money,
   money0,
   lbs,
@@ -328,7 +330,7 @@ function MetalDetail({
 }
 
 export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
-  const { inventory } = useInventory();
+  const { inventory, loading, error, refresh } = useInventory();
   const [cat, setCat] = useState('All');
   const [sortKey, setSortKey] = useState('value');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -507,7 +509,7 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
                 {lbs(totalWeight)} lb across {metals.length} metals
               </div>
             </div>
-            <DeltaTag up>4.2% wk</DeltaTag>
+            {inventory.length > 0 && <DeltaTag up>4.2% wk</DeltaTag>}
           </div>
           <div style={{ position: 'relative', marginTop: 14 }}>
             <Sparkline
@@ -620,17 +622,43 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
             </Btn>
           </div>
         </div>
-        {rows.length === 0 ? (
-          <div
-            className="mono"
-            style={{
-              padding: '8px 20px 26px',
-              fontSize: 12.5,
-              color: 'var(--ink-3)',
-            }}
-          >
-            No inventory yet.
-          </div>
+        {error ? (
+          <EmptyState
+            tone="error"
+            label="Couldn’t load inventory"
+            sub={error}
+            action={
+              <Btn variant="ghost" size="sm" icon="reload" onClick={refresh}>
+                Retry
+              </Btn>
+            }
+          />
+        ) : loading && inventory.length === 0 ? (
+          <SkeletonRows />
+        ) : rows.length === 0 ? (
+          inventory.length === 0 ? (
+            <EmptyState
+              icon="stack"
+              label="No inventory yet"
+              sub="Materials you buy will accumulate here as you record buys."
+              action={
+                <Btn
+                  variant="primary"
+                  size="sm"
+                  icon="plus"
+                  onClick={() => nav.openBuy()}
+                >
+                  New buy
+                </Btn>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon="search"
+              label="No matches"
+              sub="Try a different search or category."
+            />
+          )
         ) : (
           <Table
             cols={cols}

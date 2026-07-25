@@ -14,6 +14,8 @@ import {
   SlideOver,
   SlideHead,
   SearchBox,
+  EmptyState,
+  SkeletonRows,
   money,
   money0,
   lbs,
@@ -50,7 +52,7 @@ export default function Customers({
 }: {
   nav: { openTicket: (r: ReceiptRow) => void };
 }) {
-  const { customers, refresh } = useCustomers();
+  const { customers, loading, error, refresh } = useCustomers();
   const { receipts } = useReceipts();
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<Customer | null>(null);
@@ -262,17 +264,33 @@ export default function Customers({
             </Btn>
           </div>
         </div>
-        {rows.length === 0 ? (
-          <div
-            className="mono"
-            style={{
-              padding: '8px 20px 26px',
-              fontSize: 12.5,
-              color: 'var(--ink-3)',
-            }}
-          >
-            {customers.length === 0 ? 'No sellers yet.' : 'No matches.'}
-          </div>
+        {error ? (
+          <EmptyState
+            tone="error"
+            label="Couldn’t load sellers"
+            sub={error}
+            action={
+              <Btn variant="ghost" size="sm" icon="reload" onClick={refresh}>
+                Retry
+              </Btn>
+            }
+          />
+        ) : loading && customers.length === 0 ? (
+          <SkeletonRows />
+        ) : rows.length === 0 ? (
+          customers.length === 0 ? (
+            <EmptyState
+              icon="user"
+              label="No sellers yet"
+              sub="Sellers are added automatically the first time you buy from them."
+            />
+          ) : (
+            <EmptyState
+              icon="search"
+              label="No matches"
+              sub="Try a different name or phone number."
+            />
+          )
         ) : (
           <Table cols={cols}>
             {rows.map(({ c, stat }) => (
