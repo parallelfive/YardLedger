@@ -21,6 +21,7 @@ import Icon from './Icon';
 import CameraCapture from './CameraCapture';
 import {
   Card,
+  Banner,
   SlideOver,
   SlideHead,
   GroupLabel,
@@ -669,30 +670,9 @@ export function BuyFlow({
               </div>
             </div>
             {saved.warning && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 9,
-                  padding: '11px 13px',
-                  borderRadius: 11,
-                  background:
-                    'color-mix(in oklab, var(--rust) 10%, var(--surface))',
-                  border:
-                    '1px solid color-mix(in oklab, var(--rust) 34%, var(--line))',
-                }}
-              >
-                <Icon name="alert" size={16} color="var(--rust)" stroke={2.2} />
-                <span
-                  style={{
-                    fontSize: 12.5,
-                    color: 'var(--ink-2)',
-                    lineHeight: 1.45,
-                  }}
-                >
-                  {saved.warning}
-                </span>
-              </div>
+              <Banner body="ink" align="start" icon="alert">
+                {saved.warning}
+              </Banner>
             )}
             <Card pad={18}>
               {(
@@ -914,30 +894,10 @@ export function BuyFlow({
                   </div>
                 </Field>
                 {flagged && (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 9,
-                      padding: '10px 12px',
-                      borderRadius: 10,
-                      background:
-                        'color-mix(in oklab, var(--rust) 10%, var(--surface))',
-                      border:
-                        '1px solid color-mix(in oklab, var(--rust) 32%, var(--line))',
-                    }}
-                  >
-                    <Icon
-                      name="alert"
-                      size={16}
-                      color="var(--rust)"
-                      stroke={2.2}
-                    />
-                    <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>
-                      Flagged customer
-                      {flagged.reason ? ` — ${flagged.reason}` : ''}
-                    </span>
-                  </div>
+                  <Banner body="ink" icon="alert">
+                    Flagged customer
+                    {flagged.reason ? ` — ${flagged.reason}` : ''}
+                  </Banner>
                 )}
                 <Field label="Driver license (regulated)">
                   <TextInput
@@ -1054,39 +1014,14 @@ export function BuyFlow({
             {/* line items */}
             <div>
               {missingMetals.length > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 9,
-                    padding: '11px 13px',
-                    borderRadius: 11,
-                    marginBottom: 10,
-                    background:
-                      'color-mix(in oklab, var(--rust) 10%, var(--surface))',
-                    border:
-                      '1px solid color-mix(in oklab, var(--rust) 34%, var(--line))',
-                  }}
-                >
-                  <Icon
-                    name="alert"
-                    size={16}
-                    color="var(--rust)"
-                    stroke={2.2}
-                  />
-                  <span
-                    style={{
-                      fontSize: 12.5,
-                      color: 'var(--ink-2)',
-                      lineHeight: 1.45,
-                    }}
-                  >
+                <div style={{ marginBottom: 10 }}>
+                  <Banner body="ink" align="start" icon="alert">
                     {missingMetals.length} material
                     {missingMetals.length === 1 ? '' : 's'} on this scale ticket
                     {missingMetals.length === 1 ? ' is' : ' are'} no longer
                     priced (the metal was changed since it was weighed) — it
                     won&apos;t be paid out. Re-add it before finalizing.
-                  </span>
+                  </Banner>
                 </div>
               )}
               <div

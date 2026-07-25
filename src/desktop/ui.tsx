@@ -1213,6 +1213,69 @@ export function EmptyState({
   );
 }
 
+// A single-line tinted notice strip (warning / info). One canonical radius, tint
+// and border so the ad-hoc banners scattered across screens stop drifting.
+// `tone` colors the icon + text; pass an `action` (e.g. a Retry Btn) for the
+// right edge. Use EmptyState (not this) for full empty/error states.
+export function Banner({
+  tone = 'var(--rust)',
+  icon,
+  children,
+  action,
+  body = 'tone',
+  align = 'center',
+}: {
+  tone?: string;
+  icon?: IconName;
+  children: ReactNode;
+  action?: ReactNode;
+  // Body text color: 'tone' matches the accent (short warnings), 'ink' is
+  // neutral prose (longer sentences with their own emphasis).
+  body?: 'tone' | 'ink';
+  // 'start' for multi-line prose so the icon pins to the first line.
+  align?: 'center' | 'start';
+}) {
+  const isTone = body === 'tone';
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: align === 'start' ? 'flex-start' : 'center',
+        gap: 10,
+        padding: '11px 14px',
+        borderRadius: 12,
+        background: `color-mix(in oklab, ${tone} 10%, transparent)`,
+        border: `1px solid color-mix(in oklab, ${tone} 30%, transparent)`,
+        flexShrink: 0,
+      }}
+    >
+      {icon && (
+        <span
+          style={{
+            flexShrink: 0,
+            display: 'inline-flex',
+            marginTop: align === 'start' ? 1 : 0,
+          }}
+        >
+          <Icon name={icon} size={16} color={tone} stroke={2} />
+        </span>
+      )}
+      <div
+        className={isTone ? 'mono' : undefined}
+        style={{
+          fontSize: isTone ? 12 : 12.5,
+          color: isTone ? tone : 'var(--ink-2)',
+          flex: 1,
+          lineHeight: 1.45,
+        }}
+      >
+        {children}
+      </div>
+      {action}
+    </div>
+  );
+}
+
 export function Field({
   label,
   children,

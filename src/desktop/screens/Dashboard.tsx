@@ -11,6 +11,7 @@ import {
   TR,
   Pill,
   Btn,
+  Banner,
   EmptyState,
   Skeleton,
   money,
@@ -344,30 +345,16 @@ export default function Dashboard({
           some tiles below would read a misleading $0. Surface it + let them
           retry, without hiding the data that did load. */}
       {dashError && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '10px 14px',
-            borderRadius: 12,
-            background: 'color-mix(in oklab, var(--rust) 10%, transparent)',
-            border:
-              '1px solid color-mix(in oklab, var(--rust) 30%, transparent)',
-            flexShrink: 0,
-          }}
+        <Banner
+          icon="alert"
+          action={
+            <Btn variant="ghost" size="sm" icon="reload" onClick={retryAll}>
+              Retry
+            </Btn>
+          }
         >
-          <Icon name="alert" size={16} color="var(--rust)" stroke={2} />
-          <span
-            className="mono"
-            style={{ fontSize: 12, color: 'var(--rust)', flex: 1 }}
-          >
-            Some figures couldn’t be loaded and may be incomplete.
-          </span>
-          <Btn variant="ghost" size="sm" icon="reload" onClick={retryAll}>
-            Retry
-          </Btn>
-        </div>
+          Some figures couldn’t be loaded and may be incomplete.
+        </Banner>
       )}
 
       {/* KPI row */}
