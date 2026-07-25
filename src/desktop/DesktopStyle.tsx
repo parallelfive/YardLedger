@@ -69,6 +69,9 @@ const CSS = `
 .yl-app .lift { transition: transform .14s cubic-bezier(.2,.7,.2,1), box-shadow .2s ease, border-color .15s ease, background .15s ease; }
 .yl-app .lift:hover { transform: translateY(-1px); }
 .yl-app .focusring:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Every interactive .tap element gets a keyboard focus ring, so hand-rolled
+   <button className="tap"> (rail nav, chips, toggles) match Btn/IconBtn. */
+.yl-app .tap:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @keyframes ylFade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes ylScrim { from { opacity: 0; } to { opacity: 1; } }

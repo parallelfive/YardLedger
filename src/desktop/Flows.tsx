@@ -1363,6 +1363,7 @@ export function BuyFlow({
                             >
                               <select
                                 value=""
+                                aria-label="Apply a tare-weight preset"
                                 onChange={(e) => {
                                   const p = presets.find(
                                     (x) => x.id === e.target.value
@@ -1596,7 +1597,10 @@ export function BuyFlow({
                   </Field>
                 )}
                 <button
-                  className="tap"
+                  className="tap focusring"
+                  role="checkbox"
+                  aria-checked={affirmed}
+                  aria-label="Seller affirms lawful ownership of the material"
                   onClick={() => setAffirmed((a) => !a)}
                   style={{
                     display: 'flex',
@@ -1644,7 +1648,10 @@ export function BuyFlow({
                   </span>
                 </button>
                 <button
-                  className="tap"
+                  className="tap focusring"
+                  role="checkbox"
+                  aria-checked={noTheft}
+                  aria-label="Seller attests they have not been convicted of metal theft"
                   onClick={() => setNoTheft((a) => !a)}
                   style={{
                     display: 'flex',

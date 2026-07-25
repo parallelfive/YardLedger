@@ -24,7 +24,7 @@ import { fetchReceiptById } from '../services/receipts';
 import {
   Card,
   PanelHead,
-  Btn,
+  AsyncBtn,
   SlideOver,
   SlideHead,
   Pill,
@@ -261,7 +261,7 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
             </div>
           ))}
         </Card>
-        <Btn
+        <AsyncBtn
           variant="primary"
           icon="printer"
           full
@@ -284,7 +284,7 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
           }
         >
           Reprint ticket
-        </Btn>
+        </AsyncBtn>
       </div>
     </SlideOver>
   );

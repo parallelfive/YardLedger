@@ -11,6 +11,7 @@ import {
   TR,
   Pill,
   Btn,
+  AsyncBtn,
   SlideOver,
   SlideHead,
   GroupLabel,
@@ -412,7 +413,7 @@ export default function CloseDay({ onClose }: { onClose: () => void }) {
         >
           Export CSV
         </Btn>
-        <Btn
+        <AsyncBtn
           variant="primary"
           icon="printer"
           full
@@ -434,7 +435,7 @@ export default function CloseDay({ onClose }: { onClose: () => void }) {
           }
         >
           Print day close
-        </Btn>
+        </AsyncBtn>
       </div>
     </SlideOver>
   );

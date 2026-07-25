@@ -10,6 +10,7 @@ import {
   TR,
   Pill,
   Btn,
+  AsyncBtn,
   SlideOver,
   SlideHead,
   GroupLabel,
@@ -313,7 +314,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                 ))}
               </Card>
               <div style={{ display: 'flex', gap: 10 }}>
-                <Btn
+                <AsyncBtn
                   variant="primary"
                   icon="printer"
                   full
@@ -337,7 +338,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                   }
                 >
                   Bill of lading
-                </Btn>
+                </AsyncBtn>
                 <Btn
                   variant="ghost"
                   icon="download"

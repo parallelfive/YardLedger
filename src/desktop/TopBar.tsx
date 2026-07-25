@@ -199,8 +199,17 @@ export default function TopBar({
             </div>
           )}
         </div>
-        <IconBtn icon={isLight ? 'bolt' : 'drop'} onClick={onToggleTheme} />
-        <IconBtn icon="bell" badge={alerts} onClick={onAlerts} />
+        <IconBtn
+          icon={isLight ? 'bolt' : 'drop'}
+          onClick={onToggleTheme}
+          label={isLight ? 'Switch to dark theme' : 'Switch to light theme'}
+        />
+        <IconBtn
+          icon="bell"
+          badge={alerts}
+          onClick={onAlerts}
+          label={alerts ? 'Alerts (unread)' : 'Alerts'}
+        />
         <Btn variant="primary" icon="plus" onClick={onNewBuy}>
           New buy
         </Btn>

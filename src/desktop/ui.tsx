@@ -1,4 +1,9 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useState } from 'react';
+import type {
+  CSSProperties,
+  ReactNode,
+  KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import Icon, { type IconName } from './Icon';
 
 // Shared desktop UI primitives + formatters, ported from the design handoff
@@ -510,7 +515,9 @@ export function Segmented<T extends string>({
         return (
           <button
             key={v}
-            className="tap"
+            className="tap focusring"
+            role="tab"
+            aria-selected={on}
             onClick={() => onChange(v)}
             style={{
               padding: pad,
@@ -637,23 +644,50 @@ export function Btn({
   );
 }
 
+// Btn whose onClick is async: it manages its own busy state, so the button
+// shows a spinner and can't be double-fired for the duration of the promise
+// (print / export / share). Drop-in replacement for a Btn with an async click.
+export function AsyncBtn({
+  onClick,
+  ...rest
+}: Omit<Parameters<typeof Btn>[0], 'onClick' | 'busy'> & {
+  onClick?: () => void | Promise<unknown>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onClick?.();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return <Btn {...rest} busy={busy} onClick={run} />;
+}
+
 export function IconBtn({
   icon,
   onClick,
   badge,
   active,
   size = 38,
+  label,
 }: {
   icon: IconName;
   onClick?: () => void;
   badge?: boolean;
   active?: boolean;
   size?: number;
+  // Icon-only button → screen-reader name. Required for accessibility.
+  label: string;
 }) {
   return (
     <button
       className="tap focusring"
       onClick={onClick}
+      aria-label={label}
+      title={label}
       style={{
         width: size,
         height: size,
@@ -854,7 +888,7 @@ export function SlideHead({
           )}
         </div>
       </div>
-      <IconBtn icon="x" onClick={onClose} />
+      <IconBtn icon="x" onClick={onClose} label="Close" />
     </div>
   );
 }
@@ -1224,6 +1258,11 @@ export function TextInput({
   mono,
   readOnly,
   align,
+  type = 'text',
+  inputMode,
+  onKeyDown,
+  autoFocus,
+  ariaLabel,
 }: {
   value: string | number;
   onChange?: (v: string) => void;
@@ -1232,6 +1271,11 @@ export function TextInput({
   mono?: boolean;
   readOnly?: boolean;
   align?: 'left' | 'right';
+  type?: 'text' | 'number' | 'tel' | 'email';
+  inputMode?: 'text' | 'decimal' | 'numeric' | 'tel' | 'email';
+  onKeyDown?: (e: ReactKeyboardEvent<HTMLInputElement>) => void;
+  autoFocus?: boolean;
+  ariaLabel?: string;
 }) {
   return (
     <div
@@ -1256,6 +1300,11 @@ export function TextInput({
         onChange={(e) => onChange && onChange(e.target.value)}
         placeholder={placeholder}
         readOnly={readOnly}
+        type={type}
+        inputMode={inputMode}
+        onKeyDown={onKeyDown}
+        autoFocus={autoFocus}
+        aria-label={ariaLabel || placeholder}
         className={mono ? 'mono num' : ''}
         style={{
           flex: 1,
