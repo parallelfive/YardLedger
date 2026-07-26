@@ -713,7 +713,8 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                         color: 'var(--ink)',
                       }}
                     >
-                      {money(m.price_per_lb)}/lb
+                      {money(m.price_per_lb)}/
+                      {m.pricing_unit === 'each' ? 'pc' : 'lb'}
                     </span>,
                   ]}
                 />

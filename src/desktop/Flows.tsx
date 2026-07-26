@@ -47,6 +47,7 @@ interface MetalRow {
   is_restricted?: boolean;
   is_regulated?: boolean;
   is_catalytic?: boolean;
+  pricing_unit?: string;
 }
 
 type Tier = 'open' | 'regulated' | 'restricted' | 'catalytic';
@@ -84,10 +85,24 @@ interface BuyItem {
   net: number;
   gross: number;
   tare: number;
+  qty: number; // # pieces, for materials priced per piece (converters, rims…)
 }
 // Effective net weight for a line — gross minus tare when weighing a vehicle,
 // clamped at 0. Delegates to the shared, unit-tested calculateNetWeight.
 const netOf = (it: BuyItem): number => calculateNetWeight(it.mode, it);
+
+// A material priced by the piece rather than by weight.
+const isPiece = (m?: { pricing_unit?: string }): boolean =>
+  m?.pricing_unit === 'each';
+// The line's payout: pieces × $/piece for per-piece metals, net weight × $/lb
+// otherwise. Rounded per line to match the DB's stored subtotal.
+const lineTotalOf = (
+  it: BuyItem,
+  m: { price_per_lb: number; pricing_unit?: string }
+): number =>
+  isPiece(m)
+    ? calculateLineItemTotal(it.qty || 0, m.price_per_lb)
+    : calculateLineItemTotal(netOf(it), m.price_per_lb);
 
 const miniLabel = {
   fontSize: 10.5,
@@ -130,6 +145,7 @@ export function BuyFlow({
       net: Number(li.weight || 0),
       gross: Number(li.grossWeight || 0),
       tare: Number(li.tareWeight || 0),
+      qty: Number(li.quantity || 0),
     }));
   const [dl, setDl] = useState('');
   // Vehicle info is captured at the scale (worker is next to the truck) and
@@ -323,11 +339,10 @@ export function BuyFlow({
   // Round each line to cents before summing so the confirmation/printed total
   // equals the DB's stored subtotal (its enforce_line_item_pricing trigger
   // rounds per line). Same convention as the mobile calculateReceiptTotal.
-  const total = items.reduce(
-    (s, it) =>
-      s + calculateLineItemTotal(netOf(it), byId.get(it.id)?.price_per_lb ?? 0),
-    0
-  );
+  const total = items.reduce((s, it) => {
+    const m = byId.get(it.id);
+    return m ? s + lineTotalOf(it, m) : s;
+  }, 0);
   const weight = items.reduce((s, it) => s + netOf(it), 0);
 
   // A seeded draft line whose metal is no longer active (deactivated/removed
@@ -341,7 +356,10 @@ export function BuyFlow({
     setItems(items.map((it, i) => (i === idx ? { ...it, ...p } : it)));
   const remove = (idx: number) => setItems(items.filter((_, i) => i !== idx));
   const addMetal = (id: string) => {
-    setItems([...items, { id, mode: 'net', net: 0, gross: 0, tare: 0 }]);
+    setItems([
+      ...items,
+      { id, mode: 'net', net: 0, gross: 0, tare: 0, qty: 0 },
+    ]);
     setAdding(false);
   };
 
@@ -403,8 +421,10 @@ export function BuyFlow({
   const complianceOk =
     !needsCompliance ||
     (!!dl.trim() && !!vehiclePlate.trim() && affirmed && noTheft && vinOk);
+  // Payout-based, not weight-based: a per-piece ticket (e.g. converters only)
+  // has zero weight but a real total.
   const canSave =
-    items.length > 0 && weight > 0 && !!seller.trim() && complianceOk && !busy;
+    items.length > 0 && total > 0 && !!seller.trim() && complianceOk && !busy;
 
   // Tell the operator exactly what's blocking the save (a regulated buy needs
   // ID + vehicle + affirmation + no-theft attestation; catalytic also a VIN), so
@@ -412,8 +432,8 @@ export function BuyFlow({
   const disabledReason =
     items.length === 0
       ? 'Add a material to start the ticket'
-      : weight <= 0
-        ? 'Enter a weight'
+      : total <= 0
+        ? 'Enter a weight or quantity'
         : !seller.trim()
           ? "Enter the seller's name"
           : needsCompliance && !dl.trim()
@@ -431,7 +451,7 @@ export function BuyFlow({
   // Worker "sends" the weighed ticket to the cashier: stage a draft (materials +
   // weights only) and optionally print the claim stub the customer carries to
   // the front. Payment/ID are collected later by the cashier.
-  const canSend = items.length > 0 && weight > 0 && !busy;
+  const canSend = items.length > 0 && total > 0 && !busy;
   const sendToCashier = async (print: boolean) => {
     if (!canSend) return;
     setBusy(true);
@@ -439,18 +459,21 @@ export function BuyFlow({
     try {
       const lineItems = items.map((it) => {
         const m = byId.get(it.id)!;
-        const net = netOf(it);
+        const piece = isPiece(m);
+        const net = piece ? 0 : netOf(it);
         return {
           metalId: m.id,
           metalName: m.name,
           weight: net,
-          grossWeight: it.mode === 'tare' ? it.gross || 0 : null,
-          tareWeight: it.mode === 'tare' ? it.tare || 0 : null,
+          grossWeight: !piece && it.mode === 'tare' ? it.gross || 0 : null,
+          tareWeight: !piece && it.mode === 'tare' ? it.tare || 0 : null,
           pricePerLb: m.price_per_lb,
-          total: calculateLineItemTotal(net, m.price_per_lb),
+          total: lineTotalOf(it, m),
           isRegulated: !!m.is_regulated,
           isRestricted: !!m.is_restricted,
           isCatalytic: !!m.is_catalytic,
+          unit: piece ? ('each' as const) : ('lb' as const),
+          quantity: piece ? it.qty || 0 : null,
         };
       });
       const d = await createDraftTicket({
@@ -495,23 +518,26 @@ export function BuyFlow({
     try {
       const lineItems: LineItemInput[] = items.map((it) => {
         const m = byId.get(it.id)!;
-        const net = netOf(it);
+        const piece = isPiece(m);
+        const net = piece ? 0 : netOf(it);
         return {
           metalId: m.id,
           metalName: m.name,
           weight: net,
           // Persist the scale reading only when tare was actually used, so a
           // straight net entry doesn't record a phantom 0-lb gross/tare.
-          grossWeight: it.mode === 'tare' ? it.gross || 0 : null,
-          tareWeight: it.mode === 'tare' ? it.tare || 0 : null,
+          grossWeight: !piece && it.mode === 'tare' ? it.gross || 0 : null,
+          tareWeight: !piece && it.mode === 'tare' ? it.tare || 0 : null,
           pricePerLb: m.price_per_lb,
           originalPricePerLb: m.price_per_lb,
           isPriceOverride: false,
           overrideApprovedBy: null,
-          total: calculateLineItemTotal(net, m.price_per_lb),
+          total: lineTotalOf(it, m),
           isRegulated: !!m.is_regulated,
           isRestricted: !!m.is_restricted,
           isCatalytic: !!m.is_catalytic,
+          unit: piece ? 'each' : 'lb',
+          quantity: piece ? it.qty || 0 : null,
         };
       });
       const receipt = await createReceipt({
@@ -1072,7 +1098,8 @@ export function BuyFlow({
                   const m = byId.get(it.id);
                   if (!m) return null;
                   const net = netOf(it);
-                  const sub = calculateLineItemTotal(net, m.price_per_lb);
+                  const piece = isPiece(m);
+                  const sub = lineTotalOf(it, m);
                   const wInput = {
                     height: 34,
                     textAlign: 'right' as const,
@@ -1084,6 +1111,17 @@ export function BuyFlow({
                     fontWeight: 600,
                     padding: '0 8px',
                     outline: 'none',
+                  };
+                  const stepBtn = {
+                    width: 32,
+                    height: 34,
+                    borderRadius: 9,
+                    border: '1px solid var(--line)',
+                    background: 'var(--surface-2)',
+                    color: 'var(--ink)',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    lineHeight: 1,
                   };
                   return (
                     <div
@@ -1125,7 +1163,7 @@ export function BuyFlow({
                               marginTop: 3,
                             }}
                           >
-                            {money(m.price_per_lb)}/lb ·{' '}
+                            {money(m.price_per_lb)}/{piece ? 'pc' : 'lb'} ·{' '}
                             <span
                               style={{
                                 color: tierTone(tierOf(m)),
@@ -1170,215 +1208,281 @@ export function BuyFlow({
                         </button>
                       </div>
 
-                      {/* weigh-in — key net directly, or gross − tare on the scale */}
-                      <div
-                        style={{
-                          marginTop: 11,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 9,
-                        }}
-                      >
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          {(['net', 'tare'] as const).map((md) => {
-                            const on = it.mode === md;
-                            return (
-                              <button
-                                key={md}
-                                className="tap mono"
-                                onClick={() => patch(i, { mode: md })}
-                                style={{
-                                  flex: 1,
-                                  padding: '7px 0',
-                                  borderRadius: 8,
-                                  fontSize: 10.5,
-                                  fontWeight: 700,
-                                  letterSpacing: 0.3,
-                                  textTransform: 'uppercase',
-                                  background: on
-                                    ? 'var(--accent-soft)'
-                                    : 'var(--surface-2)',
-                                  color: on ? 'var(--accent)' : 'var(--ink-3)',
-                                  border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
-                                }}
-                              >
-                                {md === 'net' ? 'Net weight' : 'Gross − tare'}
-                              </button>
-                            );
-                          })}
+                      {/* per-piece → quantity stepper; else weigh-in */}
+                      {piece ? (
+                        <div
+                          style={{
+                            marginTop: 11,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                          }}
+                        >
+                          <span style={miniLabel}>Qty</span>
+                          <button
+                            className="tap"
+                            aria-label="Decrease quantity"
+                            onClick={() =>
+                              patch(i, { qty: Math.max(0, (it.qty || 0) - 1) })
+                            }
+                            style={stepBtn}
+                          >
+                            −
+                          </button>
+                          <input
+                            type="number"
+                            value={it.qty || ''}
+                            onChange={(e) =>
+                              patch(i, {
+                                qty: Math.max(0, Number(e.target.value)),
+                              })
+                            }
+                            placeholder="0"
+                            aria-label="Quantity"
+                            className="mono num"
+                            style={{
+                              ...wInput,
+                              width: 60,
+                              textAlign: 'center' as const,
+                            }}
+                          />
+                          <button
+                            className="tap"
+                            aria-label="Increase quantity"
+                            onClick={() => patch(i, { qty: (it.qty || 0) + 1 })}
+                            style={stepBtn}
+                          >
+                            +
+                          </button>
+                          <span
+                            className="mono"
+                            style={{ fontSize: 11, color: 'var(--ink-3)' }}
+                          >
+                            pcs
+                          </span>
+                          <span
+                            className="mono num"
+                            style={{
+                              marginLeft: 'auto',
+                              fontSize: 12,
+                              color: 'var(--ink-3)',
+                            }}
+                          >
+                            × {money(m.price_per_lb)}/pc
+                          </span>
                         </div>
-                        {it.mode === 'net' ? (
-                          <div
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'flex-end',
-                              gap: 7,
-                            }}
-                          >
-                            <input
-                              type="number"
-                              value={it.net || ''}
-                              onChange={(e) =>
-                                patch(i, { net: Number(e.target.value) })
-                              }
-                              placeholder="0"
-                              className="mono num"
-                              style={{ ...wInput, width: 100 }}
-                            />
-                            <span
-                              className="mono"
-                              style={{ fontSize: 11, color: 'var(--ink-3)' }}
-                            >
-                              lb
-                            </span>
-                          </div>
-                        ) : (
-                          <div
-                            style={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 8,
-                            }}
-                          >
-                            <div
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 7,
-                                flexWrap: 'wrap',
-                              }}
-                            >
-                              <span style={miniLabel}>Gross</span>
-                              <input
-                                type="number"
-                                value={it.gross || ''}
-                                onChange={(e) =>
-                                  patch(i, { gross: Number(e.target.value) })
-                                }
-                                placeholder="0"
-                                className="mono num"
-                                style={{ ...wInput, width: 76 }}
-                              />
-                              <span
-                                style={{
-                                  color: 'var(--ink-3)',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                −
-                              </span>
-                              <span style={miniLabel}>Tare</span>
-                              <input
-                                type="number"
-                                value={it.tare || ''}
-                                onChange={(e) =>
-                                  patch(i, { tare: Number(e.target.value) })
-                                }
-                                placeholder="0"
-                                className="mono num"
-                                style={{ ...wInput, width: 76 }}
-                              />
-                              <span
-                                style={{
-                                  marginLeft: 'auto',
-                                  display: 'flex',
-                                  alignItems: 'baseline',
-                                  gap: 5,
-                                }}
-                              >
-                                <span style={miniLabel}>Net</span>
-                                <span
-                                  className="mono num"
+                      ) : (
+                        <div
+                          style={{
+                            marginTop: 11,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 9,
+                          }}
+                        >
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {(['net', 'tare'] as const).map((md) => {
+                              const on = it.mode === md;
+                              return (
+                                <button
+                                  key={md}
+                                  className="tap mono"
+                                  onClick={() => patch(i, { mode: md })}
                                   style={{
-                                    fontSize: 14,
+                                    flex: 1,
+                                    padding: '7px 0',
+                                    borderRadius: 8,
+                                    fontSize: 10.5,
                                     fontWeight: 700,
-                                    color:
-                                      net > 0 ? 'var(--ink)' : 'var(--ink-3)',
+                                    letterSpacing: 0.3,
+                                    textTransform: 'uppercase',
+                                    background: on
+                                      ? 'var(--accent-soft)'
+                                      : 'var(--surface-2)',
+                                    color: on
+                                      ? 'var(--accent)'
+                                      : 'var(--ink-3)',
+                                    border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
                                   }}
                                 >
-                                  {lbs(net)} lb
-                                </span>
-                              </span>
-                            </div>
-                            {/* saved tares — pick a regular's rig, or save this one */}
+                                  {md === 'net' ? 'Net weight' : 'Gross − tare'}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {it.mode === 'net' ? (
                             <div
                               style={{
                                 display: 'flex',
                                 alignItems: 'center',
+                                justifyContent: 'flex-end',
                                 gap: 7,
                               }}
                             >
-                              <select
-                                value=""
-                                aria-label="Apply a tare-weight preset"
-                                onChange={(e) => {
-                                  const p = presets.find(
-                                    (x) => x.id === e.target.value
-                                  );
-                                  if (p) patch(i, { tare: p.tare_weight });
-                                }}
+                              <input
+                                type="number"
+                                value={it.net || ''}
+                                onChange={(e) =>
+                                  patch(i, { net: Number(e.target.value) })
+                                }
+                                placeholder="0"
+                                className="mono num"
+                                style={{ ...wInput, width: 100 }}
+                              />
+                              <span
                                 className="mono"
-                                style={{
-                                  flex: 1,
-                                  height: 32,
-                                  padding: '0 8px',
-                                  background: 'var(--surface-2)',
-                                  border: '1px solid var(--line)',
-                                  borderRadius: 8,
-                                  color: presets.length
-                                    ? 'var(--ink-2)'
-                                    : 'var(--ink-3)',
-                                  fontSize: 12,
-                                  outline: 'none',
-                                }}
+                                style={{ fontSize: 11, color: 'var(--ink-3)' }}
                               >
-                                <option value="">
-                                  {presets.length
-                                    ? 'Tare preset…'
-                                    : 'No saved tares yet'}
-                                </option>
-                                {presets.map((p) => (
-                                  <option key={p.id} value={p.id}>
-                                    {p.name} — {lbs(p.tare_weight)} lb
-                                  </option>
-                                ))}
-                              </select>
-                              <button
-                                className="tap mono"
-                                onClick={() => savePreset(it.tare)}
-                                disabled={!it.tare}
+                                lb
+                              </span>
+                            </div>
+                          ) : (
+                            <div
+                              style={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 8,
+                              }}
+                            >
+                              <div
                                 style={{
-                                  height: 32,
-                                  padding: '0 11px',
-                                  borderRadius: 8,
-                                  fontSize: 11.5,
-                                  fontWeight: 600,
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: 4,
-                                  background: 'var(--surface)',
-                                  border: '1px solid var(--line)',
-                                  color: it.tare
-                                    ? 'var(--accent)'
-                                    : 'var(--ink-3)',
-                                  opacity: it.tare ? 1 : 0.5,
+                                  gap: 7,
+                                  flexWrap: 'wrap',
                                 }}
                               >
-                                <Icon
-                                  name="plus"
-                                  size={13}
-                                  color={
-                                    it.tare ? 'var(--accent)' : 'var(--ink-3)'
+                                <span style={miniLabel}>Gross</span>
+                                <input
+                                  type="number"
+                                  value={it.gross || ''}
+                                  onChange={(e) =>
+                                    patch(i, { gross: Number(e.target.value) })
                                   }
-                                  stroke={2.4}
+                                  placeholder="0"
+                                  className="mono num"
+                                  style={{ ...wInput, width: 76 }}
                                 />
-                                Save
-                              </button>
+                                <span
+                                  style={{
+                                    color: 'var(--ink-3)',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  −
+                                </span>
+                                <span style={miniLabel}>Tare</span>
+                                <input
+                                  type="number"
+                                  value={it.tare || ''}
+                                  onChange={(e) =>
+                                    patch(i, { tare: Number(e.target.value) })
+                                  }
+                                  placeholder="0"
+                                  className="mono num"
+                                  style={{ ...wInput, width: 76 }}
+                                />
+                                <span
+                                  style={{
+                                    marginLeft: 'auto',
+                                    display: 'flex',
+                                    alignItems: 'baseline',
+                                    gap: 5,
+                                  }}
+                                >
+                                  <span style={miniLabel}>Net</span>
+                                  <span
+                                    className="mono num"
+                                    style={{
+                                      fontSize: 14,
+                                      fontWeight: 700,
+                                      color:
+                                        net > 0 ? 'var(--ink)' : 'var(--ink-3)',
+                                    }}
+                                  >
+                                    {lbs(net)} lb
+                                  </span>
+                                </span>
+                              </div>
+                              {/* saved tares — pick a regular's rig, or save this one */}
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 7,
+                                }}
+                              >
+                                <select
+                                  value=""
+                                  aria-label="Apply a tare-weight preset"
+                                  onChange={(e) => {
+                                    const p = presets.find(
+                                      (x) => x.id === e.target.value
+                                    );
+                                    if (p) patch(i, { tare: p.tare_weight });
+                                  }}
+                                  className="mono"
+                                  style={{
+                                    flex: 1,
+                                    height: 32,
+                                    padding: '0 8px',
+                                    background: 'var(--surface-2)',
+                                    border: '1px solid var(--line)',
+                                    borderRadius: 8,
+                                    color: presets.length
+                                      ? 'var(--ink-2)'
+                                      : 'var(--ink-3)',
+                                    fontSize: 12,
+                                    outline: 'none',
+                                  }}
+                                >
+                                  <option value="">
+                                    {presets.length
+                                      ? 'Tare preset…'
+                                      : 'No saved tares yet'}
+                                  </option>
+                                  {presets.map((p) => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.name} — {lbs(p.tare_weight)} lb
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  className="tap mono"
+                                  onClick={() => savePreset(it.tare)}
+                                  disabled={!it.tare}
+                                  style={{
+                                    height: 32,
+                                    padding: '0 11px',
+                                    borderRadius: 8,
+                                    fontSize: 11.5,
+                                    fontWeight: 600,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                    background: 'var(--surface)',
+                                    border: '1px solid var(--line)',
+                                    color: it.tare
+                                      ? 'var(--accent)'
+                                      : 'var(--ink-3)',
+                                    opacity: it.tare ? 1 : 0.5,
+                                  }}
+                                >
+                                  <Icon
+                                    name="plus"
+                                    size={13}
+                                    color={
+                                      it.tare ? 'var(--accent)' : 'var(--ink-3)'
+                                    }
+                                    stroke={2.4}
+                                  />
+                                  Save
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

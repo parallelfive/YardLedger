@@ -242,10 +242,11 @@ function AddMaterialModal({
   onSave,
 }: {
   onClose: () => void;
-  onSave: (name: string, price: number) => Promise<void>;
+  onSave: (name: string, price: number, unit: 'lb' | 'each') => Promise<void>;
 }) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [unit, setUnit] = useState<'lb' | 'each'>('lb');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const p = parseFloat(price);
@@ -256,7 +257,7 @@ function AddMaterialModal({
     setBusy(true);
     setErr(null);
     try {
-      await onSave(name.trim(), p);
+      await onSave(name.trim(), p, unit);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -281,7 +282,40 @@ function AddMaterialModal({
             placeholder="e.g. Bare Bright Copper"
           />
         </Field>
-        <Field label="Buying price ($/lb)">
+        <Field label="Priced by">
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['lb', 'each'] as const).map((u) => {
+              const on = unit === u;
+              return (
+                <button
+                  key={u}
+                  type="button"
+                  className="tap focusring"
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setUnit(u)}
+                  style={{
+                    flex: 1,
+                    height: 40,
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: on ? 'var(--accent-soft)' : 'var(--surface-2)',
+                    color: on ? 'var(--accent)' : 'var(--ink-2)',
+                    border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
+                  }}
+                >
+                  {u === 'lb' ? 'Weight (per lb)' : 'Piece (per each)'}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+        <Field
+          label={
+            unit === 'lb' ? 'Buying price ($/lb)' : 'Buying price ($/piece)'
+          }
+        >
           <TextInput
             value={price}
             onChange={setPrice}
@@ -560,9 +594,9 @@ export function DeskAdminProvider({
       {adding && (
         <AddMaterialModal
           onClose={() => setAdding(false)}
-          onSave={async (name, price) => {
+          onSave={async (name, price, unit) => {
             if (!(await ensureElevated())) return;
-            await createMetal(name, price);
+            await createMetal(name, price, undefined, unit);
             setAdding(false);
             onChanged();
           }}

@@ -214,6 +214,8 @@ export async function createReceipt(params: CreateReceiptParams) {
     total: item.total,
     is_regulated: item.isRegulated,
     is_restricted: item.isRestricted,
+    unit: item.unit ?? 'lb',
+    quantity: item.quantity ?? null,
   }));
 
   const { data: receipt, error } = await supabase.rpc(
