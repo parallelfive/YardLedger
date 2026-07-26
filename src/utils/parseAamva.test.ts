@@ -48,6 +48,38 @@ describe('parseAamva', () => {
     expect(p.zip).toBe('73301');
   });
 
+  it('recovers DAQ when the first subfile element carries the "DL" prefix (#57)', () => {
+    // CA/CO/TX put DAQ first, so its line reads "DLDAQ…" — the line tokenizer
+    // misreads it as code "DLD"; the scan-anywhere backstop must still find it.
+    const prefixed = [
+      '@',
+      'ANSI 636014040002DL00410288DL',
+      'DLDAQD1234567',
+      'DCSSMITH',
+      'DACJOHN',
+      'DBB01011980',
+      'DAJCA',
+    ].join('\n');
+    const p = parseAamva(prefixed);
+    expect(p.driversLicense).toBe('D1234567');
+    expect(p.name).toBe('John Smith');
+    expect(p.state).toBe('CA');
+  });
+
+  it('drops the literal "NONE" middle-name filler (#76)', () => {
+    const noMiddle = [
+      '@',
+      'ANSI 636000090002',
+      'DAQZ7654321',
+      'DCSSMITH',
+      'DACJOHN',
+      'DADNONE',
+      'DBB01011980',
+    ].join('\n');
+    const p = parseAamva(noMiddle);
+    expect(p.name).toBe('John Smith');
+  });
+
   it('reads the legacy DAA "LAST,FIRST,MIDDLE" name when discrete fields are absent', () => {
     const legacy = [
       '@',

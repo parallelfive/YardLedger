@@ -121,7 +121,7 @@ export function parseAamva(raw: string): ParsedIdFields {
   };
   if (!raw) return empty;
 
-  let fields: Record<string, string> = {};
+  const fields: Record<string, string> = {};
   for (const line of raw.split(/[\r\n]+/)) {
     const m = ELEMENT_RE.exec(line.trim());
     if (!m) continue;
@@ -131,11 +131,14 @@ export function parseAamva(raw: string): ParsedIdFields {
     if (!(id in fields) && value.trim()) fields[id] = value.trim();
   }
 
-  // Fallback: if the separators were lost (e.g. a single-line input that
-  // stripped newlines), tokenize on the known element codes instead. Each code
-  // captures everything up to the next known code.
-  if (Object.keys(fields).length < 3) {
-    fields = {};
+  // Backstop: ALWAYS scan-anywhere on the known element codes and merge in any
+  // the line pass missed. On the first line of a subfile the element carries a
+  // 2-char subfile-type prefix (e.g. "DLDAQ1234567"), so the fixed-position line
+  // tokenizer misreads it as code "DLD" and never finds DAQ (the license #) —
+  // CA/CO/TX put DAQ first. This also recovers everything when the separators
+  // were lost entirely (single-line input). The line pass wins where it found a
+  // code (`!(id in fields)`), so accurate line-delimited values aren't clobbered.
+  {
     const alt = KNOWN_CODES.join('|');
     const re = new RegExp(`(${alt})((?:(?!${alt})[\\s\\S])*)`, 'g');
     let m: RegExpExecArray | null;
@@ -153,7 +156,12 @@ export function parseAamva(raw: string): ParsedIdFields {
   const first = fields.DAC ?? fields.DCT; // DCT = given name in some versions
   const last = fields.DCS ?? fields.DAB; // DAB = family name in some versions
   if (first || last) {
-    const middle = fields.DAD && fields.DAD !== first ? fields.DAD : '';
+    // Some states encode the literal "NONE" in DAD (middle name) when there is
+    // none — drop it so the receipt/compliance record reads "John Smith", not
+    // "John None Smith".
+    const dad = fields.DAD;
+    const middle =
+      dad && dad.toUpperCase() !== 'NONE' && dad !== first ? dad : '';
     name = titleCase([first, middle, last].filter(Boolean).join(' ')) || null;
   } else if (fields.DAA) {
     const parts = fields.DAA.split(',').map((p) => p.trim());

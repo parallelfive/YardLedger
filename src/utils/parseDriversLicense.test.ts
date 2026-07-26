@@ -17,6 +17,17 @@ describe('parseDriversLicense — DL number', () => {
       'D12345678'
     );
   });
+
+  it('does not match "ID"/"DL" inside a larger word (#75)', () => {
+    // "IDENTIFICATION" must not yield a bogus "ENTIFICATION" from the ID label.
+    expect(
+      parseDriversLicense('IDENTIFICATION CARD').driversLicense
+    ).toBeNull();
+    // A real labeled number in the same text still resolves.
+    expect(
+      parseDriversLicense('IDENTIFICATION CARD DL D9876543').driversLicense
+    ).toBe('D9876543');
+  });
 });
 
 describe('parseDriversLicense — DOB', () => {
