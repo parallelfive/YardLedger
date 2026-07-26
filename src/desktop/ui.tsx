@@ -77,10 +77,27 @@ export function Card({
   hover?: boolean;
   onClick?: () => void;
 }) {
+  // A clickable Card is a button for keyboard users: focusable, Enter/Space
+  // activates it, and it gets the focus ring — not a mouse-only <div>.
+  const interactive = !!onClick;
   return (
     <div
       onClick={onClick}
-      className={(hover ? 'lift ' : '') + className}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+      className={
+        (hover ? 'lift ' : '') + (interactive ? 'focusring ' : '') + className
+      }
       style={{
         background: 'var(--surface)',
         border: '1px solid var(--line)',

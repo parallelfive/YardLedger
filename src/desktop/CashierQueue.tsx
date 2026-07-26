@@ -1,7 +1,15 @@
 import { useDraftTickets } from '../hooks/useDraftTickets';
 import { type DraftTicket } from '../services/draftTickets';
-import Icon from './Icon';
-import { SlideOver, SlideHead, Card, money, lbs } from './ui';
+import {
+  SlideOver,
+  SlideHead,
+  Card,
+  Btn,
+  EmptyState,
+  SkeletonRows,
+  money,
+  lbs,
+} from './ui';
 
 // The front-desk queue: pending scale tickets a worker sent from the scale. The
 // cashier picks one (by claim # off the customer's stub, or from the list) and
@@ -14,7 +22,7 @@ export default function CashierQueue({
   onClose: () => void;
   onPick: (d: DraftTicket) => void;
 }) {
-  const { drafts, loading } = useDraftTickets();
+  const { drafts, loading, error, refresh } = useDraftTickets();
 
   return (
     <SlideOver open onClose={onClose} width={480}>
@@ -35,26 +43,25 @@ export default function CashierQueue({
           gap: 12,
         }}
       >
-        {loading && drafts.length === 0 ? (
-          <div
-            className="mono"
-            style={{ fontSize: 12.5, color: 'var(--ink-3)' }}
-          >
-            Loading…
-          </div>
+        {error ? (
+          <EmptyState
+            tone="error"
+            label="Couldn’t load the queue"
+            sub={error}
+            action={
+              <Btn variant="ghost" size="sm" icon="reload" onClick={refresh}>
+                Retry
+              </Btn>
+            }
+          />
+        ) : loading && drafts.length === 0 ? (
+          <SkeletonRows rows={3} />
         ) : drafts.length === 0 ? (
-          <div
-            style={{
-              textAlign: 'center',
-              padding: '40px 20px',
-              color: 'var(--ink-3)',
-            }}
-          >
-            <Icon name="check" size={30} color="var(--ink-3)" stroke={1.8} />
-            <div style={{ fontSize: 13.5, marginTop: 10 }}>
-              No tickets waiting. Weighed tickets sent to the cashier land here.
-            </div>
-          </div>
+          <EmptyState
+            icon="check"
+            label="No tickets waiting"
+            sub="Weighed tickets a worker sends to the cashier land here."
+          />
         ) : (
           drafts.map((d) => {
             const mats = (d.line_items ?? [])
