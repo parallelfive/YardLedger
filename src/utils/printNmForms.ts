@@ -38,12 +38,12 @@ interface NmReceiptData {
   line_items: NmLineItem[];
 }
 
-let cachedSettings: CompanySettings | null = null;
-
+// Fetch company settings fresh on every print. A module-level cache here meant
+// that after an admin edited the company profile — or switched companies on a
+// shared device — the NM Purchase Record kept printing the previous company's
+// name/address (a wrong legal record). printReceipt.ts already fetches fresh.
 async function getSettings(): Promise<CompanySettings | null> {
-  if (cachedSettings) return cachedSettings;
-  cachedSettings = await fetchCompanySettings();
-  return cachedSettings;
+  return fetchCompanySettings();
 }
 
 function field(label: string, value: string | undefined): string {

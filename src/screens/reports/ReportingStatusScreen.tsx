@@ -16,6 +16,7 @@ import {
   fetchUnreportedReceipts,
   buildNmrldExportCsv,
   fetchNmrldRegistrationNumber,
+  fetchCompanyTimezone,
   markReceiptsReported,
   type ReportingStatus,
   type ComplianceReceiptRow,
@@ -70,15 +71,16 @@ export default function ReportingStatusScreen() {
   const handleExport = async () => {
     setSending(true);
     try {
-      const [unreported, registration] = await Promise.all([
+      const [unreported, registration, timezone] = await Promise.all([
         fetchUnreportedReceipts(),
         fetchNmrldRegistrationNumber(),
+        fetchCompanyTimezone(),
       ]);
       if (unreported.length === 0) {
         Alert.alert(t.stateReporting, t.noUnreported);
         return;
       }
-      const csv = buildNmrldExportCsv(unreported, registration);
+      const csv = buildNmrldExportCsv(unreported, registration, timezone);
       // Regulated PII — shareTextFile purges the native cache copy after
       // sharing (web triggers a browser download instead).
       await shareTextFile(

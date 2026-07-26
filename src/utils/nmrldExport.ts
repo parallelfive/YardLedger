@@ -11,6 +11,8 @@
 // function supabase/functions/report-to-state/index.ts (HEADERS + buildCsv) so
 // the manual export and the automated SFTP upload file the IDENTICAL record.
 
+import { localDateTimeInTz } from './timezone';
+
 export interface NmrldLineItem {
   metal_name: string;
   weight: number;
@@ -82,7 +84,12 @@ export const NMRLD_HEADERS = [
 
 export function buildNmrldExportCsv(
   rows: NmrldRow[],
-  registrationNumber = ''
+  registrationNumber = '',
+  // Company IANA timezone. transaction_datetime is written in this zone so it
+  // agrees with the receipt number's local business date instead of being a raw
+  // UTC timestamp that can read as the next calendar day (a state auditor would
+  // flag the mismatch). Empty → the raw created_at is kept unchanged.
+  timezone = ''
 ): string {
   const lines: string[] = [NMRLD_HEADERS.join(',')];
   for (const r of rows) {
@@ -92,7 +99,7 @@ export function buildNmrldExportCsv(
         [
           registrationNumber,
           r.receipt_number,
-          r.created_at,
+          timezone ? localDateTimeInTz(r.created_at, timezone) : r.created_at,
           r.seller_name,
           r.seller_dob,
           r.seller_address,

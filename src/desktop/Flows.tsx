@@ -15,7 +15,10 @@ import {
 } from '../services/draftTickets';
 import { printComplianceRecord, printClaimStub } from './print';
 import { parseAamva, looksLikeAamva } from '../utils/parseAamva';
-import { calculateNetWeight } from '../utils/calculations';
+import {
+  calculateNetWeight,
+  calculateLineItemTotal,
+} from '../utils/calculations';
 import type { LineItemInput } from '../types';
 import Icon from './Icon';
 import CameraCapture from './CameraCapture';
@@ -314,8 +317,12 @@ export function BuyFlow({
 
   const checkOnly = tier === 'catalytic';
   const effectivePay: 'cash' | 'check' = checkOnly ? 'check' : pay;
+  // Round each line to cents before summing so the confirmation/printed total
+  // equals the DB's stored subtotal (its enforce_line_item_pricing trigger
+  // rounds per line). Same convention as the mobile calculateReceiptTotal.
   const total = items.reduce(
-    (s, it) => s + netOf(it) * (byId.get(it.id)?.price_per_lb ?? 0),
+    (s, it) =>
+      s + calculateLineItemTotal(netOf(it), byId.get(it.id)?.price_per_lb ?? 0),
     0
   );
   const weight = items.reduce((s, it) => s + netOf(it), 0);
@@ -436,7 +443,7 @@ export function BuyFlow({
           grossWeight: it.mode === 'tare' ? it.gross || 0 : null,
           tareWeight: it.mode === 'tare' ? it.tare || 0 : null,
           pricePerLb: m.price_per_lb,
-          total: net * m.price_per_lb,
+          total: calculateLineItemTotal(net, m.price_per_lb),
           isRegulated: !!m.is_regulated,
           isRestricted: !!m.is_restricted,
           isCatalytic: !!m.is_catalytic,
@@ -497,7 +504,7 @@ export function BuyFlow({
           originalPricePerLb: m.price_per_lb,
           isPriceOverride: false,
           overrideApprovedBy: null,
-          total: net * m.price_per_lb,
+          total: calculateLineItemTotal(net, m.price_per_lb),
           isRegulated: !!m.is_regulated,
           isRestricted: !!m.is_restricted,
           isCatalytic: !!m.is_catalytic,
@@ -1059,7 +1066,7 @@ export function BuyFlow({
                   const m = byId.get(it.id);
                   if (!m) return null;
                   const net = netOf(it);
-                  const sub = net * m.price_per_lb;
+                  const sub = calculateLineItemTotal(net, m.price_per_lb);
                   const wInput = {
                     height: 34,
                     textAlign: 'right' as const,

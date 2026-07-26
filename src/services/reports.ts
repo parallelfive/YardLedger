@@ -494,15 +494,28 @@ export async function fetchNmrldRegistrationNumber(): Promise<string> {
   return (data?.nmrld_registration_number as string | null) ?? '';
 }
 
+// The company's IANA timezone (company_settings.timezone) — the legal authority
+// for the yard's business day. Used to stamp the state-report datetime in local
+// time. '' when unset, which keeps the raw UTC timestamp.
+export async function fetchCompanyTimezone(): Promise<string> {
+  const { data } = await supabase
+    .from('company_settings')
+    .select('timezone')
+    .limit(1)
+    .maybeSingle();
+  return (data?.timezone as string | null) ?? '';
+}
+
 export async function exportNmrldCsv(
   startDate: string,
   endDate: string
 ): Promise<string> {
-  const [rows, registration] = await Promise.all([
+  const [rows, registration, timezone] = await Promise.all([
     fetchComplianceReport(startDate, endDate),
     fetchNmrldRegistrationNumber(),
+    fetchCompanyTimezone(),
   ]);
-  return buildNmrldExportCsv(rows, registration);
+  return buildNmrldExportCsv(rows, registration, timezone);
 }
 
 // ---------- Reporting queue (state / LeadsOnline upload) ----------
