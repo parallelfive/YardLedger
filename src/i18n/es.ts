@@ -65,6 +65,9 @@ export default {
   accountPending: 'Cuenta Pendiente',
   pendingMessage:
     'Tu cuenta está esperando la aprobación del administrador. Podrás acceder a YardLedger una vez que un administrador active tu cuenta.',
+  accountLoadFailed: 'No se pudo cargar tu cuenta',
+  accountLoadFailedMessage:
+    'No pudimos obtener los detalles de tu cuenta — suele ser un problema temporal de conexión, no de tu cuenta. Vuelve a intentarlo en un momento.',
   checkStatus: 'Verificar Estado',
   signOut: 'Cerrar Sesión',
 

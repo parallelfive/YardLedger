@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { View, AppState } from 'react-native';
+import { View, AppState, Platform } from 'react-native';
 import { useAppDispatch, useAppSelector, type RootState } from '../store';
 import { lockTerminal } from '../store/authStore';
 
@@ -28,6 +28,20 @@ export default function AutoLock({ children }: { children: ReactNode }) {
       }
     }, 20000);
 
+    // On the desktop/web shell an operator can type a long buy form for minutes
+    // without a pointer event — the RN responder below only catches touch, so
+    // count keystrokes too, or auto-lock destroys the in-progress form (#81).
+    let removeWebListeners: (() => void) | undefined;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const onActivity = () => bump();
+      document.addEventListener('keydown', onActivity);
+      document.addEventListener('pointerdown', onActivity);
+      removeWebListeners = () => {
+        document.removeEventListener('keydown', onActivity);
+        document.removeEventListener('pointerdown', onActivity);
+      };
+    }
+
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
         if (
@@ -47,6 +61,7 @@ export default function AutoLock({ children }: { children: ReactNode }) {
     return () => {
       clearInterval(tick);
       sub.remove();
+      removeWebListeners?.();
     };
   }, [dispatch]);
 
