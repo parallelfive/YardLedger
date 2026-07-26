@@ -43,6 +43,10 @@ interface Line {
   net: number;
   gross?: number;
   tare?: number;
+  // The unit price this line was captured at — the metal's catalog price, or an
+  // admin-authorized override the worker keyed. Pricing flows off this so an
+  // override the cashier sees matches what was entered at the scale.
+  price: number;
 }
 
 const toneFor = (m: Metal): Tone =>
@@ -77,15 +81,12 @@ export default function ScaleTicketScreen({ navigation }: Props) {
   const [snack, setSnack] = useState<string | null>(null);
 
   const weight = lines.reduce((s, l) => s + l.net, 0);
-  const subtotal = lines.reduce(
-    (s, l) => s + l.net * Number(l.metal.price_per_lb || 0),
-    0
-  );
+  const subtotal = lines.reduce((s, l) => s + l.net * l.price, 0);
 
   const addLine = (
     metal: Metal,
     w: number,
-    _overridePrice: number | null,
+    overridePrice: number | null,
     weightData?: { net: number; gross?: number; tare?: number }
   ) => {
     setLines((prev) => [
@@ -95,6 +96,7 @@ export default function ScaleTicketScreen({ navigation }: Props) {
         net: weightData?.net ?? w,
         gross: weightData?.gross,
         tare: weightData?.tare,
+        price: overridePrice ?? Number(metal.price_per_lb || 0),
       },
     ]);
     setShowAdd(false);
@@ -113,8 +115,8 @@ export default function ScaleTicketScreen({ navigation }: Props) {
         weight: l.net,
         grossWeight: l.gross ?? null,
         tareWeight: l.tare ?? null,
-        pricePerLb: Number(l.metal.price_per_lb || 0),
-        total: l.net * Number(l.metal.price_per_lb || 0),
+        pricePerLb: l.price,
+        total: l.net * l.price,
         isRegulated: !!l.metal.is_regulated,
         isRestricted: !!l.metal.is_restricted,
         isCatalytic: !!l.metal.is_catalytic,
@@ -219,15 +221,11 @@ export default function ScaleTicketScreen({ navigation }: Props) {
               <View style={styles.lineInfo}>
                 <Text style={styles.lineName}>{l.metal.name}</Text>
                 <Text style={styles.lineDetail}>
-                  {l.net.toFixed(2)} lb @{' '}
-                  {fmtMoney(Number(l.metal.price_per_lb))}
-                  /lb
+                  {l.net.toFixed(2)} lb @ {fmtMoney(l.price)}/lb
                   {l.gross != null ? `  ·  gross ${l.gross.toFixed(0)}` : ''}
                 </Text>
               </View>
-              <Text style={styles.lineTotal}>
-                {fmtMoney(l.net * Number(l.metal.price_per_lb || 0))}
-              </Text>
+              <Text style={styles.lineTotal}>{fmtMoney(l.net * l.price)}</Text>
               <TouchableOpacity
                 onPress={() =>
                   Alert.alert('Remove material', `Remove ${l.metal.name}?`, [
