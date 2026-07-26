@@ -273,15 +273,21 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
               customer_name: t.customer_name || 'Walk-in',
               subtotal: Number(t.subtotal || 0),
               created_at: t.created_at,
-              line_items: (t.line_items ?? []).map((li) => ({
-                metal_name: li.metal_name,
-                weight: Number(li.weight || 0),
-                price_per_lb: Number(li.weight)
-                  ? Number(li.total || 0) / Number(li.weight)
-                  : 0,
-                total: Number(li.total || 0),
-                is_price_override: false,
-              })),
+              line_items: (t.line_items ?? []).map((li) => {
+                const piece = li.unit === 'each';
+                const qty = Number(li.quantity || 0);
+                const base = piece ? qty : Number(li.weight || 0);
+                return {
+                  metal_name: li.metal_name,
+                  weight: Number(li.weight || 0),
+                  // Back out the unit price from the total (per piece or per lb).
+                  price_per_lb: base ? Number(li.total || 0) / base : 0,
+                  total: Number(li.total || 0),
+                  is_price_override: false,
+                  unit: li.unit,
+                  quantity: li.quantity,
+                };
+              }),
             }).catch(() => {})
           }
         >

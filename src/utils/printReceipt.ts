@@ -15,6 +15,9 @@ interface PrintLineItem {
   total: number;
   is_price_override: boolean;
   original_price_per_lb?: number;
+  // Per-piece lines (converters, rims) print as quantity/each, not weight/lb.
+  unit?: string | null;
+  quantity?: number | null;
 }
 
 interface PrintReceiptData {
@@ -39,10 +42,14 @@ function buildReceiptHtml(
       (item) => `
       <tr>
         <td>${escapeHtml(item.metal_name)}</td>
-        <td style="text-align:right">${Number(item.weight).toFixed(2)} lbs</td>
-        <td style="text-align:right">$${Number(item.price_per_lb).toFixed(4)}/lb${
+        <td style="text-align:right">${
+          item.unit === 'each'
+            ? `${Number(item.quantity ?? 0)} pc${Number(item.quantity) === 1 ? '' : 's'}`
+            : `${Number(item.weight).toFixed(2)} lbs`
+        }</td>
+        <td style="text-align:right">$${Number(item.price_per_lb).toFixed(item.unit === 'each' ? 2 : 4)}/${item.unit === 'each' ? 'pc' : 'lb'}${
           item.is_price_override
-            ? `<br><small style="color:#999;text-decoration:line-through">$${Number(item.original_price_per_lb ?? item.price_per_lb).toFixed(4)}/lb</small>`
+            ? `<br><small style="color:#999;text-decoration:line-through">$${Number(item.original_price_per_lb ?? item.price_per_lb).toFixed(item.unit === 'each' ? 2 : 4)}/${item.unit === 'each' ? 'pc' : 'lb'}</small>`
             : ''
         }</td>
         <td style="text-align:right"><strong>$${Number(item.total).toFixed(2)}</strong></td>

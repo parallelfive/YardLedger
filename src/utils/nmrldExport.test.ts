@@ -64,6 +64,29 @@ describe('buildNmrldExportCsv', () => {
     expect(cells.length).toBe(headerCols);
   });
 
+  it('reports a per-piece line as a piece count, not 0 lb (#per-piece)', () => {
+    const pieceRow: NmrldRow = {
+      ...baseRow,
+      subtotal: 360,
+      line_items: [
+        {
+          metal_name: 'Catalytic Converter',
+          weight: 0,
+          total: 360,
+          unit: 'each',
+          quantity: 3,
+        },
+      ],
+    };
+    const cells = buildNmrldExportCsv([pieceRow], 'NMRLD-999')
+      .split('\n')[1]
+      .split(',');
+    // weight_lb blank (not a misleading 0), quantity_pieces carries the count.
+    expect(cells[NMRLD_HEADERS.indexOf('weight_lb')]).toBe('');
+    expect(cells[NMRLD_HEADERS.indexOf('quantity_pieces')]).toBe('3');
+    expect(cells[NMRLD_HEADERS.indexOf('amount_paid')]).toBe('360');
+  });
+
   it('emits one row per line item', () => {
     const multi: NmrldRow = {
       ...baseRow,

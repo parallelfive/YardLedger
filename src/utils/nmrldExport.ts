@@ -17,6 +17,9 @@ export interface NmrldLineItem {
   metal_name: string;
   weight: number;
   total: number;
+  // Per-piece lines (converters, rims) — quantity/each instead of weight/lb.
+  unit?: string | null;
+  quantity?: number | null;
 }
 
 // The fields the CSV builder reads. ComplianceReceiptRow (services/reports.ts)
@@ -75,6 +78,7 @@ export const NMRLD_HEADERS = [
   'transport_vin',
   'material',
   'weight_lb',
+  'quantity_pieces',
   'amount_paid',
   'payment_method',
   'is_catalytic_converter',
@@ -117,7 +121,10 @@ export function buildNmrldExportCsv(
           r.vehicle_plate,
           r.transport_vin,
           li?.metal_name ?? '',
-          li?.weight ?? '',
+          // Per-piece lines carry no weight — leave weight_lb blank and report
+          // the piece count in quantity_pieces so a converter isn't filed as 0 lb.
+          li?.unit === 'each' ? '' : (li?.weight ?? ''),
+          li?.unit === 'each' ? (li?.quantity ?? '') : '',
           li ? li.total : r.subtotal,
           r.payment_method,
           r.is_catalytic ? 'yes' : 'no',

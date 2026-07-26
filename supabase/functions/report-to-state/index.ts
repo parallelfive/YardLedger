@@ -72,6 +72,7 @@ const HEADERS = [
   'transport_vin',
   'material',
   'weight_lb',
+  'quantity_pieces',
   'amount_paid',
   'payment_method',
   'is_catalytic_converter',
@@ -107,7 +108,8 @@ function buildCsv(rows: any[], registrationNumber: string): string {
           r.vehicle_plate,
           r.transport_vin,
           li?.metal_name ?? '',
-          li?.weight ?? '',
+          li?.unit === 'each' ? '' : (li?.weight ?? ''),
+          li?.unit === 'each' ? (li?.quantity ?? '') : '',
           li ? li.total : r.subtotal,
           r.payment_method,
           r.is_catalytic ? 'yes' : 'no',
@@ -217,7 +219,7 @@ async function reportCompany(admin: any, companyId: string) {
     .in('id', reportableIds)
     .eq('company_id', companyId)
     .is('reported_at', null)
-    .select('*, line_items(metal_name, weight, total)')
+    .select('*, line_items(metal_name, weight, total, unit, quantity)')
     .order('created_at', { ascending: true });
   if (error) return { companyId, status: 'error', reason: error.message };
   if (!rows || rows.length === 0) {

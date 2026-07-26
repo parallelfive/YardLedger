@@ -14,6 +14,7 @@ import {
   type DraftTicket,
 } from '../services/draftTickets';
 import { printComplianceRecord, printClaimStub } from './print';
+import { useDeskAdmin } from './AdminActions';
 import { parseAamva, looksLikeAamva } from '../utils/parseAamva';
 import {
   calculateNetWeight,
@@ -86,6 +87,9 @@ interface BuyItem {
   gross: number;
   tare: number;
   qty: number; // # pieces, for materials priced per piece (converters, rims…)
+  // Per-piece unit price the operator keyed for THIS line (converters vary per
+  // unit). undefined → use the metal's catalog price. Only used for 'each'.
+  price?: number;
 }
 // Effective net weight for a line — gross minus tare when weighing a vehicle,
 // clamped at 0. Delegates to the shared, unit-tested calculateNetWeight.
@@ -94,6 +98,12 @@ const netOf = (it: BuyItem): number => calculateNetWeight(it.mode, it);
 // A material priced by the piece rather than by weight.
 const isPiece = (m?: { pricing_unit?: string }): boolean =>
   m?.pricing_unit === 'each';
+// The effective unit price for a line: for per-piece, the operator's keyed price
+// (a converter's value) or the catalog default; for weight, the catalog $/lb.
+const unitPriceOf = (
+  it: BuyItem,
+  m: { price_per_lb: number; pricing_unit?: string }
+): number => (isPiece(m) ? (it.price ?? m.price_per_lb) : m.price_per_lb);
 // The line's payout: pieces × $/piece for per-piece metals, net weight × $/lb
 // otherwise. Rounded per line to match the DB's stored subtotal.
 const lineTotalOf = (
@@ -101,7 +111,7 @@ const lineTotalOf = (
   m: { price_per_lb: number; pricing_unit?: string }
 ): number =>
   isPiece(m)
-    ? calculateLineItemTotal(it.qty || 0, m.price_per_lb)
+    ? calculateLineItemTotal(it.qty || 0, unitPriceOf(it, m))
     : calculateLineItemTotal(netOf(it), m.price_per_lb);
 
 const miniLabel = {
@@ -130,6 +140,7 @@ export function BuyFlow({
 }) {
   const { metals } = useMetals();
   const { presets, create: createPreset } = useTarePresets();
+  const admin = useDeskAdmin();
   const list = metals as unknown as MetalRow[];
   const workerId = useAppSelector(
     (s: RootState) => s.auth.activeIdentity?.user_id ?? s.auth.profile?.id ?? ''
@@ -146,6 +157,9 @@ export function BuyFlow({
       gross: Number(li.grossWeight || 0),
       tare: Number(li.tareWeight || 0),
       qty: Number(li.quantity || 0),
+      // Carry the worker's per-piece price so the cashier finalizes at the
+      // negotiated converter value, not the catalog default.
+      price: li.unit === 'each' ? Number(li.pricePerLb) : undefined,
     }));
   const [dl, setDl] = useState('');
   // Vehicle info is captured at the scale (worker is next to the truck) and
@@ -457,25 +471,30 @@ export function BuyFlow({
     setBusy(true);
     setErr(null);
     try {
-      const lineItems = items.map((it) => {
-        const m = byId.get(it.id)!;
-        const piece = isPiece(m);
-        const net = piece ? 0 : netOf(it);
-        return {
-          metalId: m.id,
-          metalName: m.name,
-          weight: net,
-          grossWeight: !piece && it.mode === 'tare' ? it.gross || 0 : null,
-          tareWeight: !piece && it.mode === 'tare' ? it.tare || 0 : null,
-          pricePerLb: m.price_per_lb,
-          total: lineTotalOf(it, m),
-          isRegulated: !!m.is_regulated,
-          isRestricted: !!m.is_restricted,
-          isCatalytic: !!m.is_catalytic,
-          unit: piece ? ('each' as const) : ('lb' as const),
-          quantity: piece ? it.qty || 0 : null,
-        };
-      });
+      const lineItems = items
+        .filter((it) => {
+          const m = byId.get(it.id);
+          return m && lineTotalOf(it, m) > 0;
+        })
+        .map((it) => {
+          const m = byId.get(it.id)!;
+          const piece = isPiece(m);
+          const net = piece ? 0 : netOf(it);
+          return {
+            metalId: m.id,
+            metalName: m.name,
+            weight: net,
+            grossWeight: !piece && it.mode === 'tare' ? it.gross || 0 : null,
+            tareWeight: !piece && it.mode === 'tare' ? it.tare || 0 : null,
+            pricePerLb: unitPriceOf(it, m),
+            total: lineTotalOf(it, m),
+            isRegulated: !!m.is_regulated,
+            isRestricted: !!m.is_restricted,
+            isCatalytic: !!m.is_catalytic,
+            unit: piece ? ('each' as const) : ('lb' as const),
+            quantity: piece ? it.qty || 0 : null,
+          };
+        });
       const d = await createDraftTicket({
         workerId,
         sellerName: seller.trim() || undefined,
@@ -513,33 +532,54 @@ export function BuyFlow({
 
   const complete = async () => {
     if (!canSave) return;
+    // A per-line price the operator changed from the catalog is an override — the
+    // server requires admin elevation (or a recent access code). Open the PIN
+    // window up front so the owner buying converters at a negotiated price isn't
+    // rejected mid-save.
+    const hasOverride = items.some((it) => {
+      const m = byId.get(it.id);
+      return (
+        m && lineTotalOf(it, m) > 0 && unitPriceOf(it, m) !== m.price_per_lb
+      );
+    });
+    if (hasOverride && !(await admin.ensureElevated())) {
+      setErr('A changed price needs an admin PIN.');
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
-      const lineItems: LineItemInput[] = items.map((it) => {
-        const m = byId.get(it.id)!;
-        const piece = isPiece(m);
-        const net = piece ? 0 : netOf(it);
-        return {
-          metalId: m.id,
-          metalName: m.name,
-          weight: net,
-          // Persist the scale reading only when tare was actually used, so a
-          // straight net entry doesn't record a phantom 0-lb gross/tare.
-          grossWeight: !piece && it.mode === 'tare' ? it.gross || 0 : null,
-          tareWeight: !piece && it.mode === 'tare' ? it.tare || 0 : null,
-          pricePerLb: m.price_per_lb,
-          originalPricePerLb: m.price_per_lb,
-          isPriceOverride: false,
-          overrideApprovedBy: null,
-          total: lineTotalOf(it, m),
-          isRegulated: !!m.is_regulated,
-          isRestricted: !!m.is_restricted,
-          isCatalytic: !!m.is_catalytic,
-          unit: piece ? 'each' : 'lb',
-          quantity: piece ? it.qty || 0 : null,
-        };
-      });
+      // Drop empty lines (no weight / no pieces) so a stray blank row can't
+      // persist as a $0 line on the receipt or the state export.
+      const lineItems: LineItemInput[] = items
+        .filter((it) => {
+          const m = byId.get(it.id);
+          return m && lineTotalOf(it, m) > 0;
+        })
+        .map((it) => {
+          const m = byId.get(it.id)!;
+          const piece = isPiece(m);
+          const net = piece ? 0 : netOf(it);
+          return {
+            metalId: m.id,
+            metalName: m.name,
+            weight: net,
+            // Persist the scale reading only when tare was actually used, so a
+            // straight net entry doesn't record a phantom 0-lb gross/tare.
+            grossWeight: !piece && it.mode === 'tare' ? it.gross || 0 : null,
+            tareWeight: !piece && it.mode === 'tare' ? it.tare || 0 : null,
+            pricePerLb: unitPriceOf(it, m),
+            originalPricePerLb: m.price_per_lb,
+            isPriceOverride: unitPriceOf(it, m) !== m.price_per_lb,
+            overrideApprovedBy: null,
+            total: lineTotalOf(it, m),
+            isRegulated: !!m.is_regulated,
+            isRestricted: !!m.is_restricted,
+            isCatalytic: !!m.is_catalytic,
+            unit: piece ? 'each' : 'lb',
+            quantity: piece ? it.qty || 0 : null,
+          };
+        });
       const receipt = await createReceipt({
         customerName: seller.trim(),
         customerPhone: '',
@@ -1261,14 +1301,32 @@ export function BuyFlow({
                             pcs
                           </span>
                           <span
-                            className="mono num"
+                            className="mono"
                             style={{
                               marginLeft: 'auto',
                               fontSize: 12,
                               color: 'var(--ink-3)',
                             }}
                           >
-                            × {money(m.price_per_lb)}/pc
+                            × $
+                          </span>
+                          <input
+                            type="number"
+                            value={it.price ?? m.price_per_lb}
+                            onChange={(e) =>
+                              patch(i, {
+                                price: Math.max(0, Number(e.target.value)),
+                              })
+                            }
+                            aria-label="Price per piece"
+                            className="mono num"
+                            style={{ ...wInput, width: 74 }}
+                          />
+                          <span
+                            className="mono"
+                            style={{ fontSize: 11, color: 'var(--ink-3)' }}
+                          >
+                            /pc
                           </span>
                         </div>
                       ) : (

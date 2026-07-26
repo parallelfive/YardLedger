@@ -84,7 +84,12 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
     (async () => {
       try {
         const data = await fetchMetals();
-        if (active) setMetals(data as Metal[]);
+        // Per-piece materials (converters, rims) are priced by quantity, which
+        // this weight keypad can't capture — hide them on mobile until the
+        // mobile per-piece UI lands, so a worker can't record a mis-priced or
+        // $0 line. They're bought on the desktop terminal for now.
+        if (active)
+          setMetals((data as Metal[]).filter((m) => m.pricing_unit !== 'each'));
       } catch {
         // Empty list — operator can close and retry.
       } finally {

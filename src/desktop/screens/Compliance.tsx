@@ -101,7 +101,11 @@ const toVM = (r: ComplianceReceiptRow): RecordVM => {
     plate: r.vehicle_plate || '—',
     vehicle,
     materials: items
-      .map((li) => `${li.metal_name} (${lbs(li.weight)} lb)`)
+      .map((li) =>
+        li.unit === 'each'
+          ? `${li.metal_name} (${Number(li.quantity || 0)} pc${Number(li.quantity) === 1 ? '' : 's'})`
+          : `${li.metal_name} (${lbs(li.weight)} lb)`
+      )
       .join(', '),
     weight: items.reduce((a, li) => a + Number(li.weight || 0), 0),
     paid: Number(r.subtotal || 0),

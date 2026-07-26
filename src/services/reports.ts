@@ -465,6 +465,9 @@ export interface ComplianceReceiptRow {
     total: number;
     is_restricted: boolean;
     is_regulated: boolean;
+    // Per-piece lines (converters, rims): unit='each' with a piece count.
+    unit?: string | null;
+    quantity?: number | null;
     // Joined from the metal — governs the below-a-ton reporting exemption.
     metals?: { is_report_exempt: boolean | null } | null;
   }[];
@@ -477,7 +480,7 @@ export async function fetchComplianceReport(
   const { data, error } = await supabase
     .from('receipts')
     .select(
-      '*, line_items(metal_name, weight, total, is_restricted, is_regulated, metals(is_report_exempt))'
+      '*, line_items(metal_name, weight, total, is_restricted, is_regulated, unit, quantity, metals(is_report_exempt))'
     )
     .eq('type', 'buy')
     .gte('created_at', startOfLocalDayUtc(startDate))
