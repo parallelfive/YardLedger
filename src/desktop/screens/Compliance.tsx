@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   fetchComplianceReport,
+  fetchUnreportedReceipts,
   buildNmrldExportCsv,
   fetchNmrldRegistrationNumber,
+  fetchCompanyTimezone,
   markReceiptsReported,
   type ComplianceReceiptRow,
 } from '../../services/reports';
@@ -38,7 +40,11 @@ const COMPANY = {
   reportBy: '2nd business day',
 };
 
-const COMP_RANGES = ['Today', 'Week', 'Month'] as const;
+// 'Outstanding' is date-unbounded — every unreported buy, so an old one that
+// fell outside Today/Week/Month (e.g. missed over a month rollover) is still
+// reachable and filable. Without it the rail's "N to report" badge could count
+// buys this screen could never actually display or export (#64).
+const COMP_RANGES = ['Today', 'Week', 'Month', 'Outstanding'] as const;
 type Range = (typeof COMP_RANGES)[number];
 type Filter = 'all' | 'queued' | 'restricted';
 
@@ -197,8 +203,16 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    const { start, end } = rangeDates(range);
-    fetchComplianceReport(start, end)
+    // 'Outstanding' loads every unreported buy (date-unbounded); the fixed
+    // ranges load that calendar window.
+    const load =
+      range === 'Outstanding'
+        ? fetchUnreportedReceipts()
+        : (() => {
+            const { start, end } = rangeDates(range);
+            return fetchComplianceReport(start, end);
+          })();
+    load
       .then((rows) => {
         if (!cancelled) setRecords(rows);
       })
@@ -231,14 +245,19 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
         ? restrictedRows
         : vms;
 
-  // Export the current range's records as the NMRLD upload CSV. On web this
-  // triggers a browser download; on native it opens the OS share sheet.
+  // Export the NMRLD upload CSV. It must contain ONLY the buys that will be
+  // marked reported (reportable & unreported = the queue) — building it from
+  // every record in range would re-file already-reported rows on a repeat
+  // export, double-filing them to the state.
   const exportCsv = async () => {
     try {
-      const csv = buildNmrldExportCsv(
-        records,
-        await fetchNmrldRegistrationNumber()
-      );
+      const queuedIds = new Set(queued.map((r) => r.id));
+      const toFile = records.filter((r) => queuedIds.has(r.id));
+      const [registration, timezone] = await Promise.all([
+        fetchNmrldRegistrationNumber(),
+        fetchCompanyTimezone(),
+      ]);
+      const csv = buildNmrldExportCsv(toFile, registration, timezone);
       await shareTextFile(
         'compliance.csv',
         csv,

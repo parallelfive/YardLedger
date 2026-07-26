@@ -58,13 +58,19 @@ interface Row {
   category: string | undefined;
 }
 
+// Stable, language-independent keys for the two special filter chips. Storing
+// the localized label (t.allLabel) in state broke the filter when the language
+// was toggled mid-screen — the old-language string no longer matched (#71).
+const ALL = '__all__';
+const RESTRICTED = '__restricted__';
+
 export default function InventoryScreen() {
   const { t } = useT();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const { inventory, loading, refresh } = useInventory();
   const { isWide } = useResponsive();
-  const [cat, setCat] = useState<string>(t.allLabel);
+  const [cat, setCat] = useState<string>(ALL);
 
   useFocusEffect(
     useCallback(() => {
@@ -104,17 +110,13 @@ export default function InventoryScreen() {
   const categories = useMemo(() => {
     const set = new Set<string>();
     rows.forEach((r) => r.category && set.add(r.category));
-    const list = [t.allLabel, ...Array.from(set).sort()];
-    if (rows.some((r) => r.restricted)) list.push(t.restrictedLabel);
+    const list = [ALL, ...Array.from(set).sort()];
+    if (rows.some((r) => r.restricted)) list.push(RESTRICTED);
     return list;
-  }, [rows, t.allLabel, t.restrictedLabel]);
+  }, [rows]);
 
   const filtered = rows.filter((r) =>
-    cat === t.allLabel
-      ? true
-      : cat === t.restrictedLabel
-        ? r.restricted
-        : r.category === cat
+    cat === ALL ? true : cat === RESTRICTED ? r.restricted : r.category === cat
   );
 
   return (
@@ -163,7 +165,11 @@ export default function InventoryScreen() {
                     <Text
                       style={[styles.chipText, active && styles.chipTextActive]}
                     >
-                      {c}
+                      {c === ALL
+                        ? t.allLabel
+                        : c === RESTRICTED
+                          ? t.restrictedLabel
+                          : c}
                     </Text>
                   </TouchableOpacity>
                 );

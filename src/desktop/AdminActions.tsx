@@ -259,6 +259,9 @@ function AddMaterialModal({
       await onSave(name.trim(), p);
     } catch (e) {
       setErr((e as Error).message);
+    } finally {
+      // Always clear busy — onSave returns without throwing when the operator
+      // cancels the PIN prompt, which otherwise left the button stuck on "Saving…".
       setBusy(false);
     }
   };
@@ -333,6 +336,9 @@ function EditPriceModal({
       await onSave(p);
     } catch (e) {
       setErr((e as Error).message);
+    } finally {
+      // Clear busy even when the PIN prompt is cancelled (onSave returns
+      // without throwing) — otherwise the button sticks on "Saving…".
       setBusy(false);
     }
   };
@@ -411,6 +417,9 @@ function EditCompanyModal({
       });
     } catch (e) {
       setErr((e as Error).message);
+    } finally {
+      // Clear busy even when the PIN prompt is cancelled (onSave returns
+      // without throwing) — otherwise the button sticks on "Saving…".
       setBusy(false);
     }
   };

@@ -15,7 +15,10 @@ import {
 } from '../services/draftTickets';
 import { printComplianceRecord, printClaimStub } from './print';
 import { parseAamva, looksLikeAamva } from '../utils/parseAamva';
-import { calculateNetWeight } from '../utils/calculations';
+import {
+  calculateNetWeight,
+  calculateLineItemTotal,
+} from '../utils/calculations';
 import type { LineItemInput } from '../types';
 import Icon from './Icon';
 import CameraCapture from './CameraCapture';
@@ -134,6 +137,9 @@ export function BuyFlow({
   // never has to walk outside. Still editable at the desk (hybrid capture).
   const [vehiclePlate, setVehiclePlate] = useState(draft?.vehicle_plate ?? '');
   const [vin, setVin] = useState(draft?.transport_vin ?? '');
+  // Catalytic-converter serial number(s) — a statutory field for cats
+  // (SB133/SB141); the DB accepts them as cat_converter_numbers.
+  const [catSerials, setCatSerials] = useState('');
   const [affirmed, setAffirmed] = useState(false);
   // NM §57-30-5 requires the seller to attest they have not been convicted of
   // metal theft (separate from the ownership affirmation).
@@ -314,8 +320,12 @@ export function BuyFlow({
 
   const checkOnly = tier === 'catalytic';
   const effectivePay: 'cash' | 'check' = checkOnly ? 'check' : pay;
+  // Round each line to cents before summing so the confirmation/printed total
+  // equals the DB's stored subtotal (its enforce_line_item_pricing trigger
+  // rounds per line). Same convention as the mobile calculateReceiptTotal.
   const total = items.reduce(
-    (s, it) => s + netOf(it) * (byId.get(it.id)?.price_per_lb ?? 0),
+    (s, it) =>
+      s + calculateLineItemTotal(netOf(it), byId.get(it.id)?.price_per_lb ?? 0),
     0
   );
   const weight = items.reduce((s, it) => s + netOf(it), 0);
@@ -343,6 +353,7 @@ export function BuyFlow({
     setItems([]);
     setVehiclePlate('');
     setVin('');
+    setCatSerials('');
     setAffirmed(false);
     setNoTheft(false);
     setPay('cash');
@@ -436,7 +447,7 @@ export function BuyFlow({
           grossWeight: it.mode === 'tare' ? it.gross || 0 : null,
           tareWeight: it.mode === 'tare' ? it.tare || 0 : null,
           pricePerLb: m.price_per_lb,
-          total: net * m.price_per_lb,
+          total: calculateLineItemTotal(net, m.price_per_lb),
           isRegulated: !!m.is_regulated,
           isRestricted: !!m.is_restricted,
           isCatalytic: !!m.is_catalytic,
@@ -497,7 +508,7 @@ export function BuyFlow({
           originalPricePerLb: m.price_per_lb,
           isPriceOverride: false,
           overrideApprovedBy: null,
-          total: net * m.price_per_lb,
+          total: calculateLineItemTotal(net, m.price_per_lb),
           isRegulated: !!m.is_regulated,
           isRestricted: !!m.is_restricted,
           isCatalytic: !!m.is_catalytic,
@@ -524,6 +535,8 @@ export function BuyFlow({
         sellerIdPhotoUri: idPhoto || undefined,
         vehiclePlate: vehiclePlate.trim() || undefined,
         transportVin: vin.trim() || undefined,
+        catConverterNumbers:
+          tier === 'catalytic' ? catSerials.trim() || undefined : undefined,
         sellerAffirmed: needsCompliance ? affirmed : undefined,
         sellerNoTheftAffirmed: needsCompliance ? noTheft : undefined,
         lineItems,
@@ -1059,7 +1072,7 @@ export function BuyFlow({
                   const m = byId.get(it.id);
                   if (!m) return null;
                   const net = netOf(it);
-                  const sub = net * m.price_per_lb;
+                  const sub = calculateLineItemTotal(net, m.price_per_lb);
                   const wInput = {
                     height: 34,
                     textAlign: 'right' as const,
@@ -1527,6 +1540,16 @@ export function BuyFlow({
                       value={vin}
                       onChange={(v) => setVin(v.toUpperCase())}
                       placeholder="17-character VIN"
+                      mono
+                    />
+                  </Field>
+                )}
+                {tier === 'catalytic' && (
+                  <Field label="Converter serial number(s)">
+                    <TextInput
+                      value={catSerials}
+                      onChange={setCatSerials}
+                      placeholder="Etched / stamped serial(s), comma-separated"
                       mono
                     />
                   </Field>

@@ -67,14 +67,20 @@ export async function upsertCustomer(
   driversLicense?: string
 ): Promise<Customer> {
   // Try to find an existing customer with the same name (case-insensitive).
-  // maybeSingle() returns null (not a thrown PGRST116) when there's no match,
-  // so the "create new" path below is reached cleanly instead of by accident.
-  const { data: existing } = await supabase
+  // Escape LIKE metacharacters so a name like "A_B Hauling" or "100% Metals"
+  // is matched literally instead of as a wildcard pattern that could link the
+  // buy to (and overwrite the DL of) an unrelated customer. maybeSingle()
+  // returns null (not a thrown PGRST116) when there's no match. A real lookup
+  // error is thrown, not swallowed — otherwise it would fall through to insert
+  // and create an unwanted duplicate on a transient failure.
+  const escapedName = name.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const { data: existing, error: lookupError } = await supabase
     .from('customers')
     .select('*')
-    .ilike('name', name)
+    .ilike('name', escapedName)
     .limit(1)
     .maybeSingle();
+  if (lookupError) throw lookupError;
 
   if (existing) {
     // Refresh phone and/or driver's license when we have new values — this is

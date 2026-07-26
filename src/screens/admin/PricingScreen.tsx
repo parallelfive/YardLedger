@@ -181,7 +181,10 @@ export default function PricingScreen() {
       return;
     }
 
-    const priceChanged = price !== editingMetal.price_per_lb;
+    // price_per_lb is a numeric(10,4) that PostgREST serializes as a string, so
+    // compare as numbers — a strict !== against the string is always true and
+    // would log a spurious price-history audit row on a name/tier-only edit.
+    const priceChanged = Number(price) !== Number(editingMetal.price_per_lb);
     const nameChanged = trimmedName !== editingMetal.name;
     const nextRestricted = tier === 'restricted';
     const restrictedChanged = nextRestricted !== editingMetal.is_restricted;
@@ -372,7 +375,7 @@ export default function PricingScreen() {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.empty}>
-              <Text style={styles.emptyText}>{t.loading}</Text>
+              <Text style={styles.emptyText}>{t.noResults}</Text>
             </View>
           ) : null
         }

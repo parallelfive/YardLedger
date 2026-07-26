@@ -154,7 +154,16 @@ Deno.serve(async (req: Request) => {
     if (!CRON_SECRET || !timingSafeEqual(cronHeader, CRON_SECRET)) {
       return new Response('Unauthorized', { status: 401 });
     }
-    const { data } = await admin.from('companies').select('id');
+    // Fail loud on a query error — otherwise an empty companyIds looks like a
+    // normal "nothing to purge" run (HTTP 200, results: []) while the entire
+    // scheduled purge silently did nothing (#78).
+    const { data, error } = await admin.from('companies').select('id');
+    if (error) {
+      return new Response(
+        JSON.stringify({ error: `Failed to list companies: ${error.message}` }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     companyIds = (data ?? []).map((r: { id: string }) => r.id);
   } else {
     // Authenticated owner → their company only (purge is destructive).

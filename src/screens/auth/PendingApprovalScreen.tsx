@@ -16,7 +16,9 @@ import { type Palette, spacing, fontSize, fonts } from '../../constants';
 
 export default function PendingApprovalScreen() {
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector((state: RootState) => state.auth);
+  const { user, profileLoadFailed } = useAppSelector(
+    (state: RootState) => state.auth
+  );
   const { t } = useT();
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
@@ -43,10 +45,18 @@ export default function PendingApprovalScreen() {
     <View style={styles.container}>
       <ResponsiveContainer maxWidth={420} style={styles.body}>
         <View style={styles.iconCircle}>
-          <Ionicons name="lock-closed" size={36} color={colors.warning} />
+          <Ionicons
+            name={profileLoadFailed ? 'cloud-offline' : 'lock-closed'}
+            size={36}
+            color={colors.warning}
+          />
         </View>
-        <Text style={styles.title}>{t.accountPending}</Text>
-        <Text style={styles.message}>{t.pendingMessage}</Text>
+        <Text style={styles.title}>
+          {profileLoadFailed ? t.accountLoadFailed : t.accountPending}
+        </Text>
+        <Text style={styles.message}>
+          {profileLoadFailed ? t.accountLoadFailedMessage : t.pendingMessage}
+        </Text>
 
         <TouchableOpacity
           style={styles.checkButton}
@@ -56,7 +66,9 @@ export default function PendingApprovalScreen() {
           {checking ? (
             <ActivityIndicator color={colors.background} />
           ) : (
-            <Text style={styles.checkButtonText}>{t.checkStatus}</Text>
+            <Text style={styles.checkButtonText}>
+              {profileLoadFailed ? t.retry : t.checkStatus}
+            </Text>
           )}
         </TouchableOpacity>
 

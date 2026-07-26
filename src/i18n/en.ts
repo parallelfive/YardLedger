@@ -65,6 +65,9 @@ export default {
   accountPending: 'Account Pending',
   pendingMessage:
     "Your account is waiting for admin approval. You'll be able to access YardLedger once an administrator activates your account.",
+  accountLoadFailed: "Couldn't load your account",
+  accountLoadFailedMessage:
+    'We couldn’t reach your account details — this is usually a temporary connection issue, not a problem with your account. Retry in a moment.',
   checkStatus: 'Check Status',
   signOut: 'Sign Out',
 

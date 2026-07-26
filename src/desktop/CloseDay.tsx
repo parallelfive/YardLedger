@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useReceipts } from '../hooks/useReceipts';
 import { useSales } from '../hooks/useSales';
+import { useCompanyTimezone } from '../hooks/useCompanyTimezone';
+import { isTodayInTz } from '../utils/timezone';
 import { shareTextFile } from '../utils/shareFile';
 import { printDayClose } from './print';
 import {
@@ -23,16 +25,6 @@ import {
 
 type ReceiptRow = ReturnType<typeof useReceipts>['receipts'][number];
 
-const isToday = (iso: string) => {
-  const d = new Date(iso);
-  const n = new Date();
-  return (
-    d.getFullYear() === n.getFullYear() &&
-    d.getMonth() === n.getMonth() &&
-    d.getDate() === n.getDate()
-  );
-};
-
 const rWeight = (r: ReceiptRow) =>
   (r.line_items ?? []).reduce((a, li) => a + Number(li.weight || 0), 0);
 const rRestricted = (r: ReceiptRow) =>
@@ -45,10 +37,12 @@ const rRestricted = (r: ReceiptRow) =>
 export default function CloseDay({ onClose }: { onClose: () => void }) {
   const { receipts } = useReceipts();
   const { sales } = useSales();
+  // Day-close totals are the yard's business day, not the browser's clock (#58).
+  const tz = useCompanyTimezone();
 
   const m = useMemo(() => {
     const buys = receipts.filter(
-      (r) => r.type === 'buy' && isToday(r.created_at)
+      (r) => r.type === 'buy' && isTodayInTz(r.created_at, tz)
     );
     const cashOut = buys
       .filter((r) => (r.payment_method || '') === 'cash')
@@ -84,7 +78,7 @@ export default function CloseDay({ onClose }: { onClose: () => void }) {
       weight?: number;
       profit?: number;
     }[];
-    const todaySales = sl.filter((s) => isToday(s.created_at));
+    const todaySales = sl.filter((s) => isTodayInTz(s.created_at, tz));
     const salesRevenue = todaySales.reduce(
       (a, s) => a + Number(s.total_revenue ?? s.total ?? 0),
       0
@@ -109,7 +103,7 @@ export default function CloseDay({ onClose }: { onClose: () => void }) {
       weightSold,
       profit,
     };
-  }, [receipts, sales]);
+  }, [receipts, sales, tz]);
 
   const dateLabel = new Date().toLocaleDateString('en-US', {
     weekday: 'long',

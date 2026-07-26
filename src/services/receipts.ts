@@ -99,32 +99,60 @@ export async function createReceipt(params: CreateReceiptParams) {
     uri && !uri.startsWith('http')
       ? uploadIdPhoto(uri, companyId as string, label)
       : Promise.resolve(uri ?? null);
+  const uploadResults = await Promise.all(
+    photoInputs.map((p) => upload(p.uri, p.label))
+  );
   const [
     sellerIdPhotoUrl,
     catConverterPhotoUrl,
     catTitlePhotoUrl,
     sellerPhotoUrl,
     materialPhotoUrl,
-  ] = await Promise.all(photoInputs.map((p) => upload(p.uri, p.label)));
+  ] = uploadResults;
+
+  // The storage paths we newly uploaded THIS call (a non-http input that became
+  // a path) — if the receipt fails to persist below, these become orphaned PII
+  // objects with no receipt referencing them (and confuse the retention purge).
+  // Remove them on any failure before rethrowing.
+  const newlyUploadedPaths = photoInputs
+    .map((p, i) =>
+      p.uri && !p.uri.startsWith('http') ? (uploadResults[i] as string) : null
+    )
+    .filter((x): x is string => !!x);
+  const cleanupUploads = async () => {
+    if (newlyUploadedPaths.length === 0) return;
+    await supabase.storage
+      .from('customer-ids')
+      .remove(newlyUploadedPaths)
+      .catch(() => {});
+  };
 
   // Resolve the customer, capturing the seller's DL for next-visit autofill.
   // A linked customerId still gets its license backfilled (a returning seller
   // who had no ID on file); a create-by-name goes through the upsert.
   let customer: { id: string };
-  if (params.customerId) {
-    if (params.sellerDlNumber) {
-      await supabase
-        .from('customers')
-        .update({ drivers_license: params.sellerDlNumber })
-        .eq('id', params.customerId);
+  try {
+    if (params.customerId) {
+      if (params.sellerDlNumber) {
+        const { error: dlErr } = await supabase
+          .from('customers')
+          .update({ drivers_license: params.sellerDlNumber })
+          .eq('id', params.customerId);
+        // Surface a failed DL backfill (was silently ignored) — the seller's
+        // identity chain on a regulated buy shouldn't fail without notice.
+        if (dlErr) throw dlErr;
+      }
+      customer = { id: params.customerId };
+    } else {
+      customer = await upsertCustomer(
+        params.customerName,
+        params.customerPhone,
+        params.sellerDlNumber
+      );
     }
-    customer = { id: params.customerId };
-  } else {
-    customer = await upsertCustomer(
-      params.customerName,
-      params.customerPhone,
-      params.sellerDlNumber
-    );
+  } catch (e) {
+    await cleanupUploads();
+    throw e;
   }
 
   // Insert the receipt and its line items in a single transaction. If anything
@@ -193,7 +221,12 @@ export async function createReceipt(params: CreateReceiptParams) {
     { p_receipt: receiptPayload, p_line_items: lineItemsPayload }
   );
 
-  if (error) throw error;
+  // The receipt (with its photo paths) never persisted — drop the uploaded PII
+  // objects so they aren't left orphaned in storage.
+  if (error) {
+    await cleanupUploads();
+    throw error;
+  }
 
   return receipt;
 }

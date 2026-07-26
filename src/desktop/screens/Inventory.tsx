@@ -18,7 +18,6 @@ import {
   SlideHead,
   GroupLabel,
   Sparkline,
-  DeltaTag,
   EmptyState,
   SkeletonRows,
   money,
@@ -509,7 +508,8 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
                 {lbs(totalWeight)} lb across {metals.length} metals
               </div>
             </div>
-            {inventory.length > 0 && <DeltaTag up>4.2% wk</DeltaTag>}
+            {/* No week-over-week delta shown — a fabricated number here is worse
+                than none (#72). Restore when a real w/w value is computed. */}
           </div>
           <div style={{ position: 'relative', marginTop: 14 }}>
             <Sparkline

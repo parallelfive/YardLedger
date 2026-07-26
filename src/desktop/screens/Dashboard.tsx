@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useReceipts } from '../../hooks/useReceipts';
 import { useInventory } from '../../hooks/useInventory';
 import { useSales } from '../../hooks/useSales';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
+import { isTodayInTz } from '../../utils/timezone';
 import Icon from '../Icon';
 import {
   Card,
@@ -25,16 +27,6 @@ import {
 import type { TabId } from '../Rail';
 
 type ReceiptRow = ReturnType<typeof useReceipts>['receipts'][number];
-
-const isToday = (iso: string) => {
-  const d = new Date(iso);
-  const n = new Date();
-  return (
-    d.getFullYear() === n.getFullYear() &&
-    d.getMonth() === n.getMonth() &&
-    d.getDate() === n.getDate()
-  );
-};
 
 const rWeight = (r: ReceiptRow) =>
   (r.line_items ?? []).reduce((a, li) => a + Number(li.weight || 0), 0);
@@ -156,6 +148,9 @@ export default function Dashboard({
     error: sError,
     refresh: sRefresh,
   } = useSales();
+  // "Today" is the yard's business day, not the browser's — a late buy in a
+  // behind-UTC zone must still count on the correct local day (#58).
+  const tz = useCompanyTimezone();
 
   // First paint: everything's empty and still fetching → show a skeleton
   // instead of a fully-populated $0 dashboard. Any load failure → one error
@@ -174,7 +169,7 @@ export default function Dashboard({
 
   const m = useMemo(() => {
     const buys = receipts.filter((r) => r.type === 'buy');
-    const todayBuys = buys.filter((r) => isToday(r.created_at));
+    const todayBuys = buys.filter((r) => isTodayInTz(r.created_at, tz));
     const bought = todayBuys.reduce((a, r) => a + Number(r.subtotal || 0), 0);
     const boughtWeight = todayBuys.reduce((a, r) => a + rWeight(r), 0);
 
@@ -238,7 +233,7 @@ export default function Dashboard({
       total?: number;
       weight?: number;
     }[];
-    const todaySales = sl.filter((s) => isToday(s.created_at));
+    const todaySales = sl.filter((s) => isTodayInTz(s.created_at, tz));
     const sold = todaySales.reduce(
       (a, s) => a + Number(s.total_amount ?? s.total ?? 0),
       0
@@ -262,7 +257,7 @@ export default function Dashboard({
       soldWeight,
       recent: todayBuys.slice(0, 8),
     };
-  }, [receipts, inventory, sales]);
+  }, [receipts, inventory, sales, tz]);
 
   const cents = String(Math.round((m.bought % 1) * 100)).padStart(2, '0');
   const intakeCols: Col[] = [

@@ -20,9 +20,11 @@ export function parseDriversLicense(rawText: string): ParsedIdFields {
 }
 
 function extractDlNumber(text: string): string | null {
-  // Look for labeled DL number: "DL 1234567", "LIC NO: AB123", "ID: 12345678"
+  // Look for labeled DL number: "DL 1234567", "LIC NO: AB123", "ID: 12345678".
+  // \b on both sides so the label only matches a whole token — without it, "ID"
+  // matches inside "IDENTIFICATION" and yields a bogus "ENTIFICATION".
   const labeled =
-    /(?:DL|DRIVER\s*(?:LICENSE|LIC)|LIC(?:ENSE)?|ID)\s*(?:NO\.?|NUMBER|#|:)?\s*[:-]?\s*([A-Z0-9]{4,15})/i;
+    /\b(?:DL|DRIVER\s*(?:LICENSE|LIC)|LIC(?:ENSE)?|ID)\b\s*(?:NO\.?|NUMBER|#|:)?\s*[:-]?\s*([A-Z0-9]{4,15})/i;
   const match = text.match(labeled);
   if (match) return match[1].toUpperCase();
 

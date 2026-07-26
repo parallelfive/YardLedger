@@ -26,6 +26,10 @@ interface AuthState {
   elevationIsOwner: boolean;
   loading: boolean;
   error: string | null;
+  // True when there's a session but the profile row couldn't be fetched (a real
+  // error, not "no row"). Lets the UI show "couldn't load your account, retry"
+  // instead of misrouting an approved user to Pending Approval.
+  profileLoadFailed: boolean;
 }
 
 const initialState: AuthState = {
@@ -39,6 +43,7 @@ const initialState: AuthState = {
   elevationIsOwner: false,
   loading: true,
   error: null,
+  profileLoadFailed: false,
 };
 
 const identityFromProfile = (
@@ -79,8 +84,12 @@ export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
 
   let profile: UserProfile | null = null;
   let company: Company | null = null;
+  // A real fetch error (not PGRST116 = "no row") means the profile couldn't be
+  // loaded — distinct from a genuinely-unapproved user with no row, so the UI
+  // can offer "retry" instead of stranding an approved user on Pending Approval.
+  let profileLoadFailed = false;
   if (session?.user) {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('users')
       .select('*, companies(id, name, prefix)')
       .eq('supabase_id', session.user.id)
@@ -88,10 +97,12 @@ export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
 
     if (data) {
       ({ profile, company } = mapProfileAndCompany(data));
+    } else if (error && error.code !== 'PGRST116') {
+      profileLoadFailed = true;
     }
   }
 
-  return { session, profile, company };
+  return { session, profile, company, profileLoadFailed };
 });
 
 export const fetchProfile = createAsyncThunk(
@@ -119,8 +130,9 @@ export const signIn = createAsyncThunk(
 
     let profile: UserProfile | null = null;
     let company: Company | null = null;
+    let profileLoadFailed = false;
     if (data.user) {
-      const { data: row } = await supabase
+      const { data: row, error: rowError } = await supabase
         .from('users')
         .select('*, companies(id, name, prefix)')
         .eq('supabase_id', data.user.id)
@@ -128,10 +140,12 @@ export const signIn = createAsyncThunk(
 
       if (row) {
         ({ profile, company } = mapProfileAndCompany(row));
+      } else if (rowError && rowError.code !== 'PGRST116') {
+        profileLoadFailed = true;
       }
     }
 
-    return { session: data.session, profile, company };
+    return { session: data.session, profile, company, profileLoadFailed };
   }
 );
 
@@ -227,6 +241,7 @@ const authSlice = createSlice({
         state.company = action.payload.company;
         state.activeIdentity = identityFromProfile(action.payload.profile);
         state.activeIdentitySource = state.activeIdentity ? 'session' : null;
+        state.profileLoadFailed = action.payload.profileLoadFailed;
         state.loading = false;
       })
       .addCase(initializeAuth.rejected, (state) => {
@@ -235,6 +250,7 @@ const authSlice = createSlice({
       .addCase(fetchProfile.fulfilled, (state, action) => {
         state.profile = action.payload.profile;
         state.company = action.payload.company;
+        state.profileLoadFailed = false;
         if (!state.activeIdentity) {
           state.activeIdentity = identityFromProfile(action.payload.profile);
           state.activeIdentitySource = state.activeIdentity ? 'session' : null;
@@ -250,22 +266,38 @@ const authSlice = createSlice({
         state.company = action.payload.company;
         state.activeIdentity = identityFromProfile(action.payload.profile);
         state.activeIdentitySource = state.activeIdentity ? 'session' : null;
+        state.profileLoadFailed = action.payload.profileLoadFailed;
       })
       .addCase(signIn.rejected, (state, action) => {
         state.error = action.error.message ?? 'Sign in failed';
       })
       .addCase(signOut.fulfilled, (state) => {
-        state.session = null;
-        state.user = null;
-        state.profile = null;
-        state.company = null;
-        state.activeIdentity = null;
-        state.activeIdentitySource = null;
-        state.elevationExpiresAt = null;
-        state.elevationIsOwner = false;
+        clearAuthState(state);
+      })
+      .addCase(signOut.rejected, (state, action) => {
+        // A local sign-out shouldn't require network. If the remote call failed
+        // (offline / flaky), still clear local session state so the terminal
+        // isn't stuck signed-in with a dead button, and surface what happened.
+        clearAuthState(state);
+        state.error =
+          action.error.message ??
+          'Signed out on this device; the server sign-out did not complete.';
       });
   },
 });
+
+// Clear all per-session auth state — used by both sign-out outcomes so an
+// offline sign-out still logs the operator out locally.
+function clearAuthState(state: AuthState) {
+  state.session = null;
+  state.user = null;
+  state.profile = null;
+  state.company = null;
+  state.activeIdentity = null;
+  state.activeIdentitySource = null;
+  state.elevationExpiresAt = null;
+  state.elevationIsOwner = false;
+}
 
 export const {
   setSession,

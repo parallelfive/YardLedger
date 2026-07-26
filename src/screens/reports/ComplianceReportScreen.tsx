@@ -11,6 +11,7 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import * as Print from 'expo-print';
 import { shareTextFile } from '../../utils/shareFile';
+import { escapeHtml } from '../../utils/validation';
 import DateRangeSelector, {
   type DatePreset,
   getDateRange,
@@ -21,6 +22,7 @@ import {
   fetchUnreportedReceipts,
   buildNmrldExportCsv,
   fetchNmrldRegistrationNumber,
+  fetchCompanyTimezone,
   markReceiptsReported,
 } from '../../services/reports';
 import { fetchCompanySettings } from '../../services/companySettings';
@@ -134,9 +136,12 @@ export default function ComplianceReportScreen() {
       : rows;
 
     const title = restrictedOnly ? t.restrictedReport : t.purchaseRecord;
+    // Escape all seller/company-supplied strings — this is an official legal
+    // printout; a name like "Bob <Jones> & Sons" must render as text, not markup.
+    const esc = escapeHtml;
     const companyHeader = company
-      ? `<h2 style="margin:0">${company.company_name}</h2>
-         <p style="margin:4px 0;color:#666">${company.address} | ${company.phone}</p>`
+      ? `<h2 style="margin:0">${esc(company.company_name)}</h2>
+         <p style="margin:4px 0;color:#666">${esc(company.address)} | ${esc(company.phone)}</p>`
       : '';
 
     const vehicleDesc = (r: PurchaseRecordRow) =>
@@ -145,14 +150,14 @@ export default function ComplianceReportScreen() {
     const tableRows = filtered
       .map(
         (r) => `<tr>
-        <td>${r.date}</td>
-        <td>${r.receiptNumber}</td>
-        <td>${r.sellerName}</td>
-        <td>${r.dlNumber}${r.stateOfIssue ? ` (${r.stateOfIssue})` : ''}</td>
-        <td>${r.sellerAddress}</td>
-        <td>${r.vehiclePlate}</td>
-        <td>${vehicleDesc(r)}${r.vehicleColor ? ` — ${r.vehicleColor}` : ''}</td>
-        <td>${r.materials}</td>
+        <td>${esc(r.date)}</td>
+        <td>${esc(r.receiptNumber)}</td>
+        <td>${esc(r.sellerName)}</td>
+        <td>${esc(r.dlNumber)}${r.stateOfIssue ? ` (${esc(r.stateOfIssue)})` : ''}</td>
+        <td>${esc(r.sellerAddress)}</td>
+        <td>${esc(r.vehiclePlate)}</td>
+        <td>${esc(vehicleDesc(r))}${r.vehicleColor ? ` — ${esc(r.vehicleColor)}` : ''}</td>
+        <td>${esc(r.materials)}</td>
         <td style="text-align:right">${r.totalWeight.toFixed(2)}</td>
         <td style="text-align:right">$${r.amountPaid.toFixed(2)}</td>
         <td>${r.sellerAffirmed ? 'Yes' : 'No'}</td>
@@ -259,15 +264,16 @@ export default function ComplianceReportScreen() {
   // until the automated SFTP job is wired up.
   const handleReportUnreported = async () => {
     try {
-      const [unreported, registration] = await Promise.all([
+      const [unreported, registration, timezone] = await Promise.all([
         fetchUnreportedReceipts(),
         fetchNmrldRegistrationNumber(),
+        fetchCompanyTimezone(),
       ]);
       if (unreported.length === 0) {
         Alert.alert(t.nmrldExport, t.noUnreported);
         return;
       }
-      const csv = buildNmrldExportCsv(unreported, registration);
+      const csv = buildNmrldExportCsv(unreported, registration, timezone);
       await shareTextFile(
         'nmrld_unreported.csv',
         csv,

@@ -63,6 +63,13 @@ const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(
         const width = rect.width || canvas.clientWidth || 300;
         canvas.width = width * dpr;
         canvas.height = PAD_HEIGHT * dpr;
+        // Setting width/height above wipes the canvas. This callback re-runs on
+        // a theme toggle (it's keyed to the stroke color) and on resize, so
+        // reset the ink flags to match the now-blank canvas — otherwise
+        // readSignature would return a blank-but-non-null white image and save
+        // an empty signature on a compliance record (#66).
+        inked.current = false;
+        setHasInk(false);
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.scale(dpr, dpr);

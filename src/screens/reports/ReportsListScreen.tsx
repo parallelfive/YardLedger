@@ -25,6 +25,7 @@ import {
   fetchComplianceReport,
   buildNmrldExportCsv,
   fetchNmrldRegistrationNumber,
+  fetchCompanyTimezone,
   fetchUnreportedReceipts,
   markReceiptsReported,
   type ComplianceReceiptRow,
@@ -49,7 +50,11 @@ const isRestricted = (r: ComplianceReceiptRow) =>
   !!r.is_catalytic || (r.line_items ?? []).some((li) => li.is_restricted);
 
 async function shareCsv(rows: ComplianceReceiptRow[], name: string) {
-  const csv = buildNmrldExportCsv(rows, await fetchNmrldRegistrationNumber());
+  const [registration, timezone] = await Promise.all([
+    fetchNmrldRegistrationNumber(),
+    fetchCompanyTimezone(),
+  ]);
+  const csv = buildNmrldExportCsv(rows, registration, timezone);
   // These CSVs contain regulated seller PII (DL #, address, VIN); shareTextFile
   // purges the native cache copy after sharing and never holds it at rest.
   await shareTextFile(

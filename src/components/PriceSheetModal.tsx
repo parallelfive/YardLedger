@@ -64,11 +64,14 @@ export default function PriceSheetModal({
     }
   }, []);
 
+  // Refetch every time the sheet opens so an admin's mid-day price change is
+  // reflected — gating on "already loaded" left operators quoting stale prices
+  // for the rest of the session.
   useEffect(() => {
-    if (visible && sections.length === 0) {
+    if (visible) {
       loadData();
     }
-  }, [visible, loadData, sections.length]);
+  }, [visible, loadData]);
 
   return (
     <Modal
