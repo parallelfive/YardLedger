@@ -24,6 +24,8 @@ import {
   Btn,
   Field,
   TareMark,
+  EmptyState,
+  SkeletonRows,
   money,
   toneColor,
   tierTone,
@@ -414,7 +416,12 @@ function TeamAccess({
 
 export default function Settings({ canManage }: { canManage: boolean }) {
   const company = useCurrentCompany();
-  const { metals } = useMetals();
+  const {
+    metals,
+    loading: metalsLoading,
+    error: metalsError,
+    refresh: refreshMetals,
+  } = useMetals();
   const { isOwner } = useRole();
   const admin = useDeskAdmin();
   const [settings, setSettings] = useState<CompanySettings | null>(null);
@@ -638,44 +645,82 @@ export default function Settings({ canManage }: { canManage: boolean }) {
             </Btn>
           )}
         </div>
-        <Table cols={matCols}>
-          {metals.map((m) => {
-            const tier = metalTier(m);
-            return (
-              <TR
-                key={m.id}
-                cols={matCols}
-                accent={toneColor(tierTone(tier))}
-                cells={[
-                  <span
-                    key="name"
-                    style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: 'var(--ink)',
-                    }}
-                  >
-                    {m.name}
-                  </span>,
-                  <Pill key="tier" tone={tierTone(tier)}>
-                    {tier}
-                  </Pill>,
-                  <span
-                    key="price"
-                    className="mono num"
-                    style={{
-                      fontSize: 13.5,
-                      fontWeight: 600,
-                      color: 'var(--ink)',
-                    }}
-                  >
-                    {money(m.price_per_lb)}/lb
-                  </span>,
-                ]}
-              />
-            );
-          })}
-        </Table>
+        {metalsError ? (
+          <EmptyState
+            tone="error"
+            label="Couldn’t load materials"
+            sub={metalsError}
+            action={
+              <Btn
+                variant="ghost"
+                size="sm"
+                icon="reload"
+                onClick={refreshMetals}
+              >
+                Retry
+              </Btn>
+            }
+          />
+        ) : metalsLoading && metals.length === 0 ? (
+          <SkeletonRows />
+        ) : metals.length === 0 ? (
+          <EmptyState
+            icon="stack"
+            label="No materials yet"
+            sub="Add the metals you buy and their default prices to get started."
+            action={
+              canManage ? (
+                <Btn
+                  variant="primary"
+                  size="sm"
+                  icon="plus"
+                  onClick={admin.addMaterial}
+                >
+                  Add material
+                </Btn>
+              ) : undefined
+            }
+          />
+        ) : (
+          <Table cols={matCols}>
+            {metals.map((m) => {
+              const tier = metalTier(m);
+              return (
+                <TR
+                  key={m.id}
+                  cols={matCols}
+                  accent={toneColor(tierTone(tier))}
+                  cells={[
+                    <span
+                      key="name"
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: 'var(--ink)',
+                      }}
+                    >
+                      {m.name}
+                    </span>,
+                    <Pill key="tier" tone={tierTone(tier)}>
+                      {tier}
+                    </Pill>,
+                    <span
+                      key="price"
+                      className="mono num"
+                      style={{
+                        fontSize: 13.5,
+                        fontWeight: 600,
+                        color: 'var(--ink)',
+                      }}
+                    >
+                      {money(m.price_per_lb)}/lb
+                    </span>,
+                  ]}
+                />
+              );
+            })}
+          </Table>
+        )}
       </Card>
 
       {/* team — admins/owners generate invite codes; others see the note */}

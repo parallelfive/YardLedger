@@ -11,6 +11,9 @@ import {
   TR,
   Pill,
   Btn,
+  Banner,
+  EmptyState,
+  Skeleton,
   money,
   money0,
   lbs,
@@ -135,9 +138,39 @@ export default function Dashboard({
   act: string;
   registry: string;
 }) {
-  const { receipts } = useReceipts();
-  const { inventory } = useInventory();
-  const { sales } = useSales();
+  const {
+    receipts,
+    loading: rLoading,
+    error: rError,
+    refresh: rRefresh,
+  } = useReceipts();
+  const {
+    inventory,
+    loading: iLoading,
+    error: iError,
+    refresh: iRefresh,
+  } = useInventory();
+  const {
+    sales,
+    loading: sLoading,
+    error: sError,
+    refresh: sRefresh,
+  } = useSales();
+
+  // First paint: everything's empty and still fetching → show a skeleton
+  // instead of a fully-populated $0 dashboard. Any load failure → one error
+  // state with a retry that refires all three.
+  const initialLoading =
+    (rLoading || iLoading || sLoading) &&
+    receipts.length === 0 &&
+    inventory.length === 0 &&
+    sales.length === 0;
+  const dashError = rError || iError || sError;
+  const retryAll = () => {
+    rRefresh();
+    iRefresh();
+    sRefresh();
+  };
 
   const m = useMemo(() => {
     const buys = receipts.filter((r) => r.type === 'buy');
@@ -241,6 +274,62 @@ export default function Dashboard({
     { key: 'pay', label: 'Pay', w: '0.7fr', align: 'right' },
   ];
 
+  if (dashError && initialLoading === false && receipts.length === 0) {
+    return (
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        <Card style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <EmptyState
+              tone="error"
+              label="Couldn’t load the dashboard"
+              sub={dashError}
+              action={
+                <Btn variant="ghost" size="sm" icon="reload" onClick={retryAll}>
+                  Retry
+                </Btn>
+              }
+            />
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  if (initialLoading) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          flex: 1,
+          minHeight: 0,
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(4, 1fr)',
+            gap: 16,
+            flexShrink: 0,
+          }}
+        >
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i}>
+              <Skeleton w={92} h={11} />
+              <Skeleton w={130} h={30} style={{ marginTop: 14 }} />
+              <Skeleton w={110} h={11} style={{ marginTop: 12 }} />
+            </Card>
+          ))}
+        </div>
+        <Card style={{ flex: 1 }}>
+          <Skeleton w={180} h={16} />
+          <Skeleton h={200} r={12} style={{ marginTop: 18 }} />
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div
       className="stagger in"
@@ -252,6 +341,22 @@ export default function Dashboard({
         minHeight: 0,
       }}
     >
+      {/* Partial-failure notice: receipts loaded but inventory/sales errored, so
+          some tiles below would read a misleading $0. Surface it + let them
+          retry, without hiding the data that did load. */}
+      {dashError && (
+        <Banner
+          icon="alert"
+          action={
+            <Btn variant="ghost" size="sm" icon="reload" onClick={retryAll}>
+              Retry
+            </Btn>
+          }
+        >
+          Some figures couldn’t be loaded and may be incomplete.
+        </Banner>
+      )}
+
       {/* KPI row */}
       <div
         style={{

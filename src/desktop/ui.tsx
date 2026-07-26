@@ -1,4 +1,9 @@
-import type { CSSProperties, ReactNode } from 'react';
+import { useState } from 'react';
+import type {
+  CSSProperties,
+  ReactNode,
+  KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import Icon, { type IconName } from './Icon';
 
 // Shared desktop UI primitives + formatters, ported from the design handoff
@@ -72,10 +77,27 @@ export function Card({
   hover?: boolean;
   onClick?: () => void;
 }) {
+  // A clickable Card is a button for keyboard users: focusable, Enter/Space
+  // activates it, and it gets the focus ring — not a mouse-only <div>.
+  const interactive = !!onClick;
   return (
     <div
       onClick={onClick}
-      className={(hover ? 'lift ' : '') + className}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+      className={
+        (hover ? 'lift ' : '') + (interactive ? 'focusring ' : '') + className
+      }
       style={{
         background: 'var(--surface)',
         border: '1px solid var(--line)',
@@ -510,7 +532,9 @@ export function Segmented<T extends string>({
         return (
           <button
             key={v}
-            className="tap"
+            className="tap focusring"
+            role="tab"
+            aria-selected={on}
             onClick={() => onChange(v)}
             style={{
               padding: pad,
@@ -540,6 +564,7 @@ export function Btn({
   size = 'md',
   full,
   disabled,
+  busy,
   tone,
 }: {
   children: ReactNode;
@@ -549,8 +574,12 @@ export function Btn({
   size?: 'sm' | 'md' | 'lg';
   full?: boolean;
   disabled?: boolean;
+  // While busy: show a spinner in place of the icon and block clicks, so an
+  // async action (save/print/export) can't be double-fired by a fast double-tap.
+  busy?: boolean;
   tone?: string;
 }) {
+  const blocked = disabled || busy;
   const base: S = {
     display: 'inline-flex',
     alignItems: 'center',
@@ -561,7 +590,7 @@ export function Btn({
     whiteSpace: 'nowrap',
     width: full ? '100%' : 'auto',
     opacity: disabled ? 0.5 : 1,
-    pointerEvents: disabled ? 'none' : 'auto',
+    pointerEvents: blocked ? 'none' : 'auto',
   };
   const sz: S =
     size === 'sm'
@@ -600,23 +629,58 @@ export function Btn({
       : variant === 'solid'
         ? 'var(--bg)'
         : 'var(--ink-2)';
+  const iconColor = tone && variant === 'primary' ? 'var(--accent-ink)' : ic;
+  const iconSize = size === 'sm' ? 15 : 17;
   return (
     <button
       className="tap focusring"
-      onClick={onClick}
+      onClick={busy ? undefined : onClick}
+      disabled={blocked}
+      aria-busy={busy || undefined}
       style={{ ...base, ...sz, ...variants[variant] }}
     >
-      {icon && (
-        <Icon
-          name={icon}
-          size={size === 'sm' ? 15 : 17}
-          color={tone && variant === 'primary' ? 'var(--accent-ink)' : ic}
-          stroke={2.1}
+      {busy ? (
+        <span
+          className="yl-spin"
+          style={{
+            width: iconSize,
+            height: iconSize,
+            borderRadius: '50%',
+            border: `2px solid color-mix(in oklab, ${iconColor} 30%, transparent)`,
+            borderTopColor: iconColor,
+            display: 'inline-block',
+          }}
         />
+      ) : (
+        icon && (
+          <Icon name={icon} size={iconSize} color={iconColor} stroke={2.1} />
+        )
       )}
       {children}
     </button>
   );
+}
+
+// Btn whose onClick is async: it manages its own busy state, so the button
+// shows a spinner and can't be double-fired for the duration of the promise
+// (print / export / share). Drop-in replacement for a Btn with an async click.
+export function AsyncBtn({
+  onClick,
+  ...rest
+}: Omit<Parameters<typeof Btn>[0], 'onClick' | 'busy'> & {
+  onClick?: () => void | Promise<unknown>;
+}) {
+  const [busy, setBusy] = useState(false);
+  const run = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await onClick?.();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return <Btn {...rest} busy={busy} onClick={run} />;
 }
 
 export function IconBtn({
@@ -625,17 +689,22 @@ export function IconBtn({
   badge,
   active,
   size = 38,
+  label,
 }: {
   icon: IconName;
   onClick?: () => void;
   badge?: boolean;
   active?: boolean;
   size?: number;
+  // Icon-only button → screen-reader name. Required for accessibility.
+  label: string;
 }) {
   return (
     <button
       className="tap focusring"
       onClick={onClick}
+      aria-label={label}
+      title={label}
       style={{
         width: size,
         height: size,
@@ -836,7 +905,7 @@ export function SlideHead({
           )}
         </div>
       </div>
-      <IconBtn icon="x" onClick={onClose} />
+      <IconBtn icon="x" onClick={onClose} label="Close" />
     </div>
   );
 }
@@ -1042,6 +1111,188 @@ export function Placeholder({
   );
 }
 
+// A single skeleton block — a shimmering placeholder sized to whatever it
+// stands in for while data loads. Compose several for a list/table skeleton.
+export function Skeleton({
+  w = '100%',
+  h = 14,
+  r = 8,
+  style,
+}: {
+  w?: number | string;
+  h?: number | string;
+  r?: number;
+  style?: S;
+}) {
+  return (
+    <div
+      className="yl-skel"
+      style={{ width: w, height: h, borderRadius: r, ...style }}
+    />
+  );
+}
+
+// Rows of skeleton lines for a loading table/list body.
+export function SkeletonRows({
+  rows = 4,
+  gap = 12,
+}: {
+  rows?: number;
+  gap?: number;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap,
+        padding: '14px 20px 22px',
+      }}
+    >
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} h={16} w={`${92 - (i % 3) * 12}%`} />
+      ))}
+    </div>
+  );
+}
+
+// One place for empty / error states so every screen reads the same. `tone`
+// 'error' switches copy color + default icon; pass an `action` for a retry/CTA.
+export function EmptyState({
+  icon = 'stack',
+  label,
+  sub,
+  action,
+  tone = 'muted',
+}: {
+  icon?: IconName;
+  label: string;
+  sub?: string;
+  action?: ReactNode;
+  tone?: 'muted' | 'error';
+}) {
+  const isErr = tone === 'error';
+  return (
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+        gap: 10,
+        padding: '38px 20px 42px',
+      }}
+    >
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 12,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: isErr
+            ? 'color-mix(in oklab, var(--rust) 12%, transparent)'
+            : 'var(--surface-2)',
+        }}
+      >
+        <Icon
+          name={isErr ? 'alert' : icon}
+          size={21}
+          color={isErr ? 'var(--rust)' : 'var(--ink-3)'}
+          stroke={1.9}
+        />
+      </div>
+      <div
+        style={{
+          fontSize: 14,
+          fontWeight: 650,
+          color: isErr ? 'var(--rust)' : 'var(--ink-2)',
+        }}
+      >
+        {label}
+      </div>
+      {sub && (
+        <div
+          className="mono"
+          style={{
+            fontSize: 11.5,
+            color: 'var(--ink-3)',
+            maxWidth: 320,
+            lineHeight: 1.5,
+          }}
+        >
+          {sub}
+        </div>
+      )}
+      {action && <div style={{ marginTop: 4 }}>{action}</div>}
+    </div>
+  );
+}
+
+// A single-line tinted notice strip (warning / info). One canonical radius, tint
+// and border so the ad-hoc banners scattered across screens stop drifting.
+// `tone` colors the icon + text; pass an `action` (e.g. a Retry Btn) for the
+// right edge. Use EmptyState (not this) for full empty/error states.
+export function Banner({
+  tone = 'var(--rust)',
+  icon,
+  children,
+  action,
+  body = 'tone',
+  align = 'center',
+}: {
+  tone?: string;
+  icon?: IconName;
+  children: ReactNode;
+  action?: ReactNode;
+  // Body text color: 'tone' matches the accent (short warnings), 'ink' is
+  // neutral prose (longer sentences with their own emphasis).
+  body?: 'tone' | 'ink';
+  // 'start' for multi-line prose so the icon pins to the first line.
+  align?: 'center' | 'start';
+}) {
+  const isTone = body === 'tone';
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: align === 'start' ? 'flex-start' : 'center',
+        gap: 10,
+        padding: '11px 14px',
+        borderRadius: 12,
+        background: `color-mix(in oklab, ${tone} 10%, transparent)`,
+        border: `1px solid color-mix(in oklab, ${tone} 30%, transparent)`,
+        flexShrink: 0,
+      }}
+    >
+      {icon && (
+        <span
+          style={{
+            flexShrink: 0,
+            display: 'inline-flex',
+            marginTop: align === 'start' ? 1 : 0,
+          }}
+        >
+          <Icon name={icon} size={16} color={tone} stroke={2} />
+        </span>
+      )}
+      <div
+        className={isTone ? 'mono' : undefined}
+        style={{
+          fontSize: isTone ? 12 : 12.5,
+          color: isTone ? tone : 'var(--ink-2)',
+          flex: 1,
+          lineHeight: 1.45,
+        }}
+      >
+        {children}
+      </div>
+      {action}
+    </div>
+  );
+}
+
 export function Field({
   label,
   children,
@@ -1087,6 +1338,11 @@ export function TextInput({
   mono,
   readOnly,
   align,
+  type = 'text',
+  inputMode,
+  onKeyDown,
+  autoFocus,
+  ariaLabel,
 }: {
   value: string | number;
   onChange?: (v: string) => void;
@@ -1095,6 +1351,11 @@ export function TextInput({
   mono?: boolean;
   readOnly?: boolean;
   align?: 'left' | 'right';
+  type?: 'text' | 'number' | 'tel' | 'email';
+  inputMode?: 'text' | 'decimal' | 'numeric' | 'tel' | 'email';
+  onKeyDown?: (e: ReactKeyboardEvent<HTMLInputElement>) => void;
+  autoFocus?: boolean;
+  ariaLabel?: string;
 }) {
   return (
     <div
@@ -1119,6 +1380,11 @@ export function TextInput({
         onChange={(e) => onChange && onChange(e.target.value)}
         placeholder={placeholder}
         readOnly={readOnly}
+        type={type}
+        inputMode={inputMode}
+        onKeyDown={onKeyDown}
+        autoFocus={autoFocus}
+        aria-label={ariaLabel || placeholder}
         className={mono ? 'mono num' : ''}
         style={{
           flex: 1,

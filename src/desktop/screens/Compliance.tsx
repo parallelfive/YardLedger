@@ -14,6 +14,7 @@ import Icon, { type IconName } from '../Icon';
 import { receiptIsReportable } from '../../utils/reporting';
 import {
   Card,
+  Banner,
   PanelHead,
   Table,
   TR,
@@ -479,37 +480,28 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
 
       {/* deadline strip */}
       {queued.length > 0 && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 11,
-            padding: '13px 18px',
-            borderRadius: 13,
-            background: 'color-mix(in oklab, var(--rust) 8%, var(--surface))',
-            border:
-              '1px solid color-mix(in oklab, var(--rust) 24%, var(--line))',
-          }}
+        <Banner
+          body="ink"
+          icon="alert"
+          action={
+            <Btn
+              variant="solid"
+              size="sm"
+              tone="var(--rust)"
+              icon="chev"
+              onClick={() => setFilter('queued')}
+            >
+              Review queue
+            </Btn>
+          }
         >
-          <Icon name="alert" size={18} color="var(--rust)" stroke={2} />
-          <span style={{ flex: 1, fontSize: 13, color: 'var(--ink-2)' }}>
-            <b style={{ color: 'var(--ink)' }}>
-              {queued.length} unreported transaction
-              {queued.length === 1 ? '' : 's'}
-            </b>{' '}
-            with regulated material must reach {COMPANY.registry} by the{' '}
-            {COMPANY.reportBy}.
-          </span>
-          <Btn
-            variant="solid"
-            size="sm"
-            tone="var(--rust)"
-            icon="chev"
-            onClick={() => setFilter('queued')}
-          >
-            Review queue
-          </Btn>
-        </div>
+          <b style={{ color: 'var(--ink)' }}>
+            {queued.length} unreported transaction
+            {queued.length === 1 ? '' : 's'}
+          </b>{' '}
+          with regulated material must reach {COMPANY.registry} by the{' '}
+          {COMPANY.reportBy}.
+        </Banner>
       )}
 
       {/* records table */}

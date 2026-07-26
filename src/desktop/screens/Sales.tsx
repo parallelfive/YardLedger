@@ -10,9 +10,12 @@ import {
   TR,
   Pill,
   Btn,
+  AsyncBtn,
   SlideOver,
   SlideHead,
   GroupLabel,
+  EmptyState,
+  SkeletonRows,
   money,
   money0,
   lbs,
@@ -35,7 +38,7 @@ const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
 export default function Sales({ nav }: { nav: { openSale: () => void } }) {
-  const { sales } = useSales();
+  const { sales, loading, error, refresh } = useSales();
   const rows = sales as unknown as SaleRow[];
   const [sel, setSel] = useState<SaleRow | null>(null);
 
@@ -127,17 +130,35 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
             New sale
           </Btn>
         </div>
-        {rows.length === 0 ? (
-          <div
-            className="mono"
-            style={{
-              padding: '8px 20px 26px',
-              fontSize: 12.5,
-              color: 'var(--ink-3)',
-            }}
-          >
-            No sales yet.
-          </div>
+        {error ? (
+          <EmptyState
+            tone="error"
+            label="Couldn’t load sales"
+            sub={error}
+            action={
+              <Btn variant="ghost" size="sm" icon="reload" onClick={refresh}>
+                Retry
+              </Btn>
+            }
+          />
+        ) : loading && rows.length === 0 ? (
+          <SkeletonRows />
+        ) : rows.length === 0 ? (
+          <EmptyState
+            icon="truck"
+            label="No sales yet"
+            sub="Outbound loads shipped to mills will show up here."
+            action={
+              <Btn
+                variant="primary"
+                size="sm"
+                icon="truck"
+                onClick={() => nav.openSale()}
+              >
+                New sale
+              </Btn>
+            }
+          />
         ) : (
           <Table cols={cols}>
             {rows.map((s) => (
@@ -293,7 +314,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                 ))}
               </Card>
               <div style={{ display: 'flex', gap: 10 }}>
-                <Btn
+                <AsyncBtn
                   variant="primary"
                   icon="printer"
                   full
@@ -317,7 +338,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                   }
                 >
                   Bill of lading
-                </Btn>
+                </AsyncBtn>
                 <Btn
                   variant="ghost"
                   icon="download"
