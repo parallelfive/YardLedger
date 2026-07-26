@@ -8,6 +8,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import TransactionsScreen from '../screens/transactions/TransactionsScreen';
 import NewTransactionScreen from '../screens/transactions/NewTransactionScreen';
+import ScaleTicketScreen from '../screens/transactions/ScaleTicketScreen';
 import ReceiptDetailScreen from '../screens/transactions/ReceiptDetailScreen';
 import InventoryScreen from '../screens/inventory/InventoryScreen';
 import SalesScreen from '../screens/sales/SalesScreen';
@@ -67,6 +68,7 @@ export type MainTabParamList = {
 export type TransactionsStackParamList = {
   TransactionsList: undefined;
   NewTransaction: undefined;
+  NewScaleTicket: undefined;
   ReceiptDetail: { receiptId: string; printOnLoad?: boolean };
   Settings: undefined;
   Search: undefined;
@@ -124,6 +126,15 @@ function TransactionsNavigator() {
       <TransactionsStack.Screen
         name="NewTransaction"
         component={NewTransactionScreen}
+        options={{
+          headerShown: false,
+          presentation: 'modal',
+          animation: 'slide_from_bottom',
+        }}
+      />
+      <TransactionsStack.Screen
+        name="NewScaleTicket"
+        component={ScaleTicketScreen}
         options={{
           headerShown: false,
           presentation: 'modal',
