@@ -137,6 +137,9 @@ export function BuyFlow({
   // never has to walk outside. Still editable at the desk (hybrid capture).
   const [vehiclePlate, setVehiclePlate] = useState(draft?.vehicle_plate ?? '');
   const [vin, setVin] = useState(draft?.transport_vin ?? '');
+  // Catalytic-converter serial number(s) — a statutory field for cats
+  // (SB133/SB141); the DB accepts them as cat_converter_numbers.
+  const [catSerials, setCatSerials] = useState('');
   const [affirmed, setAffirmed] = useState(false);
   // NM §57-30-5 requires the seller to attest they have not been convicted of
   // metal theft (separate from the ownership affirmation).
@@ -350,6 +353,7 @@ export function BuyFlow({
     setItems([]);
     setVehiclePlate('');
     setVin('');
+    setCatSerials('');
     setAffirmed(false);
     setNoTheft(false);
     setPay('cash');
@@ -531,6 +535,8 @@ export function BuyFlow({
         sellerIdPhotoUri: idPhoto || undefined,
         vehiclePlate: vehiclePlate.trim() || undefined,
         transportVin: vin.trim() || undefined,
+        catConverterNumbers:
+          tier === 'catalytic' ? catSerials.trim() || undefined : undefined,
         sellerAffirmed: needsCompliance ? affirmed : undefined,
         sellerNoTheftAffirmed: needsCompliance ? noTheft : undefined,
         lineItems,
@@ -1534,6 +1540,16 @@ export function BuyFlow({
                       value={vin}
                       onChange={(v) => setVin(v.toUpperCase())}
                       placeholder="17-character VIN"
+                      mono
+                    />
+                  </Field>
+                )}
+                {tier === 'catalytic' && (
+                  <Field label="Converter serial number(s)">
+                    <TextInput
+                      value={catSerials}
+                      onChange={setCatSerials}
+                      placeholder="Etched / stamped serial(s), comma-separated"
                       mono
                     />
                   </Field>
