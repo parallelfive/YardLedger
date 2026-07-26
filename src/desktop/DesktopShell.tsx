@@ -255,8 +255,10 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
                 className="mono num"
                 style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}
               >
-                {lbs(Number(li.weight || 0))} lb ·{' '}
-                {money(Number(li.total || 0))}
+                {li.unit === 'each'
+                  ? `${Number(li.quantity || 0)} pc${Number(li.quantity) === 1 ? '' : 's'}`
+                  : `${lbs(Number(li.weight || 0))} lb`}{' '}
+                · {money(Number(li.total || 0))}
               </span>
             </div>
           ))}

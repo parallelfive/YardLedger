@@ -313,10 +313,13 @@ function MetalDetail({
             full
             onClick={() => {
               onClose();
+              // Inventory only holds weight-priced metals (per-piece lines are
+              // skipped), so this edit is always a per-lb metal.
               admin.editPrice({
                 id: m.id,
                 name: m.name,
                 price_per_lb: m.price,
+                pricing_unit: 'lb',
               });
             }}
           >

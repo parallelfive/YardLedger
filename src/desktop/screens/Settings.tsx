@@ -690,6 +690,18 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                   key={m.id}
                   cols={matCols}
                   accent={toneColor(tierTone(tier))}
+                  onClick={
+                    canManage
+                      ? () =>
+                          admin.editPrice({
+                            id: m.id,
+                            name: m.name,
+                            price_per_lb: m.price_per_lb,
+                            pricing_unit:
+                              m.pricing_unit === 'each' ? 'each' : 'lb',
+                          })
+                      : undefined
+                  }
                   cells={[
                     <span
                       key="name"
