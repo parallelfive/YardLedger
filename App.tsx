@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Provider } from 'react-redux';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -31,6 +31,11 @@ function ThemedApp() {
   const { colors, isLight } = useTheme();
   const { t } = useT();
   const dispatch = useAppDispatch();
+  // Read translations through a ref so onReconnect's identity doesn't change
+  // when the language toggles — otherwise it re-arms useConnectivity and fires a
+  // spurious reconnect/outbox-replay pass on every EN↔ES switch (#80).
+  const tRef = useRef(t);
+  tRef.current = t;
 
   // Replay queued offline buys/sales whenever connectivity returns. Surface any
   // permanent rejections (e.g. oversell on a queued sale) so they're re-keyed.
@@ -42,11 +47,11 @@ function ThemedApp() {
     dispatch(setLastSynced(Date.now()));
     if (res.failed.length > 0) {
       Alert.alert(
-        t.syncIssuesTitle,
-        t.syncIssuesMsg.replace('{n}', String(res.failed.length))
+        tRef.current.syncIssuesTitle,
+        tRef.current.syncIssuesMsg.replace('{n}', String(res.failed.length))
       );
     }
-  }, [dispatch, t]);
+  }, [dispatch]);
   useConnectivity(onReconnect);
 
   // Reflect any pending queue in the banner on launch.

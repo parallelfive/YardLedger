@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
 import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
+import { localDateInTz } from '../utils/timezone';
 import { isReportOverdue } from '../utils/businessDays';
 import { buildNmrldExportCsv } from '../utils/nmrldExport';
 
@@ -17,24 +18,36 @@ export interface DailySummary {
 
 // Daily buy-$ totals for the last `days` days (oldest → newest) — feeds the
 // dashboard sparkline.
-export async function fetchRecentBuyTotals(days = 14): Promise<number[]> {
+export async function fetchRecentBuyTotals(
+  days = 14,
+  timezone = ''
+): Promise<number[]> {
   const since = new Date();
   since.setHours(0, 0, 0, 0);
-  since.setDate(since.getDate() - (days - 1));
+  // One extra day of buffer so a receipt near the window edge in a different
+  // timezone isn't excluded by the query before day-bucketing.
+  since.setDate(since.getDate() - days);
   const { data, error } = await supabase
     .from('receipts')
     .select('subtotal, created_at')
     .eq('type', 'buy')
     .gte('created_at', since.toISOString());
   if (error) throw error;
+  // Bucket by CALENDAR day, not elapsed-ms / 86.4M. A DST transition in the
+  // window makes a day 23 or 25 hours long, so the fixed-day-length math shifts
+  // boundary receipts into the wrong bar (#74). Matching local date strings is
+  // DST-correct.
+  const dayIndex = new Map<string, number>();
+  const today = new Date();
+  for (let i = 0; i < days; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - (days - 1 - i));
+    dayIndex.set(localDateInTz(d, timezone), i);
+  }
   const buckets = new Array(days).fill(0) as number[];
-  const startMs = since.getTime();
-  const dayMs = 86400000;
   for (const r of data ?? []) {
-    const idx = Math.floor(
-      (new Date(r.created_at as string).getTime() - startMs) / dayMs
-    );
-    if (idx >= 0 && idx < days) buckets[idx] += Number(r.subtotal);
+    const idx = dayIndex.get(localDateInTz(r.created_at as string, timezone));
+    if (idx !== undefined) buckets[idx] += Number(r.subtotal);
   }
   return buckets;
 }

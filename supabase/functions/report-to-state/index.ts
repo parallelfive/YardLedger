@@ -275,10 +275,20 @@ Deno.serve(async (req: Request) => {
     if (!CRON_SECRET || !timingSafeEqual(cronHeader, CRON_SECRET)) {
       return new Response('Unauthorized', { status: 401 });
     }
-    const { data } = await admin
+    const { data, error } = await admin
       .from('company_reporting_config')
       .select('company_id')
       .eq('enabled', true);
+    // Fail loud — an empty list from a query error would look like "no company
+    // needs reporting" while the whole scheduled run silently skipped (#78).
+    if (error) {
+      return new Response(
+        JSON.stringify({
+          error: `Failed to list reporting configs: ${error.message}`,
+        }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
     companyIds = (data ?? []).map((r: { company_id: string }) => r.company_id);
   } else {
     // Authenticated user → report their own company only.
