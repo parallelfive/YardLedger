@@ -194,6 +194,12 @@ export default function TransactionsScreen({ navigation }: Props) {
         <Text style={styles.pricesButtonText}>{t.pricing}</Text>
       </TouchableOpacity>
       <TouchableOpacity
+        style={styles.scaleFab}
+        onPress={() => navigation.navigate('NewScaleTicket')}
+      >
+        <Text style={styles.scaleFabText}>Scale ticket</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('NewTransaction')}
       >
@@ -373,5 +379,28 @@ const makeStyles = (colors: Palette) =>
       color: colors.accentInk,
       fontSize: fontSize.lg,
       fontFamily: fonts.sansBold,
+    },
+    // Secondary action stacked above the primary New buy FAB — the worker's
+    // "weigh at the scale, send to cashier" entry point.
+    scaleFab: {
+      position: 'absolute',
+      bottom: spacing.xl + 60,
+      right: spacing.xl,
+      backgroundColor: colors.surface,
+      borderRadius: 28,
+      paddingVertical: 12,
+      paddingHorizontal: spacing.xl,
+      borderWidth: 1,
+      borderColor: colors.accentLine,
+      elevation: 4,
+      shadowColor: colors.shadow,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 5,
+    },
+    scaleFabText: {
+      color: colors.accent,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sansSemiBold,
     },
   });
