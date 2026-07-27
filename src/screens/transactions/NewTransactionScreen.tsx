@@ -198,10 +198,11 @@ export default function NewTransactionScreen({ navigation }: Props) {
       metal: Metal,
       weight: number,
       overridePrice: number | null,
-      weightData?: { net: number; gross?: number; tare?: number }
+      weightData?: { net: number; gross?: number; tare?: number },
+      quantity?: number
     ) => {
       const newIndex = tx.lineItems.length;
-      tx.addLineItem(metal, weight, weightData);
+      tx.addLineItem(metal, weight, weightData, quantity);
       setShowAddSheet(false);
       if (overridePrice != null) {
         // Open the access-code gate for the new line's index directly. The
@@ -537,8 +538,9 @@ export default function NewTransactionScreen({ navigation }: Props) {
                         onPress={() => tx.startPriceEdit(index)}
                       >
                         <Text style={styles.lineItemDetail}>
-                          {Number(item.weight).toFixed(2)} lb @{' '}
-                          {fmtMoney(Number(item.pricePerLb))}/lb
+                          {item.unit === 'each'
+                            ? `${Number(item.quantity ?? 0)} ${t.pieces.toLowerCase()} @ ${fmtMoney(Number(item.pricePerLb))}${t.perPiece}`
+                            : `${Number(item.weight).toFixed(2)} lb @ ${fmtMoney(Number(item.pricePerLb))}/lb`}
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -902,7 +904,9 @@ export default function NewTransactionScreen({ navigation }: Props) {
                 <View key={i} style={styles.reviewItemRow}>
                   <Text style={styles.reviewItemName}>{item.metalName}</Text>
                   <Text style={styles.reviewItemWeight}>
-                    {Number(item.weight).toFixed(2)} lb
+                    {item.unit === 'each'
+                      ? `${Number(item.quantity ?? 0)} ${t.pieces.toLowerCase()}`
+                      : `${Number(item.weight).toFixed(2)} lb`}
                   </Text>
                   <Text style={styles.reviewItemTotal}>
                     {fmtMoney(item.total)}

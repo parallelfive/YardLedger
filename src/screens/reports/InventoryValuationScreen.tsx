@@ -158,7 +158,10 @@ export default function InventoryValuationScreen() {
               <View style={styles.metalRight}>
                 <Text style={styles.metalWeight}>
                   {fmtLbs(item.weight)}
-                  <Text style={styles.metalWeightUnit}> lb</Text>
+                  <Text style={styles.metalWeightUnit}>
+                    {' '}
+                    {item.unit === 'each' ? t.pieces.toLowerCase() : 'lb'}
+                  </Text>
                 </Text>
                 <DeltaTag up={up}>
                   {fmtMoney(Math.abs(item.unrealizedGainLoss))}
@@ -172,8 +175,8 @@ export default function InventoryValuationScreen() {
                   {fmtMoney(item.costValue)}
                 </Text>
                 <Text style={styles.metalStatSub}>
-                  {fmtMoney(item.avgCost, 4)}
-                  {t.perLb}
+                  {fmtMoney(item.avgCost, item.unit === 'each' ? 2 : 4)}
+                  {item.unit === 'each' ? t.perPiece : t.perLb}
                 </Text>
               </View>
               <View style={styles.metalStatDivider} />
@@ -183,8 +186,8 @@ export default function InventoryValuationScreen() {
                   {fmtMoney(item.marketValue)}
                 </Text>
                 <Text style={styles.metalStatSub}>
-                  {fmtMoney(item.marketPrice, 4)}
-                  {t.perLb}
+                  {fmtMoney(item.marketPrice, item.unit === 'each' ? 2 : 4)}
+                  {item.unit === 'each' ? t.perPiece : t.perLb}
                 </Text>
               </View>
             </View>

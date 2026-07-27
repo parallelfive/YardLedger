@@ -104,24 +104,35 @@ export function useNewTransaction(
   const addLineItem = (
     metal: Metal,
     weight: number,
-    weightData?: { net: number; gross?: number; tare?: number }
+    weightData?: { net: number; gross?: number; tare?: number },
+    quantity?: number
   ) => {
+    // Per-piece ('each') materials bill on a piece count × price/piece; the
+    // weight fields stay 0 so they don't feed the weight-based inventory/report
+    // math. Everything else is the existing weight × price/lb path.
+    const isPiece = metal.pricing_unit === 'each';
+    const qty = isPiece ? (quantity ?? 0) : null;
+    const total = isPiece
+      ? calculateLineItemTotal(qty ?? 0, metal.price_per_lb)
+      : calculateLineItemTotal(weight, metal.price_per_lb);
     setLineItems((prev) => [
       ...prev,
       {
         metalId: metal.id,
         metalName: metal.name,
-        weight,
+        weight: isPiece ? 0 : weight,
         grossWeight: weightData?.gross ?? null,
         tareWeight: weightData?.tare ?? null,
         pricePerLb: metal.price_per_lb,
         originalPricePerLb: metal.price_per_lb,
         isPriceOverride: false,
         overrideApprovedBy: null,
-        total: calculateLineItemTotal(weight, metal.price_per_lb),
+        total,
         isRegulated: metal.is_regulated,
         isRestricted: metal.is_restricted,
         isCatalytic: metal.is_catalytic,
+        unit: isPiece ? 'each' : 'lb',
+        quantity: qty,
       },
     ]);
   };
@@ -176,7 +187,10 @@ export function useNewTransaction(
               pricePerLb: newPrice,
               isPriceOverride: true,
               overrideApprovedBy: null,
-              total: calculateLineItemTotal(item.weight, newPrice),
+              total: calculateLineItemTotal(
+                item.unit === 'each' ? (item.quantity ?? 0) : item.weight,
+                newPrice
+              ),
             }
           : item
       )
@@ -381,6 +395,8 @@ export function useNewTransaction(
               total: li.total,
               is_price_override: li.isPriceOverride,
               original_price_per_lb: li.originalPricePerLb,
+              unit: li.unit,
+              quantity: li.quantity,
             })),
           });
         } catch (printErr) {

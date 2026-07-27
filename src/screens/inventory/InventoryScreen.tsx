@@ -51,11 +51,13 @@ function toneFor(category: string | undefined, restricted: boolean): Tone {
 interface Row {
   id: string;
   name: string;
+  // onHand is a piece count when unit === 'each', pounds otherwise.
   weight: number;
   avg: number;
   priceNow: number;
   restricted: boolean;
   category: string | undefined;
+  unit: 'lb' | 'each';
 }
 
 // Stable, language-independent keys for the two special filter chips. Storing
@@ -92,20 +94,31 @@ export default function InventoryScreen() {
       const category = (Array.isArray(mc) ? mc[0]?.name : mc?.name) as
         | string
         | undefined;
+      // Per-piece materials (converters, rims) carry a piece count + per-piece
+      // cost in parallel columns; everything else is weight-based.
+      const piece =
+        metals?.pricing_unit === 'each' || Number(item.quantity ?? 0) > 0;
+      const priceNow = Number(metals?.price_per_lb ?? 0);
       return {
         id: String(item.id),
         name: String(item.metal_name ?? metals?.name ?? ''),
-        weight: Number(item.weight),
-        avg: Number(item.avg_cost_per_lb),
-        priceNow: Number(metals?.price_per_lb ?? item.avg_cost_per_lb),
+        weight: piece ? Number(item.quantity ?? 0) : Number(item.weight),
+        avg: piece
+          ? Number(item.avg_cost_per_piece ?? priceNow)
+          : Number(item.avg_cost_per_lb),
+        priceNow: priceNow || Number(item.avg_cost_per_lb),
         restricted: Boolean(metals?.is_restricted),
         category,
+        unit: piece ? 'each' : 'lb',
       };
     });
   }, [inventory]);
 
   const totalValue = rows.reduce((s, r) => s + r.weight * r.avg, 0);
-  const totalWeight = rows.reduce((s, r) => s + r.weight, 0);
+  // Weight total excludes per-piece rows (their onHand is a piece count).
+  const totalWeight = rows
+    .filter((r) => r.unit === 'lb')
+    .reduce((s, r) => s + r.weight, 0);
 
   const categories = useMemo(() => {
     const set = new Set<string>();
@@ -214,7 +227,10 @@ export default function InventoryScreen() {
               <View style={styles.rowRight}>
                 <Text style={styles.rowWeight}>
                   {fmtLbs(r.weight)}
-                  <Text style={styles.rowWeightUnit}> lb</Text>
+                  <Text style={styles.rowWeightUnit}>
+                    {' '}
+                    {r.unit === 'each' ? t.pieces.toLowerCase() : 'lb'}
+                  </Text>
                 </Text>
                 <DeltaTag up={up}>{fmtMoney(Math.abs(spread), 2)}</DeltaTag>
               </View>

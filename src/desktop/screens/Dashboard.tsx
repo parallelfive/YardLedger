@@ -198,8 +198,11 @@ export default function Dashboard({
     const inv = inventory as unknown as {
       weight: number;
       avg_cost_per_lb?: number | null;
+      quantity?: number | null;
+      avg_cost_per_piece?: number | null;
       metals?: {
         price_per_lb?: number | null;
+        pricing_unit?: string | null;
         metal_categories?: { name?: string } | null;
       } | null;
     }[];
@@ -207,12 +210,22 @@ export default function Dashboard({
     const byCat: Record<string, number> = {};
     let totalWt = 0;
     for (const it of inv) {
-      const wt = Number(it.weight || 0);
+      const cat = it.metals?.metal_categories?.name || 'Other';
       // Value inventory at its cost basis (weighted-avg cost), not the current
-      // buying price — matches the Inventory screen's on-hand-value.
+      // buying price — matches the Inventory screen's on-hand-value. Per-piece
+      // materials value on count × avg cost-per-piece; they carry no weight, so
+      // they don't feed the (weight-based) metal-mix chart.
+      if (it.metals?.pricing_unit === 'each' || Number(it.quantity || 0) > 0) {
+        const qty = Number(it.quantity || 0);
+        const unit = Number(
+          it.avg_cost_per_piece ?? it.metals?.price_per_lb ?? 0
+        );
+        onHandValue += qty * unit;
+        continue;
+      }
+      const wt = Number(it.weight || 0);
       const unit = Number(it.avg_cost_per_lb ?? it.metals?.price_per_lb ?? 0);
       onHandValue += wt * unit;
-      const cat = it.metals?.metal_categories?.name || 'Other';
       byCat[cat] = (byCat[cat] || 0) + wt;
       totalWt += wt;
     }
