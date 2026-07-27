@@ -10,6 +10,15 @@ interface NmLineItem {
   metal_name: string;
   weight: number;
   total: number;
+  unit?: string | null;
+  quantity?: number | null;
+}
+
+// "3 pcs" for a per-piece line, "40.00 lbs" otherwise.
+function amountLabel(li: NmLineItem): string {
+  return li.unit === 'each'
+    ? `${Number(li.quantity ?? 0)} pc${Number(li.quantity) === 1 ? '' : 's'}`
+    : `${Number(li.weight).toFixed(2)} lbs`;
 }
 
 interface NmReceiptData {
@@ -86,9 +95,7 @@ export async function printNmPurchaseRecord(
     if (category) {
       categories[category] = (categories[category] ?? 0) + Number(item.weight);
     }
-    descriptions.push(
-      `${escapeHtml(item.metal_name)} — ${Number(item.weight).toFixed(2)} lbs`
-    );
+    descriptions.push(`${escapeHtml(item.metal_name)} — ${amountLabel(item)}`);
   }
 
   const materialChecks = [
@@ -295,10 +302,7 @@ export async function printNmCatConverterForm(
       <div class="section-title">DESCRIPTION OF RESTRICTED MATERIAL:</div>
       <p>${receipt.line_items
         .filter((li) => li.metal_name.toLowerCase().includes('catalytic'))
-        .map(
-          (li) =>
-            `${escapeHtml(li.metal_name)} — ${Number(li.weight).toFixed(2)} lbs`
-        )
+        .map((li) => `${escapeHtml(li.metal_name)} — ${amountLabel(li)}`)
         .join('; ')}</p>
 
       ${

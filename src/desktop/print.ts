@@ -144,7 +144,13 @@ export interface DayCloseDoc {
   weightSold: number;
   profit: number;
   unreported: number;
-  materials: { name: string; weight: number; value: number }[];
+  materials: {
+    name: string;
+    weight: number;
+    value: number;
+    qty?: number;
+    unit?: string;
+  }[];
 }
 
 export async function printDayClose(d: DayCloseDoc): Promise<void> {
@@ -166,7 +172,7 @@ export async function printDayClose(d: DayCloseDoc): Promise<void> {
         <tbody>${d.materials
           .map(
             (m) =>
-              `<tr><td>${escapeHtml(m.name)}</td><td style="text-align:right">${lbs(m.weight)}</td><td style="text-align:right">${money(m.value)}</td></tr>`
+              `<tr><td>${escapeHtml(m.name)}</td><td style="text-align:right">${m.unit === 'each' ? `${Number(m.qty ?? 0)} pcs` : lbs(m.weight)}</td><td style="text-align:right">${money(m.value)}</td></tr>`
           )
           .join('')}</tbody>
       </table>`
