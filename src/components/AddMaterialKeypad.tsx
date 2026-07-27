@@ -48,13 +48,15 @@ interface AddMaterialKeypadProps {
    * routes it through the existing AccessCodeModal override flow so the price
    * change is still admin-gated and tracked per line item. `weightData` is set
    * only when the line was weighed gross − tare, so the receipt records the
-   * scale reading alongside the net.
+   * scale reading alongside the net. `quantity` is set only for a per-piece
+   * ('each') material — the number of pieces; `weight` is 0 in that case.
    */
   onAdd: (
     metal: Metal,
     weight: number,
     overridePrice: number | null,
-    weightData?: WeightData
+    weightData?: WeightData,
+    quantity?: number
   ) => void;
 }
 
@@ -69,6 +71,8 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
   const [loading, setLoading] = useState(true);
   const [metal, setMetal] = useState<Metal | null>(null);
   const [weightStr, setWeightStr] = useState('');
+  // Piece count for per-piece ('each') materials — converters, rims.
+  const [qtyStr, setQtyStr] = useState('');
   const [overridePrice, setOverridePrice] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
   const [draftPrice, setDraftPrice] = useState('');
@@ -96,6 +100,9 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
     };
   }, []);
 
+  // Per-piece materials price on a whole-number piece count, not weight.
+  const piece = metal?.pricing_unit === 'each';
+
   const grossW = parseFloat(grossStr) || 0;
   const tareW = parseFloat(tareStr) || 0;
   // Net drives pricing in both modes: direct entry, or gross − tare clamped ≥ 0.
@@ -103,23 +110,28 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
     weighMode === 'tare'
       ? Math.max(0, grossW - tareW)
       : parseFloat(weightStr) || 0;
+  const qty = parseInt(qtyStr, 10) || 0;
+  // The billed amount: piece count for 'each', net weight otherwise.
+  const amount = piece ? qty : netWeight;
   const price = overridePrice ?? (metal ? Number(metal.price_per_lb) : 0);
-  const total = netWeight * price;
+  const total = amount * price;
   const overridden =
     metal != null &&
     overridePrice != null &&
     overridePrice !== Number(metal.price_per_lb);
 
-  // The keypad edits one string at a time — the net field, or the focused
-  // gross/tare field in tare mode.
-  const activeStr =
-    weighMode === 'net'
+  // The keypad edits one string at a time — the piece count, the net field, or
+  // the focused gross/tare field in tare mode.
+  const activeStr = piece
+    ? qtyStr
+    : weighMode === 'net'
       ? weightStr
       : activeField === 'gross'
         ? grossStr
         : tareStr;
   const setActiveStr = (fn: (w: string) => string) => {
-    if (weighMode === 'net') setWeightStr(fn);
+    if (piece) setQtyStr(fn);
+    else if (weighMode === 'net') setWeightStr(fn);
     else if (activeField === 'gross') setGrossStr(fn);
     else setTareStr(fn);
   };
@@ -129,7 +141,8 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
       setActiveStr((w) => w.slice(0, -1));
       return;
     }
-    if (k === '.' && activeStr.includes('.')) return;
+    // Pieces are whole numbers — no decimal point.
+    if (k === '.' && (piece || activeStr.includes('.'))) return;
     if (activeStr.replace('.', '').length >= 6) return;
     setActiveStr((w) => w + k);
   };
@@ -139,6 +152,7 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
     setOverridePrice(null);
     setEditing(false);
     setWeightStr('');
+    setQtyStr('');
     setGrossStr('');
     setTareStr('');
     setWeighMode('net');
@@ -152,8 +166,12 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
   };
 
   const handleAdd = () => {
-    if (!metal || netWeight <= 0) return;
+    if (!metal || amount <= 0) return;
     addToRecentMetals(metal);
+    if (piece) {
+      onAdd(metal, 0, overridden ? price : null, undefined, qty);
+      return;
+    }
     const weightData: WeightData | undefined =
       weighMode === 'tare'
         ? { net: netWeight, gross: grossW, tare: tareW }
@@ -204,7 +222,9 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
                   </View>
                   <Text style={styles.pickPrice}>
                     {fmtMoney(Number(m.price_per_lb))}
-                    <Text style={styles.pickPriceUnit}>/lb</Text>
+                    <Text style={styles.pickPriceUnit}>
+                      {m.pricing_unit === 'each' ? t.perPiece : t.perLb}
+                    </Text>
                   </Text>
                 </TouchableOpacity>
               );
@@ -236,28 +256,43 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
         ) : null}
       </TouchableOpacity>
 
-      {/* Weigh mode: net keyed directly, or gross − tare on the scale */}
-      <View style={styles.modeRow}>
-        {(['net', 'tare'] as const).map((md) => {
-          const on = weighMode === md;
-          return (
-            <TouchableOpacity
-              key={md}
-              style={[styles.modeBtn, on && styles.modeBtnActive]}
-              onPress={() => setWeighMode(md)}
-              activeOpacity={0.7}
-            >
-              <Text
-                style={[styles.modeBtnText, on && styles.modeBtnTextActive]}
+      {/* Weigh mode: net keyed directly, or gross − tare on the scale. Per-piece
+          materials have no weigh mode — the keypad enters a piece count. */}
+      {piece ? null : (
+        <View style={styles.modeRow}>
+          {(['net', 'tare'] as const).map((md) => {
+            const on = weighMode === md;
+            return (
+              <TouchableOpacity
+                key={md}
+                style={[styles.modeBtn, on && styles.modeBtnActive]}
+                onPress={() => setWeighMode(md)}
+                activeOpacity={0.7}
               >
-                {md === 'net' ? t.netWeight : t.grossTare}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+                <Text
+                  style={[styles.modeBtnText, on && styles.modeBtnTextActive]}
+                >
+                  {md === 'net' ? t.netWeight : t.grossTare}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
-      {weighMode === 'net' ? (
+      {piece ? (
+        /* Big piece-count readout */
+        <View style={styles.readout}>
+          <Text style={styles.readoutWeight}>
+            {qtyStr || '0'}
+            <Text style={styles.readoutUnit}> {t.pieces.toLowerCase()}</Text>
+          </Text>
+          <Text style={styles.readoutPrice}>
+            {fmtMoney(price)}
+            {t.perPiece} · = {fmtMoney(total)}
+          </Text>
+        </View>
+      ) : weighMode === 'net' ? (
         /* Big net readout */
         <View style={styles.readout}>
           <Text style={styles.readoutWeight}>
@@ -336,7 +371,9 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
       >
         {editing ? (
           <>
-            <Text style={styles.priceEditLabel}>{t.unitPriceOverride}</Text>
+            <Text style={styles.priceEditLabel}>
+              {piece ? `${t.override} ${t.perPiece}` : t.unitPriceOverride}
+            </Text>
             <View style={styles.priceEditControls}>
               <TextInput
                 style={styles.priceInput}
@@ -412,19 +449,19 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
       </View>
 
       <TouchableOpacity
-        style={[styles.addButton, netWeight <= 0 && styles.addButtonDisabled]}
+        style={[styles.addButton, amount <= 0 && styles.addButtonDisabled]}
         onPress={handleAdd}
-        disabled={netWeight <= 0}
+        disabled={amount <= 0}
       >
         <Ionicons
           name="add"
           size={18}
-          color={netWeight <= 0 ? colors.textTertiary : colors.accentInk}
+          color={amount <= 0 ? colors.textTertiary : colors.accentInk}
         />
         <Text
           style={[
             styles.addButtonText,
-            netWeight <= 0 && styles.addButtonTextDisabled,
+            amount <= 0 && styles.addButtonTextDisabled,
           ]}
         >
           {t.addAmount} {fmtMoney(total)}

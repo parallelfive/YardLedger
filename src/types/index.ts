@@ -13,6 +13,11 @@ export interface CustomerInfo {
   phone: string;
 }
 
+// How a material is priced: 'lb' = weight × price/lb (the default), 'each' =
+// quantity × price/piece (converters, rims, batteries…). For an 'each' line,
+// `pricePerLb` carries the per-piece price and `weight` is 0.
+export type PricingUnit = 'lb' | 'each';
+
 export interface LineItemInput {
   metalId: string;
   metalName: string;
@@ -27,6 +32,10 @@ export interface LineItemInput {
   isRegulated: boolean;
   isRestricted: boolean;
   isCatalytic: boolean;
+  // Per-piece pricing. unit defaults to 'lb'; when 'each', quantity is the
+  // number of pieces and pricing runs off quantity × pricePerLb.
+  unit?: PricingUnit;
+  quantity?: number | null;
 }
 
 export interface MetalCategory {
@@ -46,6 +55,9 @@ export interface Metal {
   is_restricted: boolean;
   is_catalytic: boolean;
   category_id: string | null;
+  // 'lb' (price_per_lb is $/lb) or 'each' (price_per_lb is $/piece). Defaults to
+  // 'lb' for every existing metal.
+  pricing_unit?: PricingUnit;
 }
 
 export interface UserProfile {

@@ -77,9 +77,15 @@ export default function ComplianceReportScreen() {
           weight: number;
           total: number;
           is_restricted: boolean;
+          unit?: 'lb' | 'each' | null;
+          quantity?: number | null;
         }[];
         const materials = lineItems
-          .map((li) => `${li.metal_name} (${Number(li.weight).toFixed(2)} lbs)`)
+          .map((li) =>
+            li.unit === 'each'
+              ? `${li.metal_name} (${Number(li.quantity ?? 0)} pcs)`
+              : `${li.metal_name} (${Number(li.weight).toFixed(2)} lbs)`
+          )
           .join(', ');
         const totalWeight = lineItems.reduce(
           (sum, li) => sum + Number(li.weight),

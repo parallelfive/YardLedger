@@ -8,11 +8,7 @@ import {
 } from 'react';
 import { useAppSelector, type RootState } from '../store';
 import { elevateAdmin } from '../services/admin';
-import {
-  createMetal,
-  updateMetalPrice,
-  logPriceChange,
-} from '../services/metals';
+import { createMetal, updateMetal, logPriceChange } from '../services/metals';
 import { updateCompanySettings } from '../services/companySettings';
 import Icon from './Icon';
 import { Btn, Field, TextInput, money } from './ui';
@@ -25,6 +21,7 @@ interface EditTarget {
   id: string;
   name: string;
   price_per_lb: number;
+  pricing_unit?: 'lb' | 'each';
 }
 
 export interface CompanyEdit {
@@ -242,10 +239,11 @@ function AddMaterialModal({
   onSave,
 }: {
   onClose: () => void;
-  onSave: (name: string, price: number) => Promise<void>;
+  onSave: (name: string, price: number, unit: 'lb' | 'each') => Promise<void>;
 }) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [unit, setUnit] = useState<'lb' | 'each'>('lb');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const p = parseFloat(price);
@@ -256,7 +254,7 @@ function AddMaterialModal({
     setBusy(true);
     setErr(null);
     try {
-      await onSave(name.trim(), p);
+      await onSave(name.trim(), p, unit);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -281,7 +279,40 @@ function AddMaterialModal({
             placeholder="e.g. Bare Bright Copper"
           />
         </Field>
-        <Field label="Buying price ($/lb)">
+        <Field label="Priced by">
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['lb', 'each'] as const).map((u) => {
+              const on = unit === u;
+              return (
+                <button
+                  key={u}
+                  type="button"
+                  className="tap focusring"
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setUnit(u)}
+                  style={{
+                    flex: 1,
+                    height: 40,
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    background: on ? 'var(--accent-soft)' : 'var(--surface-2)',
+                    color: on ? 'var(--accent)' : 'var(--ink-2)',
+                    border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
+                  }}
+                >
+                  {u === 'lb' ? 'Weight (per lb)' : 'Piece (per each)'}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+        <Field
+          label={
+            unit === 'lb' ? 'Buying price ($/lb)' : 'Buying price ($/piece)'
+          }
+        >
           <TextInput
             value={price}
             onChange={setPrice}
@@ -320,20 +351,25 @@ function EditPriceModal({
 }: {
   metal: EditTarget;
   onClose: () => void;
-  onSave: (price: number) => Promise<void>;
+  onSave: (price: number, unit: 'lb' | 'each') => Promise<void>;
 }) {
   const [price, setPrice] = useState(String(metal.price_per_lb));
+  const [unit, setUnit] = useState<'lb' | 'each'>(
+    metal.pricing_unit === 'each' ? 'each' : 'lb'
+  );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const p = parseFloat(price);
-  const ok = p > 0 && p !== metal.price_per_lb && !busy;
+  const startUnit = metal.pricing_unit === 'each' ? 'each' : 'lb';
+  const changed = p !== metal.price_per_lb || unit !== startUnit;
+  const ok = p > 0 && changed && !busy;
 
   const save = async () => {
     if (!ok) return;
     setBusy(true);
     setErr(null);
     try {
-      await onSave(p);
+      await onSave(p, unit);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -346,11 +382,46 @@ function EditPriceModal({
   return (
     <Modal
       title={metal.name}
-      sub={`Current ${money(metal.price_per_lb)}/lb`}
+      sub={`Current ${money(metal.price_per_lb)}/${startUnit === 'each' ? 'pc' : 'lb'}`}
       icon="edit"
       onClose={onClose}
     >
-      <Field label="New buying price ($/lb)">
+      <Field label="Priced by">
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['lb', 'each'] as const).map((u) => {
+            const on = unit === u;
+            return (
+              <button
+                key={u}
+                type="button"
+                className="tap focusring"
+                role="tab"
+                aria-selected={on}
+                onClick={() => setUnit(u)}
+                style={{
+                  flex: 1,
+                  height: 40,
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  background: on ? 'var(--accent-soft)' : 'var(--surface-2)',
+                  color: on ? 'var(--accent)' : 'var(--ink-2)',
+                  border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
+                }}
+              >
+                {u === 'lb' ? 'Weight (per lb)' : 'Piece (per each)'}
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+      <Field
+        label={
+          unit === 'lb'
+            ? 'New buying price ($/lb)'
+            : 'New buying price ($/piece)'
+        }
+      >
         <TextInput
           value={price}
           onChange={setPrice}
@@ -560,9 +631,9 @@ export function DeskAdminProvider({
       {adding && (
         <AddMaterialModal
           onClose={() => setAdding(false)}
-          onSave={async (name, price) => {
+          onSave={async (name, price, unit) => {
             if (!(await ensureElevated())) return;
-            await createMetal(name, price);
+            await createMetal(name, price, undefined, unit);
             setAdding(false);
             onChanged();
           }}
@@ -573,15 +644,23 @@ export function DeskAdminProvider({
         <EditPriceModal
           metal={editing}
           onClose={() => setEditing(null)}
-          onSave={async (price) => {
+          onSave={async (price, unit) => {
             if (!(await ensureElevated())) return;
-            await updateMetalPrice(editing.id, price, userId);
-            await logPriceChange(
+            await updateMetal(
               editing.id,
-              editing.price_per_lb,
-              price,
+              { price_per_lb: price, pricing_unit: unit },
               userId
-            ).catch(() => {});
+            );
+            // Only log a price-history row when the price actually changed (a
+            // unit-only switch isn't a price change).
+            if (price !== editing.price_per_lb) {
+              await logPriceChange(
+                editing.id,
+                editing.price_per_lb,
+                price,
+                userId
+              ).catch(() => {});
+            }
             setEditing(null);
             onChanged();
           }}

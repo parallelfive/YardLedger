@@ -34,6 +34,24 @@ interface Stat {
 const rWeight = (r: ReceiptRow) =>
   (r.line_items ?? []).reduce((a, li) => a + Number(li.weight || 0), 0);
 
+const rPieces = (r: ReceiptRow) =>
+  (r.line_items ?? []).reduce(
+    (a, li) =>
+      a +
+      ((li as { unit?: string }).unit === 'each'
+        ? Number((li as { quantity?: number }).quantity || 0)
+        : 0),
+    0
+  );
+
+// A receipt's amount for the history line: weight, or pieces when it's a
+// piece-only ticket (a converter buy shouldn't read "0 lb").
+const rAmountLabel = (r: ReceiptRow) => {
+  const w = rWeight(r);
+  const p = rPieces(r);
+  return w > 0 || p === 0 ? `${lbs(w)} lb` : `${p} pcs`;
+};
+
 const fmtDate = (iso: string | null) =>
   iso
     ? new Date(iso).toLocaleDateString('en-US', {
@@ -545,7 +563,7 @@ export default function Customers({
                               marginTop: 2,
                             }}
                           >
-                            {fmtDate(r.created_at)} · {lbs(rWeight(r))} lb
+                            {fmtDate(r.created_at)} · {rAmountLabel(r)}
                           </div>
                         </div>
                         <span

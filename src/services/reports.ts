@@ -123,12 +123,14 @@ export async function fetchDailySummary(
 export interface InventoryValuationRow {
   metalName: string;
   categoryName: string;
+  // onHand is a piece count when unit === 'each', pounds otherwise.
   weight: number;
   avgCost: number;
   costValue: number;
   marketPrice: number;
   marketValue: number;
   unrealizedGainLoss: number;
+  unit: 'lb' | 'each';
 }
 
 export interface InventoryValuationReport {
@@ -142,9 +144,11 @@ export async function fetchInventoryValuation(): Promise<InventoryValuationRepor
   const { data, error } = await supabase
     .from('inventory')
     .select(
-      'metal_name, weight, avg_cost_per_lb, metals(price_per_lb, metal_categories(name))'
+      'metal_name, weight, avg_cost_per_lb, quantity, avg_cost_per_piece, metals(price_per_lb, pricing_unit, metal_categories(name))'
     )
-    .gt('weight', 0)
+    // Include per-piece rows (converters, rims) — they carry a piece count, not
+    // weight, so a weight-only filter would drop them from the valuation.
+    .or('weight.gt.0,quantity.gt.0')
     .order('metal_name');
 
   if (error) throw error;
@@ -154,8 +158,14 @@ export async function fetchInventoryValuation(): Promise<InventoryValuationRepor
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const rows: InventoryValuationRow[] = (data ?? []).map((item: any) => {
-    const weight = Number(item.weight);
-    const avgCost = Number(item.avg_cost_per_lb);
+    const piece =
+      item.metals?.pricing_unit === 'each' || Number(item.quantity ?? 0) > 0;
+    // For per-piece materials, on-hand + costs are the piece count and the
+    // per-piece averages; price_per_lb doubles as the per-piece market price.
+    const weight = piece ? Number(item.quantity ?? 0) : Number(item.weight);
+    const avgCost = piece
+      ? Number(item.avg_cost_per_piece ?? 0)
+      : Number(item.avg_cost_per_lb);
     const marketPrice = Number(item.metals?.price_per_lb ?? 0);
     const costValue = weight * avgCost;
     const marketValue = weight * marketPrice;
@@ -173,6 +183,7 @@ export async function fetchInventoryValuation(): Promise<InventoryValuationRepor
       marketPrice,
       marketValue,
       unrealizedGainLoss,
+      unit: piece ? 'each' : 'lb',
     };
   });
 
@@ -217,7 +228,7 @@ export async function fetchProfitabilityReport(
   const { data: buyData, error: buyError } = await supabase
     .from('line_items')
     .select(
-      'metal_id, metal_name, weight, price_per_lb, receipts!inner(type), metals(metal_categories(name))'
+      'metal_id, metal_name, weight, quantity, unit, price_per_lb, receipts!inner(type), metals(metal_categories(name))'
     )
     .eq('receipts.type', 'buy')
     .gte('created_at', rangeStart)
@@ -256,7 +267,10 @@ export async function fetchProfitabilityReport(
     const existing = metalMap.get(key);
     const catName = item.metals?.metal_categories?.name ?? 'Uncategorized';
     const w = Number(item.weight);
-    const cost = w * Number(item.price_per_lb);
+    // Per-piece buys carry cost on quantity × price/piece, not weight (which is
+    // 0). weightBought stays weight-only; totalBoughtCost is the money spent.
+    const amount = item.unit === 'each' ? Number(item.quantity ?? 0) : w;
+    const cost = amount * Number(item.price_per_lb);
 
     if (existing) {
       existing.weightBought += w;
@@ -282,7 +296,9 @@ export async function fetchProfitabilityReport(
     const existing = metalMap.get(key);
     const catName = sale.metals?.metal_categories?.name ?? 'Uncategorized';
     const w = Number(sale.weight);
-    const cogs = w * Number(sale.cost_basis_per_lb);
+    // Cost of goods = revenue − profit, correct for weight AND per-piece sales
+    // (a piece sale has weight 0, so weight × cost_basis would read $0).
+    const cogs = Number(sale.total_revenue) - Number(sale.profit);
 
     if (existing) {
       existing.weightSold += w;
@@ -465,6 +481,9 @@ export interface ComplianceReceiptRow {
     total: number;
     is_restricted: boolean;
     is_regulated: boolean;
+    // Per-piece lines (converters, rims): unit='each' with a piece count.
+    unit?: string | null;
+    quantity?: number | null;
     // Joined from the metal — governs the below-a-ton reporting exemption.
     metals?: { is_report_exempt: boolean | null } | null;
   }[];
@@ -477,7 +496,7 @@ export async function fetchComplianceReport(
   const { data, error } = await supabase
     .from('receipts')
     .select(
-      '*, line_items(metal_name, weight, total, is_restricted, is_regulated, metals(is_report_exempt))'
+      '*, line_items(metal_name, weight, total, is_restricted, is_regulated, unit, quantity, metals(is_report_exempt))'
     )
     .eq('type', 'buy')
     .gte('created_at', startOfLocalDayUtc(startDate))
@@ -541,7 +560,7 @@ export async function fetchUnreportedReceipts(): Promise<
   const { data, error } = await supabase
     .from('receipts')
     .select(
-      '*, line_items(metal_name, weight, total, is_restricted, is_regulated, metals(is_report_exempt))'
+      '*, line_items(metal_name, weight, total, unit, quantity, is_restricted, is_regulated, metals(is_report_exempt))'
     )
     .eq('type', 'buy')
     .is('reported_at', null)

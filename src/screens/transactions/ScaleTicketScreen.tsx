@@ -21,6 +21,7 @@ import { MetalDot, fmtMoney, fmtLbs } from '../../components/foundry';
 import type { Tone } from '../../components/foundry';
 import { useAppSelector, type RootState } from '../../store';
 import { createDraftTicket } from '../../services/draftTickets';
+import { calculateLineItemTotal } from '../../utils/calculations';
 import type { Metal } from '../../types';
 import {
   type Palette,
@@ -47,7 +48,14 @@ interface Line {
   // admin-authorized override the worker keyed. Pricing flows off this so an
   // override the cashier sees matches what was entered at the scale.
   price: number;
+  // Per-piece ('each') materials bill on a whole-number piece count instead of
+  // net weight; `qty` carries that count and `net` stays 0.
+  unit: 'lb' | 'each';
+  qty: number;
 }
+
+// The billed amount for a line: piece count for 'each', net weight otherwise.
+const lineAmount = (l: Line): number => (l.unit === 'each' ? l.qty : l.net);
 
 const toneFor = (m: Metal): Tone =>
   m.is_catalytic || m.is_restricted
@@ -80,23 +88,33 @@ export default function ScaleTicketScreen({ navigation }: Props) {
   const [claim, setClaim] = useState<string | null>(null);
   const [snack, setSnack] = useState<string | null>(null);
 
+  // Weight total excludes per-piece lines (they carry no weight); piece count
+  // is tallied separately for the footer.
   const weight = lines.reduce((s, l) => s + l.net, 0);
-  const subtotal = lines.reduce((s, l) => s + l.net * l.price, 0);
+  const pieces = lines.reduce((s, l) => s + (l.unit === 'each' ? l.qty : 0), 0);
+  const subtotal = lines.reduce(
+    (s, l) => s + calculateLineItemTotal(lineAmount(l), l.price),
+    0
+  );
 
   const addLine = (
     metal: Metal,
     w: number,
     overridePrice: number | null,
-    weightData?: { net: number; gross?: number; tare?: number }
+    weightData?: { net: number; gross?: number; tare?: number },
+    quantity?: number
   ) => {
+    const isPiece = metal.pricing_unit === 'each';
     setLines((prev) => [
       ...prev,
       {
         metal,
-        net: weightData?.net ?? w,
+        net: isPiece ? 0 : (weightData?.net ?? w),
         gross: weightData?.gross,
         tare: weightData?.tare,
         price: overridePrice ?? Number(metal.price_per_lb || 0),
+        unit: isPiece ? 'each' : 'lb',
+        qty: isPiece ? (quantity ?? 0) : 0,
       },
     ]);
     setShowAdd(false);
@@ -116,10 +134,12 @@ export default function ScaleTicketScreen({ navigation }: Props) {
         grossWeight: l.gross ?? null,
         tareWeight: l.tare ?? null,
         pricePerLb: l.price,
-        total: l.net * l.price,
+        total: calculateLineItemTotal(lineAmount(l), l.price),
         isRegulated: !!l.metal.is_regulated,
         isRestricted: !!l.metal.is_restricted,
         isCatalytic: !!l.metal.is_catalytic,
+        unit: l.unit,
+        quantity: l.unit === 'each' ? l.qty : null,
       }));
       const draft = await createDraftTicket({
         workerId,
@@ -221,11 +241,15 @@ export default function ScaleTicketScreen({ navigation }: Props) {
               <View style={styles.lineInfo}>
                 <Text style={styles.lineName}>{l.metal.name}</Text>
                 <Text style={styles.lineDetail}>
-                  {l.net.toFixed(2)} lb @ {fmtMoney(l.price)}/lb
+                  {l.unit === 'each'
+                    ? `${l.qty} pcs @ ${fmtMoney(l.price)}/pc`
+                    : `${l.net.toFixed(2)} lb @ ${fmtMoney(l.price)}/lb`}
                   {l.gross != null ? `  ·  gross ${l.gross.toFixed(0)}` : ''}
                 </Text>
               </View>
-              <Text style={styles.lineTotal}>{fmtMoney(l.net * l.price)}</Text>
+              <Text style={styles.lineTotal}>
+                {fmtMoney(lineAmount(l) * l.price)}
+              </Text>
               <TouchableOpacity
                 onPress={() =>
                   Alert.alert('Remove material', `Remove ${l.metal.name}?`, [
@@ -293,7 +317,10 @@ export default function ScaleTicketScreen({ navigation }: Props) {
         ]}
       >
         <View style={styles.totals}>
-          <Text style={styles.totalWeight}>{fmtLbs(weight)} lb</Text>
+          <Text style={styles.totalWeight}>
+            {fmtLbs(weight)} lb
+            {pieces > 0 ? ` · ${pieces} pcs` : ''}
+          </Text>
           <Text style={styles.totalMoney}>{fmtMoney(subtotal)}</Text>
         </View>
         <Button

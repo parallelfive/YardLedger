@@ -214,6 +214,8 @@ export async function createReceipt(params: CreateReceiptParams) {
     total: item.total,
     is_regulated: item.isRegulated,
     is_restricted: item.isRestricted,
+    unit: item.unit ?? 'lb',
+    quantity: item.quantity ?? null,
   }));
 
   const { data: receipt, error } = await supabase.rpc(
@@ -261,7 +263,7 @@ export async function fetchReceipts(
     let query = supabase
       .from('receipts')
       .select(
-        'id, receipt_number, customer_name, type, subtotal, created_at, worker_id, payment_method, is_catalytic, reported_at, line_items(id, metal_name, weight, total, is_restricted, is_regulated, metals(is_report_exempt))'
+        'id, receipt_number, customer_name, type, subtotal, created_at, worker_id, payment_method, is_catalytic, reported_at, line_items(id, metal_name, weight, total, is_restricted, is_regulated, unit, quantity, metals(is_report_exempt))'
       )
       .order('created_at', { ascending: false });
 

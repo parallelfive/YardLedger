@@ -31,7 +31,16 @@ interface SaleRow {
   profit?: number;
   buyer_name: string;
   created_at: string;
+  unit?: 'lb' | 'each' | null;
+  quantity?: number | null;
 }
+
+// On-screen amount + unit for a sale row: piece count for 'each', weight else.
+const saleAmount = (s: SaleRow) =>
+  s.unit === 'each' ? Number(s.quantity ?? 0) : Number(s.weight ?? 0);
+const saleUnit = (s: SaleRow) => (s.unit === 'each' ? 'pc' : 'lb');
+const saleAmountPieces = (s: SaleRow) =>
+  s.unit === 'each' ? Number(s.quantity ?? 0) : 0;
 
 const loadNo = (id: string) => 'SO-' + id.slice(0, 8);
 const fmtDate = (iso: string) =>
@@ -45,16 +54,29 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
   const m = useMemo(() => {
     const sold = rows.reduce((s, x) => s + Number(x.total_revenue || 0), 0);
     const weight = rows.reduce((s, x) => s + Number(x.weight || 0), 0);
+    const pieces = rows.reduce((s, x) => s + saleAmountPieces(x), 0);
     const profit = rows.reduce((s, x) => s + Number(x.profit || 0), 0);
-    return { sold, weight, profit, avgPrice: weight ? sold / weight : 0 };
+    // Blended $/lb is a weight metric — divide weight-sale revenue by weight, so
+    // per-piece revenue (weight 0) doesn't inflate it into a meaningless number.
+    const weightRevenue = rows.reduce(
+      (s, x) => s + (x.unit === 'each' ? 0 : Number(x.total_revenue || 0)),
+      0
+    );
+    return {
+      sold,
+      weight,
+      pieces,
+      profit,
+      avgPrice: weight ? weightRevenue / weight : 0,
+    };
   }, [rows]);
 
   const cols: Col[] = [
     { key: 'no', label: 'Load #', w: '1.1fr' },
     { key: 'buyer', label: 'Processor', w: '1.6fr' },
     { key: 'metal', label: 'Material', w: '1.4fr' },
-    { key: 'weight', label: 'Weight', w: '1fr', align: 'right' },
-    { key: 'price', label: 'Price/lb', w: '0.9fr', align: 'right' },
+    { key: 'weight', label: 'Amount', w: '1fr', align: 'right' },
+    { key: 'price', label: 'Price', w: '0.9fr', align: 'right' },
     { key: 'total', label: 'Total', w: '1fr', align: 'right' },
     { key: 'date', label: 'Shipped', w: '0.9fr', align: 'right' },
     { key: 'status', label: 'Status', w: '0.9fr', align: 'right' },
@@ -84,7 +106,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
           big
           label="Sold"
           value={money0(m.sold)}
-          sub={`${lbs(m.weight)} lb shipped`}
+          sub={`${lbs(m.weight)} lb${m.pieces > 0 ? ` · ${lbs(m.pieces)} pcs` : ''} shipped`}
           tone="steel"
           icon="truck"
         />
@@ -200,7 +222,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                     className="mono num"
                     style={{ fontSize: 13, color: 'var(--ink-2)' }}
                   >
-                    {lbs(s.weight)} lb
+                    {lbs(saleAmount(s))} {saleUnit(s) === 'pc' ? 'pcs' : 'lb'}
                   </span>,
                   <span
                     key="price"
@@ -281,8 +303,16 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                 {(
                   [
                     ['Material', sel.metal_name],
-                    ['Weight', lbs(sel.weight) + ' lb'],
-                    ['Price / lb', money(sel.sale_price_per_lb)],
+                    [
+                      sel.unit === 'each' ? 'Pieces' : 'Weight',
+                      sel.unit === 'each'
+                        ? `${lbs(saleAmount(sel))} pcs`
+                        : lbs(sel.weight) + ' lb',
+                    ],
+                    [
+                      sel.unit === 'each' ? 'Price / pc' : 'Price / lb',
+                      money(sel.sale_price_per_lb),
+                    ],
                     ['Shipped', fmtDate(sel.created_at)],
                     ['Load #', loadNo(sel.id)],
                   ] as const
@@ -326,6 +356,8 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                       weight: sel.weight,
                       pricePerLb: sel.sale_price_per_lb,
                       total: sel.total_revenue,
+                      unit: sel.unit === 'each' ? 'each' : 'lb',
+                      quantity: Number(sel.quantity ?? 0),
                       date: new Date(sel.created_at).toLocaleDateString(
                         'en-US',
                         {
@@ -345,12 +377,13 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                   full
                   onClick={() => {
                     const csv =
-                      'load,buyer,material,weight_lb,price_per_lb,total\n' +
+                      'load,buyer,material,weight_lb,quantity_pcs,price,total\n' +
                       [
                         loadNo(sel.id),
                         sel.buyer_name,
                         sel.metal_name,
-                        sel.weight,
+                        sel.unit === 'each' ? '' : sel.weight,
+                        sel.unit === 'each' ? Number(sel.quantity ?? 0) : '',
                         sel.sale_price_per_lb,
                         sel.total_revenue,
                       ]

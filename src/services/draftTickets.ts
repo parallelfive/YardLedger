@@ -10,14 +10,17 @@ import { supabase } from '../config/supabase';
 export interface DraftLineItem {
   metalId: string;
   metalName: string;
-  weight: number; // net lb
+  weight: number; // net lb (0 for per-piece lines)
   grossWeight?: number | null;
   tareWeight?: number | null;
-  pricePerLb: number;
+  pricePerLb: number; // $/lb, or $/piece for a per-piece line
   total: number;
   isRegulated: boolean;
   isRestricted: boolean;
   isCatalytic: boolean;
+  // Per-piece pricing carried through the handoff. unit defaults to 'lb'.
+  unit?: 'lb' | 'each';
+  quantity?: number | null;
 }
 
 export interface DraftTicket {

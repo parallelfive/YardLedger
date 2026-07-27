@@ -75,6 +75,9 @@ export interface ComplianceRecordDoc {
   vehicle: string;
   materials: string;
   weight: number;
+  // Piece count for per-piece materials (converters, rims); shown alongside or
+  // instead of weight on the footer so a converter buy isn't recorded as "0 lb".
+  pieces?: number;
   paid: number;
   pay: string;
   affirmed: boolean;
@@ -119,6 +122,16 @@ export async function printComplianceRecord(
           ${dealerBits ? `<div class="mono" style="font-size:12px;color:#6a6258;margin-top:3px">${escapeHtml(dealerBits)}</div>` : ''}
         </div>`
       : '';
+  // Amount label: weight, pieces, or both — never a bare "0 lb" for a converter.
+  const amountLabel =
+    [
+      Number(r.weight) > 0 || !r.pieces
+        ? `${Number(r.weight).toLocaleString()} lb`
+        : '',
+      r.pieces ? `${Number(r.pieces).toLocaleString()} pcs` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ') || '0 lb';
   const body = `
     <div class="sub">Purchase record · NM Sale of Recycled Metals Act</div>
     ${dealer}
@@ -127,7 +140,7 @@ export async function printComplianceRecord(
     </div>
     <div class="k">Materials purchased</div>
     <div class="v" style="font-weight:500;line-height:1.5;margin:4px 0 18px">${escapeHtml(r.materials || '—')}</div>
-    <div class="total"><span>Total paid · ${Number(r.weight).toLocaleString()} lb</span><span>${money(r.paid)}</span></div>
+    <div class="total"><span>Total paid · ${amountLabel}</span><span>${money(r.paid)}</span></div>
     <div class="foot">Generated ${new Date().toLocaleString()} · Tare</div>`;
   await Print.printAsync({ html: shell('Purchase Record', body) });
 }
@@ -144,7 +157,13 @@ export interface DayCloseDoc {
   weightSold: number;
   profit: number;
   unreported: number;
-  materials: { name: string; weight: number; value: number }[];
+  materials: {
+    name: string;
+    weight: number;
+    value: number;
+    qty?: number;
+    unit?: string;
+  }[];
 }
 
 export async function printDayClose(d: DayCloseDoc): Promise<void> {
@@ -166,7 +185,7 @@ export async function printDayClose(d: DayCloseDoc): Promise<void> {
         <tbody>${d.materials
           .map(
             (m) =>
-              `<tr><td>${escapeHtml(m.name)}</td><td style="text-align:right">${lbs(m.weight)}</td><td style="text-align:right">${money(m.value)}</td></tr>`
+              `<tr><td>${escapeHtml(m.name)}</td><td style="text-align:right">${m.unit === 'each' ? `${Number(m.qty ?? 0)} pcs` : lbs(m.weight)}</td><td style="text-align:right">${money(m.value)}</td></tr>`
           )
           .join('')}</tbody>
       </table>`
@@ -190,9 +209,16 @@ export interface BillOfLadingDoc {
   pricePerLb: number;
   total: number;
   date: string;
+  // Per-piece loads (converters, rims) ship a piece count, not weight.
+  unit?: 'lb' | 'each';
+  quantity?: number;
 }
 
 export async function printBillOfLading(s: BillOfLadingDoc): Promise<void> {
+  const piece = s.unit === 'each';
+  const amountLabel = piece
+    ? `${Number(s.quantity ?? 0).toLocaleString()} pcs`
+    : `${Number(s.weight).toLocaleString()} lb`;
   const body = `
     <div class="sub">Bill of lading · outbound load ${escapeHtml(s.no)}</div>
     <div class="grid">
@@ -200,10 +226,10 @@ export async function printBillOfLading(s: BillOfLadingDoc): Promise<void> {
       <div><div class="k">Shipped</div><div class="v">${escapeHtml(s.date)}</div></div>
     </div>
     <table>
-      <thead><tr><th>Material</th><th style="text-align:right">Weight</th><th style="text-align:right">Price/lb</th><th style="text-align:right">Total</th></tr></thead>
+      <thead><tr><th>Material</th><th style="text-align:right">${piece ? 'Pieces' : 'Weight'}</th><th style="text-align:right">${piece ? 'Price/pc' : 'Price/lb'}</th><th style="text-align:right">Total</th></tr></thead>
       <tbody><tr>
         <td>${escapeHtml(s.metal)}</td>
-        <td style="text-align:right">${Number(s.weight).toLocaleString()} lb</td>
+        <td style="text-align:right">${amountLabel}</td>
         <td style="text-align:right">${money(s.pricePerLb)}</td>
         <td style="text-align:right"><strong>${money(s.total)}</strong></td>
       </tr></tbody>

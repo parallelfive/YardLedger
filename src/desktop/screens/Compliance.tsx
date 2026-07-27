@@ -79,6 +79,7 @@ interface RecordVM {
   vehicle: string;
   materials: string;
   weight: number;
+  pieces: number;
   paid: number;
   restricted: boolean; // material TYPE (burnt/utility/catalytic) — for the filter
   reportable: boolean; // state-reporting obligation (Kennon rule) — for the queue
@@ -101,9 +102,17 @@ const toVM = (r: ComplianceReceiptRow): RecordVM => {
     plate: r.vehicle_plate || '—',
     vehicle,
     materials: items
-      .map((li) => `${li.metal_name} (${lbs(li.weight)} lb)`)
+      .map((li) =>
+        li.unit === 'each'
+          ? `${li.metal_name} (${Number(li.quantity || 0)} pc${Number(li.quantity) === 1 ? '' : 's'})`
+          : `${li.metal_name} (${lbs(li.weight)} lb)`
+      )
       .join(', '),
     weight: items.reduce((a, li) => a + Number(li.weight || 0), 0),
+    pieces: items.reduce(
+      (a, li) => a + (li.unit === 'each' ? Number(li.quantity || 0) : 0),
+      0
+    ),
     paid: Number(r.subtotal || 0),
     restricted: items.some((li) => li.is_restricted) || !!r.is_catalytic,
     reportable: receiptIsReportable(r),
@@ -672,7 +681,9 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                     className="mono num"
                     style={{ fontSize: 12.5, color: 'var(--ink-2)' }}
                   >
-                    {lbs(r.weight)} lb
+                    {r.weight > 0 || r.pieces === 0
+                      ? `${lbs(r.weight)} lb`
+                      : `${r.pieces} pcs`}
                   </span>,
                   <span
                     key="paid"
@@ -764,7 +775,12 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                       ['Plate', sel.plate],
                       ['Vehicle', sel.vehicle],
                       ['Payment', sel.pay],
-                      ['Weight', lbs(sel.weight) + ' lb'],
+                      ...((sel.weight > 0 || sel.pieces === 0
+                        ? [['Weight', lbs(sel.weight) + ' lb']]
+                        : []) as [string, string][]),
+                      ...((sel.pieces > 0
+                        ? [['Pieces', `${sel.pieces} pcs`]]
+                        : []) as [string, string][]),
                       ['Paid', money(sel.paid)],
                     ] as [string, string][]
                   ).map(([k, v]) => (
@@ -832,6 +848,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                       vehicle: sel.vehicle,
                       materials: sel.materials,
                       weight: sel.weight,
+                      pieces: sel.pieces,
                       paid: sel.paid,
                       pay: sel.pay,
                       affirmed: sel.affirmed,

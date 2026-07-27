@@ -35,8 +35,11 @@ interface InvRow {
   metal_name: string;
   weight: number;
   avg_cost_per_lb: number;
+  quantity?: number | null;
+  avg_cost_per_piece?: number | null;
   metals?: {
     price_per_lb?: number | null;
+    pricing_unit?: string | null;
     is_restricted?: boolean | null;
     is_regulated?: boolean | null;
     is_catalytic?: boolean | null;
@@ -55,6 +58,8 @@ interface MetalView {
   onHand: number;
   value: number;
   spread: number;
+  // 'each' → onHand is a piece count; else pounds.
+  unit: 'lb' | 'each';
 }
 
 const TIER_NOTES: Record<string, string> = {
@@ -106,11 +111,13 @@ function MetalDetail({
   const up = spread >= 0;
   const value = m.onHand * m.avg;
   const marginPct = m.avg ? Math.round((spread / m.avg) * 100) : 0;
+  const uShort = m.unit === 'each' ? 'pc' : 'lb';
+  const uLong = m.unit === 'each' ? 'pcs' : 'lb';
   return (
     <SlideOver open={!!m} onClose={onClose} width={480}>
       <SlideHead
         title={m.name}
-        sub={`${m.cat} · ${money(m.price)}/lb`}
+        sub={`${m.cat} · ${money(m.price)}/${uShort}`}
         onClose={onClose}
         icon="stack"
         tone={toneColor(m.tone)}
@@ -150,7 +157,7 @@ function MetalDetail({
                 style={{ fontSize: 13, color: 'var(--ink-3)' }}
               >
                 {' '}
-                lb
+                {uLong}
               </span>
             </div>
           </Card>
@@ -174,8 +181,8 @@ function MetalDetail({
           <PanelHead title="Pricing" sub="Live spread vs average cost" />
           {(
             [
-              ['Buying now', money(m.price) + '/lb', 'var(--ink)'],
-              ['Avg cost', money(m.avg) + '/lb', 'var(--ink-2)'],
+              ['Buying now', money(m.price) + '/' + uShort, 'var(--ink)'],
+              ['Avg cost', money(m.avg) + '/' + uShort, 'var(--ink-2)'],
               [
                 'Spread',
                 (up ? '+' : '−') + money(Math.abs(spread)) + ` (${marginPct}%)`,
@@ -317,6 +324,7 @@ function MetalDetail({
                 id: m.id,
                 name: m.name,
                 price_per_lb: m.price,
+                pricing_unit: m.unit,
               });
             }}
           >
@@ -347,9 +355,13 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
           : flags?.is_regulated
             ? 'regulated'
             : 'open';
+      const piece =
+        flags?.pricing_unit === 'each' || Number(r.quantity ?? 0) > 0;
       const price = Number(flags?.price_per_lb ?? 0);
-      const avg = Number(r.avg_cost_per_lb ?? price);
-      const onHand = Number(r.weight ?? 0);
+      const avg = piece
+        ? Number(r.avg_cost_per_piece ?? price)
+        : Number(r.avg_cost_per_lb ?? price);
+      const onHand = piece ? Number(r.quantity ?? 0) : Number(r.weight ?? 0);
       return {
         id: r.metal_id,
         name: r.metal_name,
@@ -361,6 +373,7 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
         onHand,
         value: onHand * avg,
         spread: price - avg,
+        unit: piece ? ('each' as const) : ('lb' as const),
       };
     });
   }, [inventory]);
@@ -372,7 +385,10 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
   }, [metals]);
 
   const total = metals.reduce((s, m) => s + m.value, 0);
-  const totalWeight = metals.reduce((s, m) => s + m.onHand, 0);
+  // Weight total excludes per-piece metals (their onHand is a piece count).
+  const totalWeight = metals
+    .filter((m) => m.unit === 'lb')
+    .reduce((s, m) => s + m.onHand, 0);
   const regulatedCount = metals.filter((m) => m.tier === 'regulated').length;
   const restrictedCount = metals.filter(
     (m) => m.tier === 'restricted' || m.tier === 'catalytic'
@@ -745,6 +761,7 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
                       }}
                     >
                       {lbs(m.onHand)}
+                      {m.unit === 'each' ? ' pcs' : ''}
                     </span>,
                     <span
                       key="value"

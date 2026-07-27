@@ -46,6 +46,8 @@ interface ReceiptLineItem {
   total: number;
   is_price_override: boolean;
   original_price_per_lb?: number;
+  unit?: 'lb' | 'each' | null;
+  quantity?: number | null;
 }
 
 interface ReceiptDetail {
@@ -319,7 +321,13 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
                       </View>
                     )}
                   </View>
-                  {item.gross_weight != null && item.tare_weight != null ? (
+                  {item.unit === 'each' ? (
+                    <Text style={styles.lineItemDetail}>
+                      {Number(item.quantity ?? 0)} {t.pieces.toLowerCase()} @ $
+                      {Number(item.price_per_lb).toFixed(2)}
+                      {t.perPiece}
+                    </Text>
+                  ) : item.gross_weight != null && item.tare_weight != null ? (
                     <>
                       <Text style={styles.tareDetail}>
                         {t.grossWeightLabel}:{' '}
@@ -340,7 +348,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
                   )}
                   {item.is_price_override && item.original_price_per_lb && (
                     <Text style={styles.originalPrice}>
-                      was ${Number(item.original_price_per_lb).toFixed(4)}/lb
+                      was ${Number(item.original_price_per_lb).toFixed(4)}
+                      {item.unit === 'each' ? t.perPiece : '/lb'}
                     </Text>
                   )}
                 </View>

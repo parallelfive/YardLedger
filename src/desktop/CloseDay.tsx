@@ -56,14 +56,27 @@ export default function CloseDay({ onClose }: { onClose: () => void }) {
       (r) => !r.reported_at && rRestricted(r)
     ).length;
 
-    // Top materials bought today, by dollar value.
-    const byMetal: Record<string, { weight: number; value: number }> = {};
+    // Top materials bought today, by dollar value. Track pieces for per-piece
+    // metals so a converter shows "3 pcs", not "0 lb".
+    const byMetal: Record<
+      string,
+      { weight: number; value: number; qty: number; unit: string }
+    > = {};
     for (const r of buys) {
       for (const li of r.line_items ?? []) {
         const key = li.metal_name || '—';
-        const cur = byMetal[key] || { weight: 0, value: 0 };
+        const cur = byMetal[key] || {
+          weight: 0,
+          value: 0,
+          qty: 0,
+          unit: 'lb',
+        };
         cur.weight += Number(li.weight || 0);
         cur.value += Number(li.total || 0);
+        if (li.unit === 'each') {
+          cur.qty += Number(li.quantity || 0);
+          cur.unit = 'each';
+        }
         byMetal[key] = cur;
       }
     }
@@ -364,7 +377,9 @@ export default function CloseDay({ onClose }: { onClose: () => void }) {
                       className="mono num"
                       style={{ fontSize: 13, color: 'var(--ink-2)' }}
                     >
-                      {lbs(x.weight)} lb
+                      {x.unit === 'each'
+                        ? `${x.qty} pc${x.qty === 1 ? '' : 's'}`
+                        : `${lbs(x.weight)} lb`}
                     </span>,
                     <span
                       key="value"

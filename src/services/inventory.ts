@@ -6,9 +6,10 @@ export async function fetchInventory() {
     const { data, error } = await supabase
       .from('inventory')
       .select(
-        '*, metals(name, price_per_lb, is_restricted, is_regulated, is_catalytic, category_id, metal_categories(name))'
+        '*, metals(name, price_per_lb, pricing_unit, is_restricted, is_regulated, is_catalytic, category_id, metal_categories(name))'
       )
-      .gt('weight', 0)
+      // On hand = has weight OR a piece count (per-piece materials carry no weight).
+      .or('weight.gt.0,quantity.gt.0')
       .order('metal_name');
     if (error) throw error;
     return data;
