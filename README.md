@@ -129,8 +129,9 @@ src/
 supabase/
   migrations/   sequential timestamped SQL (RLS, triggers, RPCs)
   functions/    Deno edge functions
-  seed.sql      local company + invite code
-docs/           APP_GUIDE, DISTRIBUTION_GUIDE, design notes, decisions/ (ADRs)
+  seed.sql      local first-run seed (creates GR-2026 company + owner invite)
+  seed/         demo data — demo_seed.sql / demo_teardown.sql (optional, for demos)
+docs/           APP_GUIDE, DISTRIBUTION_GUIDE, OPERATIONS, design notes, decisions/ (ADRs)
 scripts/dev.sh  local stack orchestrator
 ```
 
@@ -151,9 +152,11 @@ scripts/dev.sh  local stack orchestrator
 - **TypeScript strict**, ESLint, Prettier. **Conventional Commits** (commitlint).
 - Pre-commit runs `lint-staged` (eslint --fix + prettier). Before pushing:
   ```bash
-  npm run typecheck && npm run lint && npm run format:check
+  npm run typecheck && npm run lint && npm run format:check && npm test
   ```
-- No automated test suite yet — changes are verified manually; see `docs/test-cases.md`.
+- **Tests:** `npm test` (Vitest) covers pure logic — pricing, compliance
+  reportability, and format/export utilities (`src/**/*.test.ts`). UI flows are
+  still verified manually; see `docs/test-cases.md`.
 
 ## Troubleshooting (gotchas we've actually hit)
 
@@ -172,8 +175,10 @@ scripts/dev.sh  local stack orchestrator
 
 ## Demo data
 
-To populate a company with realistic buys/sells/inventory/compliance for a demo
-or screenshots, run the seed (idempotent, scoped to the `GR-2026` company):
+Separate from the automatic first-run `supabase/seed.sql` (which only creates
+the empty GR-2026 company + invite code), these scripts fill a company with
+~3 weeks of realistic buys/sells/inventory/compliance for a demo or screenshots
+(idempotent, scoped + tagged to `GR-2026`):
 
 ```
 cat supabase/seed/demo_seed.sql | psql "$DATABASE_URL"        # or via the Supabase SQL editor

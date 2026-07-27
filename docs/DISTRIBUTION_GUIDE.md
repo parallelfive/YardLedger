@@ -32,19 +32,13 @@ This replaces the local Docker database with a real cloud database.
 3. Go to **Settings > API** and copy:
    - **Project URL** (looks like `https://abcdefg.supabase.co`)
    - **anon public key** (starts with `eyJ...`)
-4. Go to **SQL Editor** in the Supabase dashboard.
-5. Run each migration file in order by copy-pasting the contents and clicking **Run**:
-   1. `20260310000001_auth_and_profiles.sql`
-   2. `20260310000002_metals.sql`
-   3. `20260310000003_receipts_and_line_items.sql`
-   4. `20260310000004_inventory.sql`
-   5. `20260310000005_sales.sql`
-   6. `20260310000006_require_admin_approval.sql`
-   7. `20260310000007_metal_categories.sql`
-   8. `20260310000008_seed_metal_grades.sql`
-   9. `20260310000009_access_codes.sql`
-   10. `20260311000001_inventory_check_constraint.sql`
-   11. `20260311000002_company_settings.sql`
+4. **Apply the migrations.** Run **every** file in `supabase/migrations/` in
+   filename order (there are far more than the original handful — the full set
+   covers multi-tenancy, compliance/holds, PIN auth, cash drawer, per-piece
+   pricing, etc.). Don't hand-list them here; it goes stale. Use the process in
+   **[OPERATIONS.md](./OPERATIONS.md) §2** (or `supabase db push` against the
+   project), then deploy the edge functions (**§3**) — the SQL Editor alone
+   won't install `supabase/functions/`.
 
 ---
 
@@ -157,18 +151,23 @@ Option B — **Direct install via EAS**:
 
 ---
 
-## Step 5: Create the First Admin
+## Step 5: Bootstrap the company + first owner
 
-After installing on the yard owner's device:
+There is no "approve users" / `is_active` toggle anymore. You provision the
+company and an owner **invite code** via SQL, then the owner signs up with it
+(full steps in **[../CLAUDE.md](../CLAUDE.md) → Bootstrapping a new company**):
 
-1. They open the app and tap **Register** to create an account.
-2. You go to the **Supabase dashboard > Table Editor > users**.
-3. Find their row and set:
-   - `is_active` = `true`
-   - `role` = `admin`
-4. They can now log in and approve all other employees from the **Admin tab**.
+```sql
+insert into public.companies (name, prefix)
+  values ('Gorilla Recycling', 'GR-2026') returning id;
+insert into public.invite_codes (code, company_id, role, created_by)
+  values ('XXXXXXXX', '<company_id>', 'owner', null);
+```
 
-After this, you never need to touch the Supabase dashboard again for user management — the admin handles everything from the app.
+The owner opens the app, **Registers** with any email/password **+ that invite
+code**, and becomes the owner. They then invite everyone else in-app (each gets
+their own invite code) and fill in the Company Profile. After bootstrap you
+never touch the DB for user management.
 
 ---
 
@@ -195,13 +194,13 @@ You'll need to redistribute the new APK. Users install it over the old one (no d
 ## Per-Yard Checklist
 
 - [ ] Create Supabase project at supabase.com
-- [ ] Run all 11 migrations in SQL Editor
+- [ ] Apply **all** migrations + deploy edge functions ([OPERATIONS.md](./OPERATIONS.md) §2–§3)
 - [ ] Put Supabase URL + anon key in `eas.json`
 - [ ] Build: `eas build --profile preview --platform android`
 - [ ] Download the APK and send it to the yard
-- [ ] Yard owner registers, you set them as admin in Supabase
-- [ ] Yard owner approves employees from the Admin tab
-- [ ] Yard owner fills in Company Profile (name, address, logo)
+- [ ] Insert the company row + owner invite code (Step 5)
+- [ ] Yard owner registers with the invite code, then invites employees in-app
+- [ ] Yard owner fills in Company Profile (name, address, logo, operating state)
 
 ---
 

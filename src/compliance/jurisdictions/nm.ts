@@ -138,7 +138,11 @@ export const newMexico: Jurisdiction = {
     reportBy: '2nd business day',
     registrationLabel: 'NMRLD registration #',
   },
-  holdDefaults: { generalHours: 24, catConverterDays: 60 },
+  // NM imposes a single 24-hour hold on ALL regulated material — there is no
+  // separate longer catalytic hold (both are 1 day). See migration
+  // 20260721000001_fix_nm_catalytic_hold. Catalytic still requires check payment
+  // + a 3-year retention (below), which is what actually differs.
+  holdDefaults: { generalHours: 24, catConverterDays: 1 },
   catConverterCheckOnly: true,
   reportExemptMinLbs: REPORT_EXEMPT_MIN_LBS,
   lineIsReportable,

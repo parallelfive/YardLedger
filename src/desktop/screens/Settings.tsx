@@ -493,7 +493,7 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                       registry_id: settings?.registry_id ?? '',
                       general_hold_hours: settings?.general_hold_hours ?? 24,
                       cat_converter_hold_days:
-                        settings?.cat_converter_hold_days ?? 60,
+                        settings?.cat_converter_hold_days ?? 1,
                       cat_converter_check_only:
                         settings?.cat_converter_check_only ?? true,
                       general_retention_years:

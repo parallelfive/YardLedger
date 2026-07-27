@@ -50,8 +50,9 @@ straight **Materials → Review** (no seller/vehicle steps). Pay → ticket save
 Seller without name + ID.
 
 2.3 **Catalytic tier** — add a Catalytic Converter. A **Converter** step appears
-(VIN + serials); payment is **locked to Check** (cash disabled); Review shows a
-**60-day hold** + "queued for state upload".
+(VIN + serials); payment is **locked to Check** (cash disabled); Review shows the
+statutory **hold** (NM: 24 hours — set per company in Settings) + "queued for
+state upload".
 
 2.4 **Price override** — on the keypad, tap Override and enter a different price →
 the access-code gate appears; a valid code applies the override and badges the
@@ -71,7 +72,7 @@ appears when there are unreported buys.
 3.2 **Export CSV** — Export CSV → a share sheet opens with the NMRLD CSV; the
 cached file is purged after sharing.
 
-3.3 **On hold** — a catalytic buy shows under On-hold with a 60-day countdown;
+3.3 **On hold** — a catalytic buy shows under On-hold with a countdown (NM: 24h);
 tapping a row opens the receipt.
 
 ---

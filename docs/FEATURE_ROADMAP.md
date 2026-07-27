@@ -23,8 +23,14 @@
   skeleton loaders, receipt/record **printing & PDF/CSV export**.
 - **Demo seed** — `supabase/seed/demo_seed.sql` (+ teardown).
 
-Deploy/ops: [OPERATIONS.md](./OPERATIONS.md). Still open / not built: offline
-sync (WatermelonDB is scaffolded only), automated (cron) state reporting,
+Deploy/ops: [OPERATIONS.md](./OPERATIONS.md).
+
+**Built but not yet live:** the `report-to-state` SFTP upload edge function
+exists (manual "Send now" works) but is **not validated against a live
+LeadsOnline account and no cron sweep is scheduled** — reporting is manual for
+now. See `supabase/functions/report-to-state/CRON_SETUP.md`.
+
+**Still open / not built:** offline sync (WatermelonDB is scaffolded only),
 per-piece **selling on mobile** (desktop only), swipe actions, haptics.
 
 ---
