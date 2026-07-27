@@ -261,6 +261,49 @@ async function reportCompany(admin: any, companyId: string) {
   return { companyId, status: 'success', count: ids.length };
 }
 
+// Dry-run: connect to the yard's SFTP and list the remote dir WITHOUT uploading
+// or stamping anything — so an operator can confirm credentials before flipping
+// reporting on. Doesn't require `enabled` (you test before enabling).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function testConnection(admin: any, companyId: string) {
+  const { data: cfg } = await admin
+    .from('company_reporting_config')
+    .select('*')
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (!cfg || !cfg.sftp_host) {
+    return { ok: false, detail: 'No SFTP host configured yet.' };
+  }
+  const { data: pw } = await admin.rpc('get_reporting_secret', {
+    p_company_id: companyId,
+  });
+  if (!pw) return { ok: false, detail: 'No SFTP password saved yet.' };
+
+  const sftp = new SftpClient();
+  try {
+    await sftp.connect({
+      host: cfg.sftp_host,
+      port: cfg.sftp_port || 22,
+      username: cfg.sftp_username,
+      password: pw as string,
+    });
+    const dir = cfg.remote_dir?.replace(/\/$/, '') || '.';
+    await sftp.list(dir);
+    return {
+      ok: true,
+      detail: `Connected to ${cfg.sftp_host}, listed "${dir}".`,
+    };
+  } catch (e) {
+    return { ok: false, detail: (e as Error).message };
+  } finally {
+    try {
+      await sftp.end();
+    } catch {
+      /* ignore close errors */
+    }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
   const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -309,6 +352,16 @@ Deno.serve(async (req: Request) => {
       .single();
     if (!profile || !['owner', 'admin'].includes(profile.role)) {
       return new Response('Forbidden', { status: 403 });
+    }
+    // Test mode (?test=1): dry-run the SFTP connection, never upload.
+    if (new URL(req.url).searchParams.get('test') === '1') {
+      // Always 200 — the pass/fail is in the body so the client reads the detail
+      // instead of a bare HTTP error.
+      const result = await testConnection(admin, profile.company_id);
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
     companyIds = [profile.company_id];
   }
