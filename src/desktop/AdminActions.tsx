@@ -10,6 +10,10 @@ import { useAppSelector, type RootState } from '../store';
 import { elevateAdmin } from '../services/admin';
 import { createMetal, updateMetal, logPriceChange } from '../services/metals';
 import { updateCompanySettings } from '../services/companySettings';
+import {
+  getJurisdiction,
+  supportedStateCodes,
+} from '../compliance/jurisdictions';
 import Icon from './Icon';
 import { Btn, Field, TextInput, money } from './ui';
 
@@ -32,6 +36,13 @@ export interface CompanyEdit {
   license_number: string;
   ein: string;
   registry_id: string;
+  // Per-company compliance overrides (defaults seeded from the jurisdiction).
+  general_hold_hours: number;
+  cat_converter_hold_days: number;
+  cat_converter_check_only: boolean;
+  general_retention_years: number;
+  cat_converter_retention_years: number;
+  timezone: string;
 }
 
 export interface DeskAdmin {
@@ -464,13 +475,43 @@ function EditCompanyModal({
   const [name, setName] = useState(current.company_name);
   const [phone, setPhone] = useState(current.phone);
   const [address, setAddress] = useState(current.address);
-  const [state, setState] = useState(current.state);
+  const [state, setState] = useState(current.state || 'NM');
   const [license, setLicense] = useState(current.license_number);
   const [ein, setEin] = useState(current.ein);
   const [registry, setRegistry] = useState(current.registry_id);
+  // Compliance overrides — kept as strings for the inputs, parsed on save.
+  const [holdHours, setHoldHours] = useState(
+    String(current.general_hold_hours)
+  );
+  const [catDays, setCatDays] = useState(
+    String(current.cat_converter_hold_days)
+  );
+  const [checkOnly, setCheckOnly] = useState(current.cat_converter_check_only);
+  const [retGeneral, setRetGeneral] = useState(
+    String(current.general_retention_years)
+  );
+  const [retCat, setRetCat] = useState(
+    String(current.cat_converter_retention_years)
+  );
+  const [timezone, setTimezone] = useState(current.timezone);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const ok = !!name.trim() && !busy;
+
+  const jur = getJurisdiction(state);
+  // Fill the rule numbers from the selected state's statutory defaults, so an
+  // operator picking a jurisdiction gets correct presets they can then tweak.
+  const applyDefaults = () => {
+    setHoldHours(String(jur.holdDefaults.generalHours));
+    setCatDays(String(jur.holdDefaults.catConverterDays));
+    setCheckOnly(jur.catConverterCheckOnly);
+  };
+
+  // Whole non-negative number or fall back to the jurisdiction default.
+  const num = (s: string, fallback: number) => {
+    const n = Math.round(Number(s));
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
 
   const save = async () => {
     if (!ok) return;
@@ -485,6 +526,15 @@ function EditCompanyModal({
         license_number: license.trim(),
         ein: ein.trim(),
         registry_id: registry.trim(),
+        general_hold_hours: num(holdHours, jur.holdDefaults.generalHours),
+        cat_converter_hold_days: num(
+          catDays,
+          jur.holdDefaults.catConverterDays
+        ),
+        cat_converter_check_only: checkOnly,
+        general_retention_years: num(retGeneral, 3),
+        cat_converter_retention_years: num(retCat, 3),
+        timezone: timezone.trim(),
       });
     } catch (e) {
       setErr((e as Error).message);
@@ -525,7 +575,35 @@ function EditCompanyModal({
           />
         </Field>
         <Field label="Operating state">
-          <TextInput value={state} onChange={setState} placeholder="NM" />
+          <select
+            value={state}
+            onChange={(e) => setState(e.target.value)}
+            style={{
+              width: '100%',
+              height: 42,
+              padding: '0 12px',
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: 10,
+              color: 'var(--ink)',
+              fontSize: 14,
+              fontWeight: 550,
+              outline: 'none',
+            }}
+          >
+            {supportedStateCodes().map((c) => (
+              <option key={c} value={c}>
+                {getJurisdiction(c).copy.stateName} ({c})
+              </option>
+            ))}
+          </select>
+          <div
+            className="mono"
+            style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 5 }}
+          >
+            {jur.copy.act} · reports to {jur.copy.registry}. Only states with
+            built-in rules are listed.
+          </div>
         </Field>
         <Field label="License / registration #">
           <TextInput
@@ -535,16 +613,110 @@ function EditCompanyModal({
             mono
           />
         </Field>
-        <Field label="Registry ID">
+        <Field label={jur.copy.registrationLabel}>
           <TextInput
             value={registry}
             onChange={setRegistry}
-            placeholder="LeadsOnline / state registry ID"
+            placeholder={`${jur.copy.registry} / state registry ID`}
             mono
           />
         </Field>
         <Field label="EIN">
           <TextInput value={ein} onChange={setEin} placeholder="Tax ID" mono />
+        </Field>
+
+        {/* compliance rule overrides — presets come from the jurisdiction */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 10,
+            marginTop: 4,
+            paddingTop: 12,
+            borderTop: '1px solid var(--line)',
+          }}
+        >
+          <span
+            className="mono"
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: 0.6,
+              textTransform: 'uppercase',
+              color: 'var(--ink-3)',
+            }}
+          >
+            Compliance rules
+          </span>
+          <Btn variant="ghost" size="sm" icon="reload" onClick={applyDefaults}>
+            Use {state} defaults
+          </Btn>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <Field label="General hold (hours)">
+              <TextInput value={holdHours} onChange={setHoldHours} mono />
+            </Field>
+          </div>
+          <div style={{ flex: 1 }}>
+            <Field label="Converter hold (days)">
+              <TextInput value={catDays} onChange={setCatDays} mono />
+            </Field>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <Field label="Record retention (years)">
+              <TextInput value={retGeneral} onChange={setRetGeneral} mono />
+            </Field>
+          </div>
+          <div style={{ flex: 1 }}>
+            <Field label="Converter retention (years)">
+              <TextInput value={retCat} onChange={setRetCat} mono />
+            </Field>
+          </div>
+        </div>
+        <Field label="Converter payment">
+          <div style={{ display: 'flex', gap: 8 }} role="tablist">
+            {(
+              [
+                [true, 'Check only'],
+                [false, 'Any method'],
+              ] as [boolean, string][]
+            ).map(([val, lbl]) => {
+              const on = checkOnly === val;
+              return (
+                <button
+                  key={lbl}
+                  role="tab"
+                  aria-selected={on}
+                  onClick={() => setCheckOnly(val)}
+                  style={{
+                    flex: 1,
+                    padding: '9px 0',
+                    borderRadius: 9,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    background: on ? 'var(--ink)' : 'var(--surface-2)',
+                    color: on ? 'var(--bg)' : 'var(--ink-2)',
+                    border: `1px solid ${on ? 'var(--ink)' : 'var(--line)'}`,
+                  }}
+                >
+                  {lbl}
+                </button>
+              );
+            })}
+          </div>
+        </Field>
+        <Field label="Time zone (IANA)">
+          <TextInput
+            value={timezone}
+            onChange={setTimezone}
+            placeholder="America/Denver"
+            mono
+          />
         </Field>
       </div>
       {err && (
