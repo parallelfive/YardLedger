@@ -35,16 +35,21 @@ import {
   tierTone,
 } from './ui';
 import { receiptIsReportable } from '../utils/reporting';
+import { getJurisdiction } from '../compliance/jurisdictions';
+
+const defaultJurisdiction = getJurisdiction();
 
 type ReceiptRow = ReturnType<typeof useReceipts>['receipts'][number];
 
-// NM is the locked compliance context for this build; these labels live in
-// company_settings — wire them through when the Settings screen lands.
+// Compliance copy for the rail/top-bar comes from the active jurisdiction. The
+// shell uses the default (New Mexico) for these chrome labels; the Compliance
+// screen itself resolves the company's actual jurisdiction from
+// company_settings.state. Single-sourced in src/compliance/jurisdictions.
 const NM = {
-  abbr: 'NM',
-  act: 'NM Sale of Recycled Metals Act',
-  registry: 'LeadsOnline',
-  reportBy: '2nd business day',
+  abbr: defaultJurisdiction.code,
+  act: defaultJurisdiction.copy.act,
+  registry: defaultJurisdiction.copy.registry,
+  reportBy: defaultJurisdiction.copy.reportBy,
 };
 
 const ROLE_LABEL: Record<string, string> = {

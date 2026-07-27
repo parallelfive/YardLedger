@@ -5,9 +5,14 @@ import {
   buildNmrldExportCsv,
   fetchNmrldRegistrationNumber,
   fetchCompanyTimezone,
+  fetchCompanyState,
   markReceiptsReported,
   type ComplianceReceiptRow,
 } from '../../services/reports';
+import {
+  getJurisdiction,
+  type Jurisdiction,
+} from '../../compliance/jurisdictions';
 import {
   getReportingConfig,
   fetchLastComplianceUpload,
@@ -38,14 +43,6 @@ import {
   lbs,
   type Col,
 } from '../ui';
-
-// NM compliance copy — mirrors the mobile/desktop reporting strings.
-const COMPANY = {
-  act: 'NM Sale of Recycled Metals Act',
-  registry: 'LeadsOnline',
-  state: 'New Mexico',
-  reportBy: '2nd business day',
-};
 
 // 'Outstanding' is date-unbounded — every unreported buy, so an old one that
 // fell outside Today/Week/Month (e.g. missed over a month rollover) is still
@@ -211,6 +208,8 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
   const [records, setRecords] = useState<ComplianceReceiptRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [reloadTick, setReloadTick] = useState(0);
+  // Active compliance jurisdiction (from company_settings.state); NM until loaded.
+  const [jur, setJur] = useState<Jurisdiction>(() => getJurisdiction());
   const { ensureElevated } = useDeskAdmin();
   const userId = useAppSelector(
     (s: RootState) => s.auth.activeIdentity?.user_id ?? s.auth.profile?.id ?? ''
@@ -322,12 +321,14 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
 
   const loadReportingStatus = async () => {
     try {
-      const [cfg, last] = await Promise.all([
+      const [cfg, last, state] = await Promise.all([
         getReportingConfig(),
         fetchLastComplianceUpload(),
+        fetchCompanyState(),
       ]);
       setRepCfg(cfg);
       setLastUpload(last);
+      setJur(getJurisdiction(state));
     } catch {
       /* status is best-effort; the manual export path never depends on it */
     }
@@ -353,7 +354,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
       await sendReportNow();
       setSendOpen(false);
       setReloadTick((t) => t + 1); // reloads records + status
-      setSendMsg('Uploaded to ' + COMPANY.registry + '.');
+      setSendMsg('Uploaded to ' + jur.copy.registry + '.');
     } catch (e) {
       setSendMsg((e as Error).message || 'Upload failed.');
     } finally {
@@ -415,7 +416,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                 </span>
               </div>
               <Pill tone="var(--rust)" icon="clock">
-                due {COMPANY.reportBy}
+                due {jur.copy.reportBy}
               </Pill>
             </div>
             <div
@@ -447,14 +448,14 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
               >
                 buy awaiting upload to
                 <br />
-                <b style={{ color: 'var(--ink)' }}>{COMPANY.registry}</b>
+                <b style={{ color: 'var(--ink)' }}>{jur.copy.registry}</b>
               </span>
             </div>
             <div
               className="mono"
               style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 8 }}
             >
-              {COMPANY.act} · {COMPANY.state}
+              {jur.copy.act} · {jur.copy.stateName}
             </div>
           </div>
           <button
@@ -487,7 +488,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
         <Card>
           <PanelHead
             title="Reporting pipeline"
-            sub={`${range} · ${COMPANY.registry}`}
+            sub={`${range} · ${jur.copy.registry}`}
             icon="shield"
           />
           <div
@@ -556,7 +557,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
               icon="upload"
               tone="var(--gold)"
               label="State upload"
-              sub={canReport ? COMPANY.registry : 'Admin only'}
+              sub={canReport ? jur.copy.registry : 'Admin only'}
               locked={!canReport}
               onClick={canReport ? exportCsv : undefined}
             />
@@ -574,7 +575,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
             ? 'var(--gold)'
             : 'var(--ink-3)';
         const statusText = on
-          ? `Connected · ${repCfg?.provider || COMPANY.registry} SFTP`
+          ? `Connected · ${repCfg?.provider || jur.copy.registry} SFTP`
           : configured
             ? 'Connection set up · disabled'
             : 'Automatic upload not set up';
@@ -678,8 +679,8 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
             {queued.length} unreported transaction
             {queued.length === 1 ? '' : 's'}
           </b>{' '}
-          with regulated material must reach {COMPANY.registry} by the{' '}
-          {COMPANY.reportBy}.
+          with regulated material must reach {jur.copy.registry} by the{' '}
+          {jur.copy.reportBy}.
         </Banner>
       )}
 
@@ -1065,7 +1066,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                 className="exp"
                 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}
               >
-                Upload to {COMPANY.registry}?
+                Upload to {jur.copy.registry}?
               </span>
             </div>
             <p
@@ -1081,8 +1082,8 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                 {queued.length} unreported{' '}
                 {queued.length === 1 ? 'buy' : 'buys'}
               </b>{' '}
-              to {COMPANY.registry} over SFTP and marks them reported. This is a
-              real state filing and <b>can’t be undone.</b>
+              to {jur.copy.registry} over SFTP and marks them reported. This is
+              a real state filing and <b>can’t be undone.</b>
             </p>
             {sendMsg && (
               <div
