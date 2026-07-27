@@ -8,6 +8,13 @@ import {
   markReceiptsReported,
   type ComplianceReceiptRow,
 } from '../../services/reports';
+import {
+  getReportingConfig,
+  fetchLastComplianceUpload,
+  sendReportNow,
+  type ReportingConfig,
+  type ComplianceUploadLogEntry,
+} from '../../services/reporting';
 import { shareTextFile } from '../../utils/shareFile';
 import { useAppSelector, type RootState } from '../../store';
 import { useDeskAdmin } from '../AdminActions';
@@ -303,6 +310,57 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
     await markReported(queued.map((r) => r.id));
   };
 
+  // ── Automated SFTP send (LeadsOnline) — separate from the manual CSV path ──
+  // Connection status + last upload, loaded on mount and refreshed after a send.
+  const [repCfg, setRepCfg] = useState<ReportingConfig | null>(null);
+  const [lastUpload, setLastUpload] = useState<ComplianceUploadLogEntry | null>(
+    null
+  );
+  const [sendOpen, setSendOpen] = useState(false); // confirm modal
+  const [sending, setSending] = useState(false);
+  const [sendMsg, setSendMsg] = useState<string | null>(null);
+
+  const loadReportingStatus = async () => {
+    try {
+      const [cfg, last] = await Promise.all([
+        getReportingConfig(),
+        fetchLastComplianceUpload(),
+      ]);
+      setRepCfg(cfg);
+      setLastUpload(last);
+    } catch {
+      /* status is best-effort; the manual export path never depends on it */
+    }
+  };
+  useEffect(() => {
+    loadReportingStatus();
+  }, [reloadTick]);
+
+  // A send is only offered when reporting is actually wired up AND enabled —
+  // so nothing can transmit by accident. The confirm modal is the final gate.
+  const canSend =
+    canReport &&
+    !!repCfg?.enabled &&
+    !!repCfg?.has_credentials &&
+    queued.length > 0;
+
+  const doSend = async () => {
+    if (!canSend || sending) return;
+    if (!(await ensureElevated())) return;
+    setSending(true);
+    setSendMsg(null);
+    try {
+      await sendReportNow();
+      setSendOpen(false);
+      setReloadTick((t) => t + 1); // reloads records + status
+      setSendMsg('Uploaded to ' + COMPANY.registry + '.');
+    } catch (e) {
+      setSendMsg((e as Error).message || 'Upload failed.');
+    } finally {
+      setSending(false);
+    }
+  };
+
   const cols: Col[] = [
     { key: 'no', label: 'Receipt', w: '1.5fr' },
     { key: 'seller', label: 'Seller · ID', w: '1.6fr' },
@@ -505,6 +563,99 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
           </div>
         </Card>
       </div>
+
+      {/* automated-send connection: status + manual "Send now" (no cron) */}
+      {(() => {
+        const configured = !!repCfg?.has_credentials;
+        const on = configured && !!repCfg?.enabled;
+        const dot = on
+          ? 'var(--moss)'
+          : configured
+            ? 'var(--gold)'
+            : 'var(--ink-3)';
+        const statusText = on
+          ? `Connected · ${repCfg?.provider || COMPANY.registry} SFTP`
+          : configured
+            ? 'Connection set up · disabled'
+            : 'Automatic upload not set up';
+        const last = lastUpload
+          ? (lastUpload.status === 'success'
+              ? `Last sent ${lastUpload.receipt_count} receipt${lastUpload.receipt_count === 1 ? '' : 's'}`
+              : 'Last attempt failed') +
+            ' · ' +
+            new Date(lastUpload.created_at).toLocaleString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            })
+          : 'No uploads yet';
+        return (
+          <Card
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                <span
+                  style={{
+                    width: 9,
+                    height: 9,
+                    borderRadius: 99,
+                    background: dot,
+                    flexShrink: 0,
+                  }}
+                />
+                <span
+                  style={{ fontSize: 14, fontWeight: 650, color: 'var(--ink)' }}
+                >
+                  {statusText}
+                </span>
+              </div>
+              <div
+                className="mono"
+                style={{ fontSize: 11, color: 'var(--ink-3)', marginTop: 6 }}
+              >
+                {last} · automatic upload is off — sends are manual
+              </div>
+              {sendMsg && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: sendMsg.toLowerCase().includes('fail')
+                      ? 'var(--rust)'
+                      : 'var(--moss)',
+                    marginTop: 6,
+                    fontWeight: 600,
+                  }}
+                >
+                  {sendMsg}
+                </div>
+              )}
+            </div>
+            <Btn
+              variant={canSend ? 'solid' : 'ghost'}
+              tone="var(--gold)"
+              icon="upload"
+              disabled={!canSend}
+              onClick={() => setSendOpen(true)}
+            >
+              {!configured
+                ? 'Not configured'
+                : !repCfg?.enabled
+                  ? 'Disabled'
+                  : queued.length === 0
+                    ? 'Nothing to send'
+                    : `Send ${queued.length} now`}
+            </Btn>
+          </Card>
+        );
+      })()}
 
       {/* deadline strip */}
       {queued.length > 0 && (
@@ -873,6 +1024,101 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
           </>
         )}
       </SlideOver>
+
+      {/* Send-now confirmation — the final, deliberate gate before anything
+          transmits to the state. */}
+      {sendOpen && (
+        <div
+          onClick={() => !sending && setSendOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.42)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 60,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 440,
+              maxWidth: '92vw',
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: 16,
+              boxShadow: 'var(--shadow-lg)',
+              padding: 24,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginBottom: 12,
+              }}
+            >
+              <Icon name="upload" size={20} color="var(--gold)" stroke={2.2} />
+              <span
+                className="exp"
+                style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}
+              >
+                Upload to {COMPANY.registry}?
+              </span>
+            </div>
+            <p
+              style={{
+                fontSize: 13.5,
+                lineHeight: 1.55,
+                color: 'var(--ink-2)',
+                margin: '0 0 18px',
+              }}
+            >
+              This transmits{' '}
+              <b style={{ color: 'var(--ink)' }}>
+                {queued.length} unreported{' '}
+                {queued.length === 1 ? 'buy' : 'buys'}
+              </b>{' '}
+              to {COMPANY.registry} over SFTP and marks them reported. This is a
+              real state filing and <b>can’t be undone.</b>
+            </p>
+            {sendMsg && (
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: 'var(--rust)',
+                  marginBottom: 14,
+                  fontWeight: 600,
+                }}
+              >
+                {sendMsg}
+              </div>
+            )}
+            <div
+              style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}
+            >
+              <Btn
+                variant="ghost"
+                onClick={() => setSendOpen(false)}
+                disabled={sending}
+              >
+                Cancel
+              </Btn>
+              <Btn
+                variant="solid"
+                tone="var(--gold)"
+                icon="upload"
+                onClick={doSend}
+                disabled={sending || !canSend}
+              >
+                {sending ? 'Uploading…' : `Send ${queued.length}`}
+              </Btn>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
