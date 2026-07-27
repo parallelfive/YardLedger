@@ -133,7 +133,7 @@ supabase/
   functions/    Deno edge functions
   seed.sql      local first-run seed (creates GR-2026 company + owner invite)
   seed/         demo data — demo_seed.sql / demo_teardown.sql (optional, for demos)
-docs/           FEATURES (subsystem map), APP_GUIDE, DISTRIBUTION_GUIDE, OPERATIONS, decisions/ (ADRs)
+docs/           see docs/README.md (index) — FEATURES map, OPERATIONS, guides, ADRs, RFCs
 scripts/dev.sh  local stack orchestrator
 ```
 
