@@ -4,6 +4,10 @@ How to build YardLedger and install it on employee phones and tablets (Android &
 
 > **Important**: End users do NOT need Expo, Node.js, or any developer tools. They just install the app like any other app.
 
+> **Scope**: this guide is the **mobile app** (build + install). For the
+> **backend + web app** — Coolify deploys, applying migrations, edge-function
+> deploys, and seeding — see **[OPERATIONS.md](./OPERATIONS.md)**.
+
 ---
 
 ## What You Need (One-Time Setup on YOUR Computer)

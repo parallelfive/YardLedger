@@ -170,7 +170,21 @@ scripts/dev.sh  local stack orchestrator
 - **iOS build uses a dead Node path.** Delete `ios/.xcode.env.local` so it falls
   back to `$(command -v node)`.
 
+## Demo data
+
+To populate a company with realistic buys/sells/inventory/compliance for a demo
+or screenshots, run the seed (idempotent, scoped to the `GR-2026` company):
+
+```
+cat supabase/seed/demo_seed.sql | psql "$DATABASE_URL"        # or via the Supabase SQL editor
+cat supabase/seed/demo_teardown.sql | psql "$DATABASE_URL"    # to reset
+```
+
+Against the hosted stack, run it over the SSH tunnel — see
+**[docs/OPERATIONS.md](./docs/OPERATIONS.md)** §4.
+
 ## Deployment
 
-See **[docs/DISTRIBUTION_GUIDE.md](./docs/DISTRIBUTION_GUIDE.md)** — Xcode archive
-→ unlisted App Store distribution.
+- **Mobile app** (unlisted App Store / TestFlight): **[docs/DISTRIBUTION_GUIDE.md](./docs/DISTRIBUTION_GUIDE.md)**.
+- **Backend + web app** (self-hosted Coolify — deploys, migrations, edge
+  functions, seeding): **[docs/OPERATIONS.md](./docs/OPERATIONS.md)**.

@@ -1,6 +1,37 @@
 # YardLedger — Feature Roadmap
 
-## Planned Features
+> **New here? Read this first.** Most of the original "Planned Features" below
+> have **shipped** — this file is now largely historical. What's actually live:
+
+## Shipped
+
+- **Tare weight** (gross − tare = net) with presets — mobile keypad + desktop.
+- **Per-piece pricing** — converters/rims bought & sold by the piece
+  (`metals.pricing_unit`); piece-count inventory. See CLAUDE.md → Key Rules.
+- **State compliance** — capture (ID/vehicle/affirmations/photos), statutory
+  holds, the reportability queue, NMRLD CSV export, and a manual "Send now"
+  SFTP upload. Rules are per-state via the **jurisdiction layer**
+  (`src/compliance/jurisdictions/`, NM first). Company Profile editor sets the
+  jurisdiction + hold/retention/check-only overrides.
+- **Two-station handoff** — worker weighs a **scale ticket** on a phone
+  (`draft_tickets`), cashier finalizes from the **cashier queue** on desktop.
+- **Cash drawer** — day-end till reconciliation. **Daily close-out** summary.
+- **Passcode terminal login** (PIN identifies the person) + role gating.
+- **Desktop web shell** (`src/desktop/`) — dedicated DOM UI on wide viewports.
+- **Dashboard** (day-book + charts), **global search**, **customer directory**,
+  **inventory valuation / profitability / shrinkage reports**, **theme toggle**,
+  skeleton loaders, receipt/record **printing & PDF/CSV export**.
+- **Demo seed** — `supabase/seed/demo_seed.sql` (+ teardown).
+
+Deploy/ops: [OPERATIONS.md](./OPERATIONS.md). Still open / not built: offline
+sync (WatermelonDB is scaffolded only), automated (cron) state reporting,
+per-piece **selling on mobile** (desktop only), swipe actions, haptics.
+
+---
+
+## Planned Features (original — historical)
+
+> ⚠️ Items 1–4 and 8 are DONE; kept for the original planning context.
 
 ### 1. Tare Weight (Gross-Net-Tare)
 
