@@ -10,25 +10,35 @@ export interface CreateSaleParams {
   costBasisPerLb: number;
   buyerName?: string;
   workerId: string;
+  // Per-piece sales (converters, rims): unit === 'each', quantity is the piece
+  // count, and salePricePerLb / costBasisPerLb carry the per-piece figures.
+  unit?: 'lb' | 'each';
+  quantity?: number | null;
 }
 
 export async function createSale(params: CreateSaleParams) {
-  const totalRevenue = params.weight * params.salePricePerLb;
-  const profit =
-    params.weight * (params.salePricePerLb - params.costBasisPerLb);
+  const isPiece = params.unit === 'each';
+  // The amount pricing runs off: piece count for 'each', weight otherwise. The
+  // server (enforce_sale_integrity) recomputes revenue/profit authoritatively;
+  // these are sent for offline/optimistic display and get overwritten on insert.
+  const amount = isPiece ? (params.quantity ?? 0) : params.weight;
+  const totalRevenue = amount * params.salePricePerLb;
+  const profit = amount * (params.salePricePerLb - params.costBasisPerLb);
 
   const { data, error } = await supabase
     .from('sales')
     .insert({
       metal_id: params.metalId,
       metal_name: params.metalName,
-      weight: params.weight,
+      weight: isPiece ? 0 : params.weight,
       sale_price_per_lb: params.salePricePerLb,
       cost_basis_per_lb: params.costBasisPerLb,
       total_revenue: totalRevenue,
       profit,
       buyer_name: params.buyerName,
       worker_id: params.workerId,
+      unit: params.unit ?? 'lb',
+      quantity: isPiece ? (params.quantity ?? 0) : null,
     })
     .select()
     .single();
@@ -96,8 +106,10 @@ export function aggregateSalesByCategory(
     const existing = map.get(categoryName);
     const weight = Number(sale.weight);
     const revenue = Number(sale.total_revenue);
-    const cost = weight * Number(sale.cost_basis_per_lb);
     const profit = Number(sale.profit);
+    // Derive cost from revenue − profit so it's correct for weight AND per-piece
+    // sales (a piece sale has weight 0, so weight × cost_basis would read $0).
+    const cost = revenue - profit;
 
     if (existing) {
       existing.totalWeightSold += weight;

@@ -67,6 +67,18 @@ export default function CashierQueue({
             const mats = (d.line_items ?? [])
               .map((li) => li.metalName)
               .join(', ');
+            // A ticket can be weight, pieces, or a mix — show whichever it has.
+            const pcs = (d.line_items ?? []).reduce(
+              (a, li) =>
+                a + (li.unit === 'each' ? Number(li.quantity ?? 0) : 0),
+              0
+            );
+            const amountLabel = [
+              Number(d.weight || 0) > 0 ? `${lbs(Number(d.weight))} lb` : '',
+              pcs > 0 ? `${pcs} pcs` : '',
+            ]
+              .filter(Boolean)
+              .join(' · ');
             const time = new Date(d.created_at).toLocaleTimeString('en-US', {
               hour: 'numeric',
               minute: '2-digit',
@@ -120,7 +132,7 @@ export default function CashierQueue({
                         marginTop: 3,
                       }}
                     >
-                      {lbs(Number(d.weight || 0))} lb · {time}
+                      {amountLabel || '—'} · {time}
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>

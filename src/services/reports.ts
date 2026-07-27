@@ -296,7 +296,9 @@ export async function fetchProfitabilityReport(
     const existing = metalMap.get(key);
     const catName = sale.metals?.metal_categories?.name ?? 'Uncategorized';
     const w = Number(sale.weight);
-    const cogs = w * Number(sale.cost_basis_per_lb);
+    // Cost of goods = revenue − profit, correct for weight AND per-piece sales
+    // (a piece sale has weight 0, so weight × cost_basis would read $0).
+    const cogs = Number(sale.total_revenue) - Number(sale.profit);
 
     if (existing) {
       existing.weightSold += w;

@@ -2026,8 +2026,15 @@ export function SaleFlow({
     metal_name: string;
     weight: number;
     avg_cost_per_lb: number;
+    quantity?: number | null;
+    avg_cost_per_piece?: number | null;
+    metals?: { pricing_unit?: string | null } | null;
   }[];
-  const onHandRows = stock.filter((r) => Number(r.weight) > 0);
+  // Sell what's on hand by either measure — weight rows OR per-piece rows
+  // (converters/rims carry a piece count, not weight).
+  const onHandRows = stock.filter(
+    (r) => Number(r.weight) > 0 || Number(r.quantity ?? 0) > 0
+  );
   // Yards ship to the same handful of mills, so suggest past processors as the
   // buyer name is typed (derived client-side from prior sales — no lookup).
   const { sales } = useSales();
@@ -2066,14 +2073,22 @@ export function SaleFlow({
     weight: number;
     buyer: string;
     metal: string;
+    unit: 'lb' | 'each';
   } | null>(null);
 
   const inv = onHandRows.find((r) => r.metal_id === metalId) || null;
-  const onHand = Number(inv?.weight ?? 0);
-  const avgCost = Number(inv?.avg_cost_per_lb ?? 0);
+  // A per-piece material sells by piece count + per-piece cost; the `weight`
+  // input then holds the piece count. `uShort` labels the unit throughout.
+  const piece =
+    inv?.metals?.pricing_unit === 'each' || Number(inv?.quantity ?? 0) > 0;
+  const uShort = piece ? 'pc' : 'lb';
+  const onHand = piece ? Number(inv?.quantity ?? 0) : Number(inv?.weight ?? 0);
+  const avgCost = piece
+    ? Number(inv?.avg_cost_per_piece ?? 0)
+    : Number(inv?.avg_cost_per_lb ?? 0);
   const total = weight * price;
   const profit = weight * (price - avgCost);
-  // The inventory table has a non-negative CHECK, so the server rejects an
+  // The inventory table has non-negative CHECKs, so the server rejects an
   // oversell — block it here with a clear message instead of a raw DB error.
   const oversell = !!inv && weight > onHand;
   const canSave = !!inv && weight > 0 && price > 0 && !oversell && !busy;
@@ -2097,11 +2112,13 @@ export function SaleFlow({
       const sale = await createSale({
         metalId: inv.metal_id,
         metalName: inv.metal_name,
-        weight,
+        weight: piece ? 0 : weight,
         salePricePerLb: price,
         costBasisPerLb: avgCost,
         buyerName: buyer.trim() || undefined,
         workerId,
+        unit: piece ? 'each' : 'lb',
+        quantity: piece ? weight : null,
       });
       onSaved?.();
       const id = (sale as { id?: string })?.id ?? '';
@@ -2111,6 +2128,7 @@ export function SaleFlow({
         weight,
         buyer: buyer.trim(),
         metal: inv.metal_name,
+        unit: piece ? 'each' : 'lb',
       });
     } catch (e) {
       setErr((e as Error).message);
@@ -2201,7 +2219,12 @@ export function SaleFlow({
                 [
                   ['Revenue', money(saved.total)],
                   ['Material', saved.metal],
-                  ['Weight', `${lbs(saved.weight)} lb`],
+                  [
+                    saved.unit === 'each' ? 'Pieces' : 'Weight',
+                    saved.unit === 'each'
+                      ? `${lbs(saved.weight)} pcs`
+                      : `${lbs(saved.weight)} lb`,
+                  ],
                   ['Processor', saved.buyer || '—'],
                 ] as const
               ).map(([k, v], idx, arr) => (
@@ -2372,11 +2395,20 @@ export function SaleFlow({
                 <option value="">
                   {onHandRows.length ? 'Select a metal…' : 'Nothing on hand'}
                 </option>
-                {onHandRows.map((r) => (
-                  <option key={r.metal_id} value={r.metal_id}>
-                    {r.metal_name} — {lbs(r.weight)} lb on hand
-                  </option>
-                ))}
+                {onHandRows.map((r) => {
+                  const rPiece =
+                    r.metals?.pricing_unit === 'each' ||
+                    Number(r.quantity ?? 0) > 0;
+                  return (
+                    <option key={r.metal_id} value={r.metal_id}>
+                      {r.metal_name} —{' '}
+                      {rPiece
+                        ? `${lbs(Number(r.quantity ?? 0))} pcs`
+                        : `${lbs(r.weight)} lb`}{' '}
+                      on hand
+                    </option>
+                  );
+                })}
               </select>
             </Field>
             {inv && (
@@ -2392,7 +2424,8 @@ export function SaleFlow({
                   className="mono"
                   style={{ fontSize: 11.5, color: 'var(--ink-3)' }}
                 >
-                  On hand {lbs(onHand)} lb · avg cost {money(avgCost)}/lb
+                  On hand {lbs(onHand)} {uShort} · avg cost {money(avgCost)}/
+                  {uShort}
                 </span>
                 {oversell && (
                   <span
@@ -2410,7 +2443,7 @@ export function SaleFlow({
             )}
             <div style={{ display: 'flex', gap: 12 }}>
               <div style={{ flex: 1 }}>
-                <Field label="Weight (lb)">
+                <Field label={piece ? 'Pieces' : 'Weight (lb)'}>
                   <TextInput
                     value={weight || ''}
                     onChange={(v) => setWeight(Number(v) || 0)}
@@ -2420,7 +2453,7 @@ export function SaleFlow({
                 </Field>
               </div>
               <div style={{ flex: 1 }}>
-                <Field label="Price / lb">
+                <Field label={piece ? 'Price / pc' : 'Price / lb'}>
                   <TextInput
                     value={price || ''}
                     onChange={(v) => setPrice(Number(v) || 0)}
@@ -2458,7 +2491,7 @@ export function SaleFlow({
                 className="mono num"
                 style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}
               >
-                {lbs(weight)} lb @ {money(price)}/lb
+                {lbs(weight)} {uShort} @ {money(price)}/{uShort}
               </div>
               {inv && weight > 0 && price > 0 && (
                 <div
@@ -2470,7 +2503,7 @@ export function SaleFlow({
                     color: profit >= 0 ? 'var(--moss)' : 'var(--rust)',
                   }}
                 >
-                  Est. profit {money(profit)} · cost {money(avgCost)}/lb
+                  Est. profit {money(profit)} · cost {money(avgCost)}/{uShort}
                 </div>
               )}
             </Card>
