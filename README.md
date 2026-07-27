@@ -12,7 +12,9 @@ company). Distributed as an unlisted iOS app; also runs as a desktop web app.
 - **State:** Redux Toolkit · **Nav:** React Navigation v7 · **Offline:** WatermelonDB (scaffolded)
 
 > Architecture rules, layering, naming, multi-tenancy and auth are documented in
-> **[CLAUDE.md](./CLAUDE.md)** — read that after this. This file is how to get running.
+> **[CLAUDE.md](./CLAUDE.md)** — read that after this. For a map of the major
+> features (where each lives + its tables/invariants), see
+> **[docs/FEATURES.md](./docs/FEATURES.md)**. This file is how to get running.
 
 ---
 
@@ -131,7 +133,7 @@ supabase/
   functions/    Deno edge functions
   seed.sql      local first-run seed (creates GR-2026 company + owner invite)
   seed/         demo data — demo_seed.sql / demo_teardown.sql (optional, for demos)
-docs/           APP_GUIDE, DISTRIBUTION_GUIDE, OPERATIONS, design notes, decisions/ (ADRs)
+docs/           FEATURES (subsystem map), APP_GUIDE, DISTRIBUTION_GUIDE, OPERATIONS, decisions/ (ADRs)
 scripts/dev.sh  local stack orchestrator
 ```
 

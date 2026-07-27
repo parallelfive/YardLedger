@@ -194,3 +194,8 @@ cron sweep is wired. See [docs/OPERATIONS.md](./docs/OPERATIONS.md).
 Web + Supabase are self-hosted on Coolify; migrations and edge functions are
 applied by hand (no CI deploy, no migration ledger). Runbook:
 [docs/OPERATIONS.md](./docs/OPERATIONS.md). Demo data: `supabase/seed/`.
+
+## Feature map
+
+Where each major subsystem lives (code + tables + invariants) is mapped in
+[docs/FEATURES.md](./docs/FEATURES.md) — start there when picking up a feature.
