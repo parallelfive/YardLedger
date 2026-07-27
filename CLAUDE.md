@@ -96,6 +96,13 @@ throughout. It has its **own view layer, separate from mobile**:
 - Metals are dynamic (DB-managed) — never hardcode metal types
 - Price overrides require admin auth and are tracked per line item
 - Only admins/owners can CRUD metals and change pricing
+- **Pricing unit**: a metal is priced by weight or by piece —
+  `metals.pricing_unit` is `'lb' | 'each'`. For an `'each'` metal (converters,
+  rims) `price_per_lb` doubles as $/piece; line_items & sales carry
+  `unit` + `quantity`, `weight` is 0, and inventory accumulates `quantity` +
+  `avg_cost_per_piece` in parallel to the weight columns. Totals are recomputed
+  server-side (`enforce_line_item_pricing` / `enforce_sale_integrity`) — never
+  trust the client total.
 
 ## Before Committing
 
@@ -159,3 +166,36 @@ by an owner or admin in their company. The code is 8-char uppercase
 alphanumeric, passed via Supabase auth metadata (`options.data.invite_code`),
 and the `handle_new_user` trigger validates + consumes it atomically. Invalid
 or missing code = sign-up fails and the auth.users insert rolls back.
+
+## Compliance & jurisdictions
+
+State scrap-metal rules live in a **jurisdiction layer** (`src/compliance/
+jurisdictions/`) so compliance is per-state, not hardcoded. New Mexico is the
+first module.
+
+- `types.ts` — the `Jurisdiction` contract (reportability rule, upload/CSV
+  format + registry, hold/retention defaults, legal copy).
+- `nm.ts` — New Mexico's implementation. `index.ts` — the registry +
+  `getJurisdiction(company_settings.state)` (falls back to NM).
+- `utils/reporting.ts` and `utils/nmrldExport.ts` are **thin back-compat shims**
+  re-exporting the NM module — put new logic in a jurisdiction module, not there.
+- **Adding a state** = add a module implementing `Jurisdiction`, register it in
+  `index.ts`. Per-company numeric overrides (hold hours, retention, check-only,
+  registration #, timezone) live in `company_settings` and are edited in the
+  desktop Company Profile modal + read by the DB hold/retention triggers.
+- ⚠️ The `report-to-state` edge function **duplicates** the reportability rule +
+  CSV columns in Deno (can't import app code) — keep it in sync with `nm.ts`.
+
+Reporting is **manual** (export CSV / "Send now" to the registry over SFTP); no
+cron sweep is wired. See [docs/OPERATIONS.md](./docs/OPERATIONS.md).
+
+## Deploy & ops
+
+Web + Supabase are self-hosted on Coolify; migrations and edge functions are
+applied by hand (no CI deploy, no migration ledger). Runbook:
+[docs/OPERATIONS.md](./docs/OPERATIONS.md). Demo data: `supabase/seed/`.
+
+## Feature map
+
+Where each major subsystem lives (code + tables + invariants) is mapped in
+[docs/FEATURES.md](./docs/FEATURES.md) — start there when picking up a feature.

@@ -12,7 +12,9 @@ company). Distributed as an unlisted iOS app; also runs as a desktop web app.
 - **State:** Redux Toolkit · **Nav:** React Navigation v7 · **Offline:** WatermelonDB (scaffolded)
 
 > Architecture rules, layering, naming, multi-tenancy and auth are documented in
-> **[CLAUDE.md](./CLAUDE.md)** — read that after this. This file is how to get running.
+> **[CLAUDE.md](./CLAUDE.md)** — read that after this. For a map of the major
+> features (where each lives + its tables/invariants), see
+> **[docs/FEATURES.md](./docs/FEATURES.md)**. This file is how to get running.
 
 ---
 
@@ -129,8 +131,9 @@ src/
 supabase/
   migrations/   sequential timestamped SQL (RLS, triggers, RPCs)
   functions/    Deno edge functions
-  seed.sql      local company + invite code
-docs/           APP_GUIDE, DISTRIBUTION_GUIDE, design notes, decisions/ (ADRs)
+  seed.sql      local first-run seed (creates GR-2026 company + owner invite)
+  seed/         demo data — demo_seed.sql / demo_teardown.sql (optional, for demos)
+docs/           see docs/README.md (index) — FEATURES map, OPERATIONS, guides, ADRs, RFCs
 scripts/dev.sh  local stack orchestrator
 ```
 
@@ -151,9 +154,11 @@ scripts/dev.sh  local stack orchestrator
 - **TypeScript strict**, ESLint, Prettier. **Conventional Commits** (commitlint).
 - Pre-commit runs `lint-staged` (eslint --fix + prettier). Before pushing:
   ```bash
-  npm run typecheck && npm run lint && npm run format:check
+  npm run typecheck && npm run lint && npm run format:check && npm test
   ```
-- No automated test suite yet — changes are verified manually; see `docs/test-cases.md`.
+- **Tests:** `npm test` (Vitest) covers pure logic — pricing, compliance
+  reportability, and format/export utilities (`src/**/*.test.ts`). UI flows are
+  still verified manually; see `docs/test-cases.md`.
 
 ## Troubleshooting (gotchas we've actually hit)
 
@@ -170,7 +175,23 @@ scripts/dev.sh  local stack orchestrator
 - **iOS build uses a dead Node path.** Delete `ios/.xcode.env.local` so it falls
   back to `$(command -v node)`.
 
+## Demo data
+
+Separate from the automatic first-run `supabase/seed.sql` (which only creates
+the empty GR-2026 company + invite code), these scripts fill a company with
+~3 weeks of realistic buys/sells/inventory/compliance for a demo or screenshots
+(idempotent, scoped + tagged to `GR-2026`):
+
+```
+cat supabase/seed/demo_seed.sql | psql "$DATABASE_URL"        # or via the Supabase SQL editor
+cat supabase/seed/demo_teardown.sql | psql "$DATABASE_URL"    # to reset
+```
+
+Against the hosted stack, run it over the SSH tunnel — see
+**[docs/OPERATIONS.md](./docs/OPERATIONS.md)** §4.
+
 ## Deployment
 
-See **[docs/DISTRIBUTION_GUIDE.md](./docs/DISTRIBUTION_GUIDE.md)** — Xcode archive
-→ unlisted App Store distribution.
+- **Mobile app** (unlisted App Store / TestFlight): **[docs/DISTRIBUTION_GUIDE.md](./docs/DISTRIBUTION_GUIDE.md)**.
+- **Backend + web app** (self-hosted Coolify — deploys, migrations, edge
+  functions, seeding): **[docs/OPERATIONS.md](./docs/OPERATIONS.md)**.

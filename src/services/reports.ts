@@ -538,6 +538,18 @@ export async function fetchCompanyTimezone(): Promise<string> {
   return (data?.timezone as string | null) ?? '';
 }
 
+// The company's compliance jurisdiction (company_settings.state) — selects the
+// active state's reporting rules, upload format, and legal copy. '' → the
+// default jurisdiction (New Mexico) is used downstream.
+export async function fetchCompanyState(): Promise<string> {
+  const { data } = await supabase
+    .from('company_settings')
+    .select('state')
+    .limit(1)
+    .maybeSingle();
+  return (data?.state as string | null) ?? '';
+}
+
 export async function exportNmrldCsv(
   startDate: string,
   endDate: string

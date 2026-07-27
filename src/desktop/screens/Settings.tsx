@@ -491,6 +491,16 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                       license_number: settings?.license_number ?? '',
                       ein: settings?.ein ?? '',
                       registry_id: settings?.registry_id ?? '',
+                      general_hold_hours: settings?.general_hold_hours ?? 24,
+                      cat_converter_hold_days:
+                        settings?.cat_converter_hold_days ?? 1,
+                      cat_converter_check_only:
+                        settings?.cat_converter_check_only ?? true,
+                      general_retention_years:
+                        settings?.general_retention_years ?? 3,
+                      cat_converter_retention_years:
+                        settings?.cat_converter_retention_years ?? 3,
+                      timezone: settings?.timezone ?? '',
                     })
                   }
                 >

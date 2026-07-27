@@ -39,6 +39,27 @@ export async function saveReportingConfig(cfg: {
   if (error) throw error;
 }
 
+// Most recent automated-upload attempt for this company (RLS-scoped), so the
+// UI can show "last sent / last failed" without exposing another company's log.
+export interface ComplianceUploadLogEntry {
+  id: string;
+  method: string;
+  receipt_count: number;
+  status: string; // 'success' | 'failed'
+  detail: string | null;
+  created_at: string;
+}
+
+export async function fetchLastComplianceUpload(): Promise<ComplianceUploadLogEntry | null> {
+  const { data, error } = await supabase
+    .from('compliance_upload_log')
+    .select('id, method, receipt_count, status, detail, created_at')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return (data?.[0] as ComplianceUploadLogEntry | undefined) ?? null;
+}
+
 // Trigger an immediate upload of this company's unreported transactions.
 export async function sendReportNow(): Promise<unknown> {
   const { data, error } = await supabase.functions.invoke('report-to-state');

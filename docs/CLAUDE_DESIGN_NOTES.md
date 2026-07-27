@@ -39,8 +39,10 @@ These exist and work, but the handoff had no matching screen. Left in place:
   last upload, export-unreported-CSV + mark-reported flow. NM 2-business-day
   upload compliance. No prototype screen; built in Foundry style.
 - **Holds & disposal workflow** — On-Hold report rows are tappable through to
-  the receipt; receipts show a "Disposed" status chip once disposed. Catalytic
-  60-day / general 24h hold windows. Prototype showed holds only implicitly.
+  the receipt; receipts show a "Disposed" status chip once disposed. NM imposes
+  a single 24-hour hold on all regulated material (no separate longer catalytic
+  hold — corrected in migration 20260721000001); durations are per-company in
+  `company_settings`. Prototype showed holds only implicitly.
 - **Compliance report + NMRLD CSV export** (`ComplianceReportScreen`,
   `buildNmrldExportCsv`). No prototype screen.
 - **Shrinkage report** (`ShrinkageScreen`) — expected-vs-actual inventory

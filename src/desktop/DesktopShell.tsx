@@ -4,10 +4,11 @@ import { useRole } from '../hooks/useRole';
 import { useMetals } from '../hooks/useMetals';
 import { useInventory } from '../hooks/useInventory';
 import { useReceipts } from '../hooks/useReceipts';
+import { useDraftTickets } from '../hooks/useDraftTickets';
 import { useTheme } from '../theme';
 import DesktopStyle from './DesktopStyle';
 import Rail, { type TabId } from './Rail';
-import TopBar, { type SearchResult } from './TopBar';
+import TopBar, { type SearchResult, type AlertItem } from './TopBar';
 import Dashboard from './screens/Dashboard';
 import Inventory from './screens/Inventory';
 import Sales from './screens/Sales';
@@ -34,16 +35,21 @@ import {
   tierTone,
 } from './ui';
 import { receiptIsReportable } from '../utils/reporting';
+import { getJurisdiction } from '../compliance/jurisdictions';
+
+const defaultJurisdiction = getJurisdiction();
 
 type ReceiptRow = ReturnType<typeof useReceipts>['receipts'][number];
 
-// NM is the locked compliance context for this build; these labels live in
-// company_settings — wire them through when the Settings screen lands.
+// Compliance copy for the rail/top-bar comes from the active jurisdiction. The
+// shell uses the default (New Mexico) for these chrome labels; the Compliance
+// screen itself resolves the company's actual jurisdiction from
+// company_settings.state. Single-sourced in src/compliance/jurisdictions.
 const NM = {
-  abbr: 'NM',
-  act: 'NM Sale of Recycled Metals Act',
-  registry: 'LeadsOnline',
-  reportBy: '2nd business day',
+  abbr: defaultJurisdiction.code,
+  act: defaultJurisdiction.copy.act,
+  registry: defaultJurisdiction.copy.registry,
+  reportBy: defaultJurisdiction.copy.reportBy,
 };
 
 const ROLE_LABEL: Record<string, string> = {
@@ -313,6 +319,7 @@ export default function DesktopShell() {
   const { metals } = useMetals();
   const { inventory } = useInventory();
   const { receipts, refresh: refreshReceipts } = useReceipts();
+  const { drafts } = useDraftTickets();
   const { mode, isLight, toggle: toggleTheme } = useTheme();
 
   const [tab, setTab] = useState<TabId>('home');
@@ -440,6 +447,36 @@ export default function DesktopShell() {
     close: () => setOverlay(null),
   };
 
+  // Bell dropdown: the real things needing attention right now, each linking to
+  // where the operator acts on it. Empty → "all caught up".
+  const pendingDrafts = drafts.length;
+  const alerts = useMemo<AlertItem[]>(() => {
+    const list: AlertItem[] = [];
+    if (pendingDrafts > 0) {
+      list.push({
+        key: 'cashier',
+        icon: 'user',
+        title: `${pendingDrafts} scale ticket${pendingDrafts === 1 ? '' : 's'} waiting`,
+        sub: 'Finalize the payout at the cashier desk',
+        tone: 'var(--accent)',
+        onClick: nav.openCashier,
+      });
+    }
+    if (queued > 0) {
+      list.push({
+        key: 'report',
+        icon: 'upload',
+        title: `${queued} buy${queued === 1 ? '' : 's'} awaiting state report`,
+        sub: 'NM restricted / catalytic — file in Compliance',
+        tone: 'var(--gold)',
+        onClick: () => nav.go('compliance'),
+      });
+    }
+    return list;
+    // nav is rebuilt each render but its setters are stable; deps are the counts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingDrafts, queued]);
+
   const now = new Date();
   const dateLabel = now.toLocaleDateString('en-US', {
     weekday: 'short',
@@ -502,8 +539,7 @@ export default function DesktopShell() {
           <TopBar
             title={titles[tab].title}
             sub={titles[tab].sub}
-            alerts={queued > 0}
-            onAlerts={() => nav.go('compliance')}
+            alerts={alerts}
             onNewBuy={nav.openBuy}
             isLight={isLight}
             onToggleTheme={toggleTheme}

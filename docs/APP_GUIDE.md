@@ -1,21 +1,35 @@
-# YardLedger — App Guide
+# Tare (YardLedger) — App Guide
+
+> ⚠️ **Partially out of date — end-user oriented.** This guide predates the Tare
+> rebrand and several subsystems (per-piece pricing, compliance/state reporting,
+> PIN terminal login, the desktop web shell, multi-tenancy). Engineers: use
+> **[../README.md](../README.md)** + **[../CLAUDE.md](../CLAUDE.md)** and the
+> shipped-feature list in **[FEATURE_ROADMAP.md](./FEATURE_ROADMAP.md)** as the
+> source of truth. The core buy/inventory/sale flow below is still accurate.
 
 ## Overview
 
-YardLedger is a scrap metal yard management app built with Expo (React Native). It handles buying metal from walk-in customers, tracking inventory, recording sales to larger recyclers, and generating business reports.
+Tare (internal/legacy name **YardLedger**) is a scrap metal yard management app
+(Expo / React Native, plus a desktop web shell). It handles buying metal from
+walk-in customers, tracking inventory, recording sales to larger recyclers,
+state compliance, and business reports.
 
-**Distribution**: Sideloaded / Expo Go only (no App Store).
+**Distribution**: unlisted iOS app + desktop web (not Expo Go — the app uses
+native modules, so it needs a custom dev client / a real build). See
+[DISTRIBUTION_GUIDE.md](./DISTRIBUTION_GUIDE.md).
 
 ---
 
 ## User Roles
 
-| Role       | Capabilities                                                                                           |
-| ---------- | ------------------------------------------------------------------------------------------------------ |
-| **Admin**  | Manage metals & pricing, approve users, view all receipts/sales, access reports, generate access codes |
-| **Worker** | Create buy receipts, record sales, view own transactions, request price overrides (with access code)   |
+| Role       | Capabilities                                                                                                |
+| ---------- | ----------------------------------------------------------------------------------------------------------- |
+| **Owner**  | Everything admins can do, plus edit the company profile and invite/promote/demote anyone (incl. owners).    |
+| **Admin**  | Manage metals & pricing, invite/manage admins + workers, view all receipts/sales, reports, price overrides. |
+| **Worker** | Create buy receipts, record sales, view all yard data; cannot manage users or pricing.                      |
 
-New accounts require admin approval before access is granted.
+Sign-up is **invite-code only** (an owner/admin generates a code) — there is no
+"admin approval" step. On a shared terminal, a **PIN** identifies the staffer.
 
 ---
 
@@ -31,7 +45,8 @@ New accounts require admin approval before access is granted.
 4. Collect customer signature.
 5. Save the receipt. Inventory is automatically updated via a Postgres trigger (weighted average cost).
 
-Receipt numbers are auto-generated: `YL-YYYYMMDD-NNNN`.
+Receipt numbers are auto-generated per company: `{PREFIX}-{MMDDYYYY}-{N}` (e.g.
+`GR-2026-04242026-1`), the sequence resetting daily.
 
 ### 2. Inventory (Inventory Tab)
 

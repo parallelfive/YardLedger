@@ -11,11 +11,21 @@ export interface SearchResult {
   onPick: () => void;
 }
 
+// A single item in the alerts (bell) dropdown — something that needs the
+// operator's attention, with a click that jumps to where they act on it.
+export interface AlertItem {
+  key: string;
+  icon: IconName;
+  title: string;
+  sub: string;
+  tone?: string;
+  onClick: () => void;
+}
+
 export default function TopBar({
   title,
   sub,
   alerts,
-  onAlerts,
   onNewBuy,
   isLight,
   onToggleTheme,
@@ -25,8 +35,7 @@ export default function TopBar({
 }: {
   title: string;
   sub: string;
-  alerts: boolean;
-  onAlerts: () => void;
+  alerts: AlertItem[];
   onNewBuy: () => void;
   isLight: boolean;
   onToggleTheme: () => void;
@@ -35,6 +44,7 @@ export default function TopBar({
   results: SearchResult[];
 }) {
   const [focused, setFocused] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const open = focused && query.trim().length > 0;
   return (
     <div
@@ -204,12 +214,149 @@ export default function TopBar({
           onClick={onToggleTheme}
           label={isLight ? 'Switch to dark theme' : 'Switch to light theme'}
         />
-        <IconBtn
-          icon="bell"
-          badge={alerts}
-          onClick={onAlerts}
-          label={alerts ? 'Alerts (unread)' : 'Alerts'}
-        />
+        {/* alerts bell + dropdown */}
+        <div
+          style={{ position: 'relative' }}
+          onBlur={() => setTimeout(() => setAlertsOpen(false), 120)}
+        >
+          <IconBtn
+            icon="bell"
+            badge={alerts.length > 0}
+            onClick={() => setAlertsOpen((v) => !v)}
+            label={
+              alerts.length
+                ? `Alerts (${alerts.length})`
+                : 'Alerts — all caught up'
+            }
+          />
+          {alertsOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 46,
+                right: 0,
+                width: 340,
+                maxHeight: 420,
+                overflowY: 'auto',
+                background: 'var(--surface)',
+                border: '1px solid var(--line)',
+                borderRadius: 13,
+                boxShadow: 'var(--shadow-lg)',
+                padding: 6,
+                zIndex: 40,
+              }}
+            >
+              <div
+                className="mono"
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: 0.6,
+                  textTransform: 'uppercase',
+                  color: 'var(--ink-3)',
+                  padding: '8px 10px 6px',
+                }}
+              >
+                Needs attention
+              </div>
+              {alerts.length === 0 ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '10px 11px 14px',
+                  }}
+                >
+                  <Icon
+                    name="check"
+                    size={16}
+                    color="var(--moss)"
+                    stroke={2.2}
+                  />
+                  <span style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+                    You’re all caught up.
+                  </span>
+                </div>
+              ) : (
+                alerts.map((a) => (
+                  <button
+                    key={a.key}
+                    className="tap"
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setAlertsOpen(false);
+                      a.onClick();
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 11,
+                      padding: '10px 11px',
+                      borderRadius: 9,
+                      textAlign: 'left',
+                      background: 'transparent',
+                    }}
+                    onMouseEnter={(e) =>
+                      (e.currentTarget.style.background = 'var(--surface-2)')
+                    }
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.background = 'transparent')
+                    }
+                  >
+                    <div
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: 8,
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: `color-mix(in oklab, ${a.tone || 'var(--accent)'} 13%, transparent)`,
+                      }}
+                    >
+                      <Icon
+                        name={a.icon}
+                        size={16}
+                        color={a.tone || 'var(--accent)'}
+                        stroke={1.9}
+                      />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 13.5,
+                          fontWeight: 600,
+                          color: 'var(--ink)',
+                        }}
+                      >
+                        {a.title}
+                      </div>
+                      <div
+                        className="mono"
+                        style={{
+                          fontSize: 10.5,
+                          color: 'var(--ink-3)',
+                          marginTop: 1,
+                        }}
+                      >
+                        {a.sub}
+                      </div>
+                    </div>
+                    <Icon
+                      name="chev"
+                      size={14}
+                      color="var(--ink-3)"
+                      stroke={2}
+                    />
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
         <Btn variant="primary" icon="plus" onClick={onNewBuy}>
           New buy
         </Btn>
