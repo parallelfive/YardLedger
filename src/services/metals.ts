@@ -63,6 +63,7 @@ export async function updateMetal(
   updates: {
     name?: string;
     price_per_lb?: number;
+    is_regulated?: boolean;
     is_restricted?: boolean;
     pricing_unit?: 'lb' | 'each';
   },

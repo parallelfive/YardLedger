@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
@@ -83,6 +83,10 @@ export default function NewSaleScreen({ navigation }: Props) {
   const [saleWeight, setSaleWeight] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [saving, setSaving] = useState(false);
+  // Synchronous re-entry guard — `saving` state updates async, so a fast
+  // double-tap can fire createSale twice (duplicate sale + double inventory
+  // deduct) before the button re-renders disabled. Mirrors the buy side (#46).
+  const savingRef = useRef(false);
 
   // Refresh on focus (not just mount) so re-opening the screen after a sale
   // shows the updated on-hand weights instead of stale data.
@@ -169,6 +173,8 @@ export default function NewSaleScreen({ navigation }: Props) {
 
   const handleSave = async () => {
     if (!selected || !canRecord || !profile) return;
+    if (savingRef.current) return; // block a second fire before state catches up
+    savingRef.current = true;
     const saleParams = {
       metalId: selected.metalId,
       metalName: selected.metalName,
@@ -202,6 +208,7 @@ export default function NewSaleScreen({ navigation }: Props) {
       Alert.alert(t.error, (err as Error).message);
     } finally {
       setSaving(false);
+      savingRef.current = false;
     }
   };
 

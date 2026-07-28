@@ -242,13 +242,16 @@ export default function Dashboard({
     // sold today
     const sl = sales as unknown as {
       created_at: string;
+      total_revenue?: number;
       total_amount?: number;
       total?: number;
       weight?: number;
     }[];
     const todaySales = sl.filter((s) => isTodayInTz(s.created_at, tz));
+    // The sales table's revenue column is total_revenue — the old
+    // total_amount/total fallbacks were both undefined, so the tile read $0 (#51).
     const sold = todaySales.reduce(
-      (a, s) => a + Number(s.total_amount ?? s.total ?? 0),
+      (a, s) => a + Number(s.total_revenue ?? s.total_amount ?? s.total ?? 0),
       0
     );
     const soldWeight = todaySales.reduce(

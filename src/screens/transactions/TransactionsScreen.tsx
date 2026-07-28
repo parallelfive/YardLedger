@@ -45,12 +45,17 @@ export default function TransactionsScreen({ navigation }: Props) {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((state: RootState) => state.auth.profile);
+  // Attribute/filter by the staffer PIN'd in at the shared terminal, not the
+  // device's session account — otherwise a worker's own buys vanish (#50).
+  const activeIdentity = useAppSelector(
+    (state: RootState) => state.auth.activeIdentity
+  );
   const { isAdmin } = useRole();
   const { isWide } = useResponsive();
   const [preset, setPreset] = useState<DatePreset>('today');
   const { start, end } = getDateRange(preset);
   const { receipts, loading, refresh } = useReceipts(
-    isAdmin ? undefined : profile?.id,
+    isAdmin ? undefined : (activeIdentity?.user_id ?? profile?.id),
     start,
     end
   );

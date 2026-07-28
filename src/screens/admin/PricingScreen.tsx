@@ -186,10 +186,16 @@ export default function PricingScreen() {
     // would log a spurious price-history audit row on a name/tier-only edit.
     const priceChanged = Number(price) !== Number(editingMetal.price_per_lb);
     const nameChanged = trimmedName !== editingMetal.name;
+    // Persist BOTH compliance flags from the selected tier — restricted material
+    // is also regulated, and 'regulated' must actually set is_regulated (which
+    // was previously dropped, so the Regulated tier never saved) (#21).
+    const nextRegulated = tier === 'regulated' || tier === 'restricted';
     const nextRestricted = tier === 'restricted';
+    const regulatedChanged = nextRegulated !== editingMetal.is_regulated;
     const restrictedChanged = nextRestricted !== editingMetal.is_restricted;
+    const tierChanged = regulatedChanged || restrictedChanged;
 
-    if (!priceChanged && !nameChanged && !restrictedChanged) {
+    if (!priceChanged && !nameChanged && !tierChanged) {
       closeModal();
       return;
     }
@@ -201,10 +207,12 @@ export default function PricingScreen() {
     const updates: {
       name?: string;
       price_per_lb?: number;
+      is_regulated?: boolean;
       is_restricted?: boolean;
     } = {};
     if (nameChanged) updates.name = trimmedName;
     if (priceChanged) updates.price_per_lb = price;
+    if (regulatedChanged) updates.is_regulated = nextRegulated;
     if (restrictedChanged) updates.is_restricted = nextRestricted;
 
     if (!(await dismissThenElevate())) return;

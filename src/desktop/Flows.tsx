@@ -92,8 +92,11 @@ interface BuyItem {
   price?: number;
 }
 // Effective net weight for a line — gross minus tare when weighing a vehicle,
-// clamped at 0. Delegates to the shared, unit-tested calculateNetWeight.
-const netOf = (it: BuyItem): number => calculateNetWeight(it.mode, it);
+// clamped at 0. Delegates to the shared, unit-tested calculateNetWeight, then
+// floors at 0 so a directly-typed negative net can't show a negative payout
+// (the desktop inputs accept a minus sign; the mobile keypad can't) (#97).
+const netOf = (it: BuyItem): number =>
+  Math.max(0, calculateNetWeight(it.mode, it));
 
 // A material priced by the piece rather than by weight.
 const isPiece = (m?: { pricing_unit?: string }): boolean =>

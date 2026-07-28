@@ -210,7 +210,9 @@ export default function TopBar({
           )}
         </div>
         <IconBtn
-          icon={isLight ? 'bolt' : 'drop'}
+          // Icon hints at the theme you'll switch TO: darker 'drop' in light
+          // mode, brighter 'bolt' in dark mode (no sun/moon glyph exists) (#99).
+          icon={isLight ? 'drop' : 'bolt'}
           onClick={onToggleTheme}
           label={isLight ? 'Switch to dark theme' : 'Switch to light theme'}
         />
