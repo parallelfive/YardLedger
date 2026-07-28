@@ -29,6 +29,37 @@ mechanics in [ENTITLEMENTS_AND_PORTAL_RFC.md](./ENTITLEMENTS_AND_PORTAL_RFC.md).
 - **Not us (yet) — large enterprise processors** running Recy/AMCS with ERP +
   hedging desks. Revisit once the mid-market modules are proven.
 
+## 2.5 First market reality: LA / California (validated demand)
+
+Damian personally knows **many smaller LA yards** who'd take an affordable **MVP
+tier** — the strongest signal we have, and it confirms the small-yard +
+affordability thesis. **But the beachhead is therefore _California_, and our
+compliance engine is New Mexico-only today.** "Compliance autopilot" is the moat;
+it doesn't cover these customers until we ship a **California jurisdiction
+module**. That module — not NM — is the real v1 revenue gate.
+
+California is one of the strictest states (good for the moat, real work to
+build). Verified requirements (2026-07-28, confirm with a CA yard before build):
+
+- **3-day payment hold**, paid by **non-transferable check mailed to the seller's
+  home** or picked up in person after the hold — **no cash**. Hold waivable for
+  frequent sellers (5+ transactions on 5 different days/month for 3 consecutive
+  months).
+- **AB 476 (eff. 1/1/2026):** copper sellers need a **CSLB license**; fine for
+  knowingly buying stolen metal raised **$1,000 → $10,000**.
+- **Photo-ID copy** (thumbprint in some localities); **no nonferrous purchases
+  from under-18**; record retention + local law-enforcement reporting (commonly
+  LeadsOnline / CARS).
+
+Maps well onto primitives we already have (holds, check-only payment, ID capture,
+reporting queue) via the jurisdiction layer (`src/compliance/jurisdictions/`).
+New work vs NM: a **3-day _payment_ hold** (delayed-payout workflow + mailed
+check, not just a material hold), the **frequent-seller waiver**, the **CSLB
+copper-license** field/gate, and the **under-18** block. Sources:
+[AB 476](https://legiscan.com/CA/text/AB476/id/3220273),
+[CA scrap laws (ScrapMonster)](https://www.scrapmonster.com/scrap-laws/california/3370),
+[AB 476 fines (P&T Metals)](https://www.ptmetals.com/blog/ab-476-scrap-metal-fine-increase/).
+
 ## 3. The wedge (why they switch)
 
 1. **Compliance autopilot** — "we keep you legal automatically" (holds, VIN +
@@ -76,8 +107,12 @@ the same optional-peripheral pattern later.
 
 ## 6. v1 — what we lead with to earn the first customers
 
-1. **Compliance autopilot + modern no-hardware POS** — the headline (built;
-   polish + market).
+**0. California jurisdiction module (revenue gate for the LA beachhead).** The
+compliance moat only counts if it covers the customer's state. See §2.5. This is
+a prerequisite, not a "nice to have," for the LA yards.
+
+1. **Compliance autopilot + modern no-hardware POS** — the headline (built for
+   NM; needs the CA module above to serve the beachhead).
 2. **Real pricing: quality grades + per-customer price levels + permissioned
    overrides** — table-stakes-plus and the first paid "Advanced Pricing" module;
    unlocks B2B / bigger yards.
