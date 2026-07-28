@@ -53,8 +53,11 @@ interface InvRow {
   id: string;
   metalId: string;
   metalName: string;
+  // `weight` is the on-hand AMOUNT — pounds for 'lb', a piece count for 'each';
+  // `avgCost` is the matching per-unit cost. `unit` says which.
   weight: number;
   avgCost: number;
+  unit: 'lb' | 'each';
   tone: Tone;
 }
 
@@ -105,15 +108,26 @@ export default function NewSaleScreen({ navigation }: Props) {
                 | string
                 | undefined;
               const restricted = Boolean(metals?.is_restricted);
+              // Per-piece materials (converters, rims) carry a piece count +
+              // per-piece cost instead of weight.
+              const piece =
+                metals?.pricing_unit === 'each' ||
+                Number(item.quantity ?? 0) > 0;
               return {
                 id: String(item.id),
                 metalId: String(item.metal_id),
                 metalName: String(item.metal_name ?? metals?.name ?? ''),
-                weight: Number(item.weight),
-                avgCost: Number(item.avg_cost_per_lb),
+                weight: piece
+                  ? Number(item.quantity ?? 0)
+                  : Number(item.weight),
+                avgCost: piece
+                  ? Number(item.avg_cost_per_piece ?? 0)
+                  : Number(item.avg_cost_per_lb),
+                unit: piece ? ('each' as const) : ('lb' as const),
                 tone: toneFor(category, restricted),
               };
             })
+            // On hand by either measure (weight rows OR piece rows).
             .filter((r) => r.weight > 0);
           setInventory(rows);
         } catch {
@@ -133,6 +147,10 @@ export default function NewSaleScreen({ navigation }: Props) {
     [inventory, selectedId]
   );
 
+  // `weight` here is the entered AMOUNT — pounds or pieces, per the selected
+  // material's unit.
+  const unit: 'lb' | 'each' = selected?.unit ?? 'lb';
+  const isPiece = unit === 'each';
   const weight = parseFloat(saleWeight) || 0;
   const price = parseFloat(salePrice) || 0;
   const total = weight * price;
@@ -154,11 +172,15 @@ export default function NewSaleScreen({ navigation }: Props) {
     const saleParams = {
       metalId: selected.metalId,
       metalName: selected.metalName,
-      weight,
+      // Per-piece sale: weight 0, quantity = the piece count; the server
+      // (enforce_sale_integrity) recomputes revenue/profit off the piece count.
+      weight: isPiece ? 0 : weight,
       salePricePerLb: price,
       costBasisPerLb: selected.avgCost,
       buyerName: buyerName.trim() || undefined,
       workerId: activeIdentity?.user_id ?? profile.id,
+      unit,
+      quantity: isPiece ? weight : null,
     };
     setSaving(true);
     try {
@@ -249,7 +271,10 @@ export default function NewSaleScreen({ navigation }: Props) {
                         {row.metalName}
                       </Text>
                       <Text style={styles.materialAvail}>
-                        {fmtLbs(row.weight)} {t.lbAvail}
+                        {fmtLbs(row.weight)}{' '}
+                        {row.unit === 'each'
+                          ? t.pieces.toLowerCase()
+                          : t.lbAvail}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -261,7 +286,9 @@ export default function NewSaleScreen({ navigation }: Props) {
             <View style={styles.fieldsRow}>
               <View style={styles.fieldCol}>
                 <View style={styles.labelRow}>
-                  <Text style={styles.fieldLabelInline}>{t.weightLb}</Text>
+                  <Text style={styles.fieldLabelInline}>
+                    {isPiece ? t.pieces : t.weightLb}
+                  </Text>
                   {selected ? (
                     <Text style={styles.fieldHint}>
                       {fmtLbs(onHand)} {t.onHandShort}
@@ -279,7 +306,9 @@ export default function NewSaleScreen({ navigation }: Props) {
                 />
               </View>
               <View style={styles.fieldCol}>
-                <Text style={styles.fieldLabelInline}>{t.priceLbShort}</Text>
+                <Text style={styles.fieldLabelInline}>
+                  {isPiece ? `Price ${t.perPiece}` : t.priceLbShort}
+                </Text>
                 <TextInput
                   style={[styles.input, styles.inputMono]}
                   placeholder="0.00"
@@ -301,8 +330,12 @@ export default function NewSaleScreen({ navigation }: Props) {
                   color={colors.rust}
                 />
                 <Text style={styles.guardText}>
-                  {t.cannotSell} {fmtLbs(weight)} {t.lbWord} {t.onlyWord}{' '}
-                  {fmtLbs(onHand)} {t.lbOnHand}
+                  {t.cannotSell} {fmtLbs(weight)}{' '}
+                  {isPiece ? t.pieces.toLowerCase() : t.lbWord} {t.onlyWord}{' '}
+                  {fmtLbs(onHand)}{' '}
+                  {isPiece
+                    ? `${t.pieces.toLowerCase()} ${t.onHandShort}.`
+                    : t.lbOnHand}
                 </Text>
               </View>
             )}
