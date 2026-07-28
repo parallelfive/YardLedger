@@ -154,6 +154,25 @@ export function useNewTransaction(
       return;
     }
     if (newPrice === lineItems[index].originalPricePerLb) {
+      // Reverting to the catalog price: clear any existing override on the line
+      // (price, flag, total) instead of silently keeping the old override (#38).
+      // Going back to the standard price isn't privileged, so no access code.
+      setLineItems((prev) =>
+        prev.map((item, i) =>
+          i === index && item.isPriceOverride
+            ? {
+                ...item,
+                pricePerLb: item.originalPricePerLb,
+                isPriceOverride: false,
+                overrideApprovedBy: null,
+                total: calculateLineItemTotal(
+                  item.unit === 'each' ? (item.quantity ?? 0) : item.weight,
+                  item.originalPricePerLb
+                ),
+              }
+            : item
+        )
+      );
       setEditingIndex(null);
       return;
     }

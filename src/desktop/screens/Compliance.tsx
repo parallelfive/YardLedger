@@ -268,7 +268,9 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
   // marked reported (reportable & unreported = the queue) — building it from
   // every record in range would re-file already-reported rows on a repeat
   // export, double-filing them to the state.
-  const exportCsv = async () => {
+  // Returns true only if the file was actually produced/shared, so the caller
+  // never stamps receipts "reported" after a failed or cancelled export (#47).
+  const exportCsv = async (): Promise<boolean> => {
     try {
       const queuedIds = new Set(queued.map((r) => r.id));
       const toFile = records.filter((r) => queuedIds.has(r.id));
@@ -283,8 +285,9 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
         'text/csv',
         'public.comma-separated-values-text'
       );
+      return true;
     } catch {
-      /* best effort — surfaced via OS share / download failure */
+      return false;
     }
   };
 
@@ -306,10 +309,12 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
     }
   };
 
-  // "Export & mark reported": download the CSV, then flag only the buys that
-  // were actually in the reporting queue (reportable & unreported).
+  // "Export & mark reported": download the CSV, then — ONLY if it actually
+  // exported — flag the buys that were in the reporting queue. A cancelled or
+  // failed export must not stamp records reported (#47).
   const exportAndReport = async () => {
-    await exportCsv();
+    const ok = await exportCsv();
+    if (!ok) return;
     await markReported(queued.map((r) => r.id));
   };
 

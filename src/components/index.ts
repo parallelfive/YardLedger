@@ -5,6 +5,7 @@ export { default as Card } from './Card';
 export { default as Input } from './Input';
 export { default as Badge } from './Badge';
 export { default as EmptyState } from './EmptyState';
+export { default as ReportError } from './ReportError';
 export { default as RefreshableList } from './RefreshableList';
 export { default as SignaturePad } from './SignaturePad';
 export { default as AccessCodeModal } from './AccessCodeModal';

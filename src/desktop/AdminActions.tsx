@@ -196,6 +196,12 @@ function ElevateModal({
         <input
           type="password"
           inputMode="numeric"
+          // This is a transient admin PIN, not a saved credential — tell the
+          // password managers not to offer to save/update it (#101).
+          autoComplete="off"
+          data-1p-ignore="true"
+          data-lpignore="true"
+          data-form-type="other"
           autoFocus
           value={pin}
           onChange={(e) =>

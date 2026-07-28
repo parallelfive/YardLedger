@@ -2,6 +2,8 @@ export default {
   // Common
   error: 'Error',
   retry: 'Retry',
+  couldNotLoad: 'Couldn’t load this report',
+  checkConnectionRetry: 'Check your connection and try again.',
   success: 'Success',
   cancel: 'Cancel',
   ok: 'OK',

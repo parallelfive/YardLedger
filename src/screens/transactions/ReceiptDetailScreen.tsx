@@ -85,6 +85,10 @@ interface ReceiptDetail {
   subtotal: number;
   signature_uri?: string | null;
   created_at: string;
+  // The staffer who recorded the buy (worker_id → users), embedded by
+  // fetchReceiptById. PostgREST returns a to-one embed as an object; supabase-js
+  // sometimes infers an array — accept either.
+  worker?: { name?: string | null } | { name?: string | null }[] | null;
   line_items: ReceiptLineItem[];
 }
 
@@ -301,7 +305,11 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
             />
             <DetailRow
               label={t.worker}
-              value={receipt.seller_name || '—'}
+              value={
+                (Array.isArray(receipt.worker)
+                  ? receipt.worker[0]?.name
+                  : receipt.worker?.name) || '—'
+              }
               last
             />
           </View>

@@ -22,7 +22,7 @@ import {
   type ComplianceReceiptRow,
 } from '../../services/reports';
 import { MiniStat, SectionLabel, fmtMoney } from '../../components/foundry';
-import { ResponsiveContainer } from '../../components';
+import { ResponsiveContainer, ReportError } from '../../components';
 import { isReportOverdue } from '../../utils/businessDays';
 import { useT } from '../../hooks/useT';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
@@ -40,10 +40,12 @@ export default function ReportingStatusScreen() {
   const [status, setStatus] = useState<ReportingStatus | null>(null);
   const [unreported, setUnreported] = useState<ComplianceReceiptRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [sending, setSending] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const [st, list] = await Promise.all([
         fetchReportingStatus(),
@@ -52,13 +54,9 @@ export default function ReportingStatusScreen() {
       setStatus(st);
       setUnreported(list);
     } catch {
-      setStatus({
-        pending: 0,
-        overdue: 0,
-        oldestUnreportedAt: null,
-        lastUpload: null,
-      });
-      setUnreported([]);
+      // Don't fake a zero/"all clear" status on failure — that would hide
+      // unreported buys on a compliance screen. Surface the error instead (#106).
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -118,6 +116,14 @@ export default function ReportingStatusScreen() {
       setSending(false);
     }
   };
+
+  if (error && !status) {
+    return (
+      <View style={styles.centered}>
+        <ReportError onRetry={load} />
+      </View>
+    );
+  }
 
   if (loading || !status) {
     return (

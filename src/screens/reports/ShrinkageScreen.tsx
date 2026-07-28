@@ -15,6 +15,7 @@ import {
 } from '../../services/reports';
 import { useT } from '../../hooks/useT';
 import { useResponsive } from '../../hooks';
+import { ReportError } from '../../components';
 import { Tag, MetalDot, type Tone } from '../../components/foundry';
 import { type Palette, spacing, fontSize, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
@@ -40,13 +41,15 @@ export default function ShrinkageScreen() {
   const { isWide } = useResponsive();
   const [data, setData] = useState<ShrinkageRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       setData(await fetchShrinkageReport());
     } catch {
-      // Will show empty
+      setError(true); // surface the failure instead of a misleading empty state
     } finally {
       setLoading(false);
     }
@@ -66,6 +69,14 @@ export default function ShrinkageScreen() {
           size="large"
           style={styles.loader}
         />
+      </View>
+    );
+  }
+
+  if (error && data.length === 0) {
+    return (
+      <View style={styles.container}>
+        <ReportError onRetry={loadData} />
       </View>
     );
   }

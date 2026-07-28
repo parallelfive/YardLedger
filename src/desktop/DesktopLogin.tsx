@@ -189,6 +189,9 @@ export default function DesktopLogin() {
               placeholder="you@yard.com"
               autoCapitalize="none"
               autoCorrect="off"
+              // Proper autocomplete so a password manager treats this as one
+              // coherent login form and stops nagging on navigation (#101).
+              autoComplete="username"
               style={inputStyle}
             />
           </label>
@@ -201,6 +204,7 @@ export default function DesktopLogin() {
               value={password}
               onChange={(ev) => setPassword(ev.target.value)}
               placeholder="••••••••"
+              autoComplete={isSignup ? 'new-password' : 'current-password'}
               style={inputStyle}
             />
           </label>
@@ -216,6 +220,7 @@ export default function DesktopLogin() {
                   value={confirm}
                   onChange={(ev) => setConfirm(ev.target.value)}
                   placeholder="••••••••"
+                  autoComplete="new-password"
                   style={inputStyle}
                 />
               </label>
