@@ -81,6 +81,8 @@ const rangeDates = (range: Range): { start: string; end: string } => {
 interface RecordVM {
   id: string;
   no: string;
+  // The linked customer record (for "view seller history"); null for walk-ins.
+  customerId: string | null;
   seller: string;
   dob: string;
   address: string;
@@ -109,6 +111,7 @@ const toVM = (r: ComplianceReceiptRow): RecordVM => {
   return {
     id: r.id,
     no: r.receipt_number,
+    customerId: r.customer_id,
     seller: r.seller_name || r.customer_name || 'Walk-in',
     dob: r.seller_dob || '—',
     address:
@@ -327,7 +330,13 @@ function ExportTile({
   );
 }
 
-export default function Compliance({ canReport }: { canReport: boolean }) {
+export default function Compliance({
+  canReport,
+  nav,
+}: {
+  canReport: boolean;
+  nav: { viewSeller: (customerId: string) => void };
+}) {
   const [range, setRange] = useState<Range>('Today');
   const [filter, setFilter] = useState<Filter>('all');
   const [sel, setSel] = useState<RecordVM | null>(null);
@@ -1181,6 +1190,20 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                     </div>
                   ))}
                 </div>
+                {sel.customerId && (
+                  <div style={{ marginTop: 14 }}>
+                    <Btn
+                      variant="ghost"
+                      icon="user"
+                      full
+                      onClick={() =>
+                        sel.customerId && nav.viewSeller(sel.customerId)
+                      }
+                    >
+                      View seller history →
+                    </Btn>
+                  </div>
+                )}
               </Card>
               <Card pad={18}>
                 <PanelHead title="Materials purchased" />

@@ -78,8 +78,13 @@ const fmtDate = (iso: string | null) =>
 // key upsertCustomer uses), so no extra round-trips.
 export default function Customers({
   nav,
+  openSellerId,
+  onSellerOpened,
 }: {
   nav: { openTicket: (r: ReceiptRow) => void };
+  // A customer to auto-open (e.g. jumped here from a compliance record).
+  openSellerId?: string | null;
+  onSellerOpened?: () => void;
 }) {
   const { customers, loading, error, refresh } = useCustomers();
   const { receipts } = useReceipts();
@@ -87,6 +92,19 @@ export default function Customers({
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<Customer | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Auto-open a seller when jumped here from another screen (e.g. a compliance
+  // record's "View seller history"), once the directory has loaded a match.
+  useEffect(() => {
+    if (!openSellerId) return;
+    const match = customers.find((c) => c.id === openSellerId);
+    if (match) {
+      setSel(match);
+      onSellerOpened?.();
+    }
+    // onSellerOpened is a fresh closure each render; deps are the real inputs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openSellerId, customers]);
 
   // The selected seller's FULL receipt history (all years, by customer_id) —
   // powers the yearly statement (the day-book `receipts` list is date-limited).

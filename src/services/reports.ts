@@ -500,6 +500,7 @@ export interface ComplianceReceiptRow {
   id: string;
   receipt_number: string;
   created_at: string;
+  customer_id: string | null;
   customer_name: string;
   seller_name: string | null;
   seller_dob: string | null;
