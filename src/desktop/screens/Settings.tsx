@@ -501,6 +501,8 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                       cat_converter_retention_years:
                         settings?.cat_converter_retention_years ?? 3,
                       timezone: settings?.timezone ?? '',
+                      logo_url: settings?.logo_url ?? null,
+                      settings_id: settings?.id,
                     })
                   }
                 >
@@ -709,6 +711,9 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                             price_per_lb: m.price_per_lb,
                             pricing_unit:
                               m.pricing_unit === 'each' ? 'each' : 'lb',
+                            is_regulated: m.is_regulated,
+                            is_restricted: m.is_restricted,
+                            is_catalytic: m.is_catalytic,
                           })
                       : undefined
                   }

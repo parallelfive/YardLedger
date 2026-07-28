@@ -4,12 +4,16 @@ import {
   useContext,
   useRef,
   useState,
+  type ChangeEvent,
   type ReactNode,
 } from 'react';
 import { useAppSelector, type RootState } from '../store';
 import { elevateAdmin } from '../services/admin';
 import { createMetal, updateMetal, logPriceChange } from '../services/metals';
-import { updateCompanySettings } from '../services/companySettings';
+import {
+  updateCompanySettings,
+  uploadCompanyLogo,
+} from '../services/companySettings';
 import {
   getJurisdiction,
   supportedStateCodes,
@@ -26,6 +30,113 @@ interface EditTarget {
   name: string;
   price_per_lb: number;
   pricing_unit?: 'lb' | 'each';
+  is_regulated?: boolean;
+  is_restricted?: boolean;
+  is_catalytic?: boolean;
+}
+
+// Compliance tier of a metal, derived from its booleans (strictest wins).
+// Catalytic is intrinsic (set on the material type, not operator-editable here);
+// operators pick between the three below.
+type MetalTier = 'open' | 'regulated' | 'restricted' | 'catalytic';
+const SELECTABLE_TIERS: MetalTier[] = ['open', 'regulated', 'restricted'];
+const tierOfFlags = (m: {
+  is_regulated?: boolean;
+  is_restricted?: boolean;
+  is_catalytic?: boolean;
+}): MetalTier =>
+  m.is_catalytic
+    ? 'catalytic'
+    : m.is_restricted
+      ? 'restricted'
+      : m.is_regulated
+        ? 'regulated'
+        : 'open';
+// Restricted material is ALSO regulated, so set BOTH flags — the mobile fix for
+// #21 dropped is_regulated on the 'regulated' tier, so it never persisted.
+const tierToFlags = (t: MetalTier) => ({
+  is_regulated: t === 'regulated' || t === 'restricted',
+  is_restricted: t === 'restricted',
+});
+const TIER_LABEL: Record<MetalTier, string> = {
+  open: 'Open',
+  regulated: 'Regulated',
+  restricted: 'Restricted',
+  catalytic: 'Catalytic',
+};
+const TIER_HINT: Record<MetalTier, string> = {
+  open: 'No documentation required.',
+  regulated: 'Seller ID, vehicle & ownership affirmation.',
+  restricted: 'Adds written proof of ownership.',
+  catalytic: 'Intrinsic — set on the material type.',
+};
+
+// Open / Regulated / Restricted picker shared by the add + edit material modals.
+// Catalytic material is locked (statutory, tied to the material type) and shown
+// read-only rather than as a fourth button.
+function TierSelect({
+  tier,
+  onChange,
+}: {
+  tier: MetalTier;
+  onChange: (t: MetalTier) => void;
+}) {
+  if (tier === 'catalytic') {
+    return (
+      <Field label="Compliance tier">
+        <div
+          className="mono"
+          style={{
+            padding: '10px 12px',
+            borderRadius: 10,
+            background: 'var(--surface-2)',
+            border: '1px solid var(--line)',
+            fontSize: 12.5,
+            color: 'var(--ink-2)',
+          }}
+        >
+          Catalytic · {TIER_HINT.catalytic}
+        </div>
+      </Field>
+    );
+  }
+  return (
+    <Field label="Compliance tier">
+      <div style={{ display: 'flex', gap: 8 }}>
+        {SELECTABLE_TIERS.map((tr) => {
+          const on = tier === tr;
+          return (
+            <button
+              key={tr}
+              type="button"
+              className="tap focusring"
+              role="tab"
+              aria-selected={on}
+              onClick={() => onChange(tr)}
+              style={{
+                flex: 1,
+                height: 40,
+                borderRadius: 10,
+                fontSize: 13,
+                fontWeight: 600,
+                background: on ? 'var(--accent-soft)' : 'var(--surface-2)',
+                color: on ? 'var(--accent)' : 'var(--ink-2)',
+                border: `1px solid ${on ? 'var(--accent-line)' : 'var(--line)'}`,
+              }}
+            >
+              {TIER_LABEL[tr]}
+            </button>
+          );
+        })}
+      </div>
+      <div
+        className="mono"
+        style={{ fontSize: 10.5, color: 'var(--ink-3)', marginTop: 6 }}
+      >
+        {TIER_HINT[tier]}
+      </div>
+    </Field>
+  );
 }
 
 export interface CompanyEdit {
@@ -43,6 +154,11 @@ export interface CompanyEdit {
   general_retention_years: number;
   cat_converter_retention_years: number;
   timezone: string;
+  // Company logo — shown/uploaded in the profile modal. The company_settings row
+  // id is needed for the storage upload; both are read-only passthroughs (the
+  // form save builds its update object explicitly and ignores them).
+  logo_url?: string | null;
+  settings_id?: string;
 }
 
 export interface DeskAdmin {
@@ -262,11 +378,17 @@ function AddMaterialModal({
   onSave,
 }: {
   onClose: () => void;
-  onSave: (name: string, price: number, unit: 'lb' | 'each') => Promise<void>;
+  onSave: (
+    name: string,
+    price: number,
+    unit: 'lb' | 'each',
+    tier: MetalTier
+  ) => Promise<void>;
 }) {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [unit, setUnit] = useState<'lb' | 'each'>('lb');
+  const [tier, setTier] = useState<MetalTier>('open');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const p = parseFloat(price);
@@ -277,7 +399,7 @@ function AddMaterialModal({
     setBusy(true);
     setErr(null);
     try {
-      await onSave(name.trim(), p, unit);
+      await onSave(name.trim(), p, unit, tier);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -345,6 +467,7 @@ function AddMaterialModal({
             align="right"
           />
         </Field>
+        <TierSelect tier={tier} onChange={setTier} />
       </div>
       {err && (
         <div
@@ -374,17 +497,24 @@ function EditPriceModal({
 }: {
   metal: EditTarget;
   onClose: () => void;
-  onSave: (price: number, unit: 'lb' | 'each') => Promise<void>;
+  onSave: (
+    price: number,
+    unit: 'lb' | 'each',
+    tier: MetalTier
+  ) => Promise<void>;
 }) {
   const [price, setPrice] = useState(String(metal.price_per_lb));
   const [unit, setUnit] = useState<'lb' | 'each'>(
     metal.pricing_unit === 'each' ? 'each' : 'lb'
   );
+  const startTier = tierOfFlags(metal);
+  const [tier, setTier] = useState<MetalTier>(startTier);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const p = parseFloat(price);
   const startUnit = metal.pricing_unit === 'each' ? 'each' : 'lb';
-  const changed = p !== metal.price_per_lb || unit !== startUnit;
+  const changed =
+    p !== metal.price_per_lb || unit !== startUnit || tier !== startTier;
   const ok = p > 0 && changed && !busy;
 
   const save = async () => {
@@ -392,7 +522,7 @@ function EditPriceModal({
     setBusy(true);
     setErr(null);
     try {
-      await onSave(p, unit);
+      await onSave(p, unit, tier);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -454,6 +584,9 @@ function EditPriceModal({
           align="right"
         />
       </Field>
+      <div style={{ marginTop: 12 }}>
+        <TierSelect tier={tier} onChange={setTier} />
+      </div>
       {err && (
         <div
           className="mono"
@@ -477,12 +610,16 @@ function EditPriceModal({
 // ── edit company profile ─────────────────────────────────────────────────────
 function EditCompanyModal({
   current,
+  userId,
   onClose,
   onSave,
+  onLogoSaved,
 }: {
   current: CompanyEdit;
+  userId: string;
   onClose: () => void;
   onSave: (updates: CompanyEdit) => Promise<void>;
+  onLogoSaved: () => void;
 }) {
   const [name, setName] = useState(current.company_name);
   const [phone, setPhone] = useState(current.phone);
@@ -509,6 +646,40 @@ function EditCompanyModal({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const ok = !!name.trim() && !busy;
+
+  // Company logo. Uploaded immediately on pick (like mobile) — the browser file
+  // picker hands back a data: URL, which uploadCompanyLogo → readImageBytes now
+  // decodes for web (the #104 fix); persists to company_settings + storage.
+  const [logoUrl, setLogoUrl] = useState<string | null>(current.logo_url ?? '');
+  const [logoBusy, setLogoBusy] = useState(false);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const pickLogo = () => fileRef.current?.click();
+  const onLogoFile = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-picking the same file
+    if (!file) return;
+    if (!current.settings_id) {
+      setErr('Save the company profile once before adding a logo.');
+      return;
+    }
+    setLogoBusy(true);
+    setErr(null);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadCompanyLogo(dataUrl, userId, current.settings_id);
+      setLogoUrl(url);
+      onLogoSaved();
+    } catch (ex) {
+      setErr((ex as Error).message);
+    } finally {
+      setLogoBusy(false);
+    }
+  };
 
   const jur = getJurisdiction(state);
   // Fill the rule numbers from the selected state's statutory defaults, so an
@@ -566,6 +737,86 @@ function EditCompanyModal({
       width={620}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* logo — click the tile to pick a file; uploads immediately (#104) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            onChange={onLogoFile}
+            style={{ display: 'none' }}
+          />
+          <button
+            type="button"
+            className="tap focusring"
+            onClick={pickLogo}
+            aria-label="Change company logo"
+            style={{
+              width: 64,
+              height: 64,
+              borderRadius: 16,
+              flexShrink: 0,
+              overflow: 'hidden',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--line)',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            {logoBusy ? (
+              <span
+                className="mono"
+                style={{ fontSize: 10, color: 'var(--ink-3)' }}
+              >
+                …
+              </span>
+            ) : logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Company logo"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <Icon
+                name="building"
+                size={26}
+                color="var(--ink-3)"
+                stroke={1.8}
+              />
+            )}
+          </button>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+              Company logo
+            </div>
+            <button
+              type="button"
+              onClick={pickLogo}
+              className="tap"
+              style={{
+                marginTop: 3,
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--accent)',
+                background: 'none',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+              }}
+            >
+              {logoUrl ? 'Change logo' : 'Upload logo'}
+            </button>
+            <div
+              className="mono"
+              style={{ fontSize: 10, color: 'var(--ink-3)', marginTop: 2 }}
+            >
+              Shown on printed records. Square image works best.
+            </div>
+          </div>
+        </div>
         <Field label="Company name">
           <TextInput
             value={name}
@@ -839,9 +1090,14 @@ export function DeskAdminProvider({
       {adding && (
         <AddMaterialModal
           onClose={() => setAdding(false)}
-          onSave={async (name, price, unit) => {
+          onSave={async (name, price, unit, tier) => {
             if (!(await ensureElevated())) return;
-            await createMetal(name, price, undefined, unit);
+            const created = await createMetal(name, price, undefined, unit);
+            // createMetal only sets name/price/unit; persist the compliance tier
+            // in a follow-up update when it's not the default 'open'.
+            if (tier !== 'open' && created?.id) {
+              await updateMetal(created.id, tierToFlags(tier), userId);
+            }
             setAdding(false);
             onChanged();
           }}
@@ -852,11 +1108,18 @@ export function DeskAdminProvider({
         <EditPriceModal
           metal={editing}
           onClose={() => setEditing(null)}
-          onSave={async (price, unit) => {
+          onSave={async (price, unit, tier) => {
             if (!(await ensureElevated())) return;
+            // Persist BOTH compliance flags from the tier (restricted implies
+            // regulated) alongside price/unit — dropping is_regulated was the
+            // original #21 bug where the Regulated tier never saved.
+            const flags =
+              editing.is_catalytic || tier === 'catalytic'
+                ? {}
+                : tierToFlags(tier);
             await updateMetal(
               editing.id,
-              { price_per_lb: price, pricing_unit: unit },
+              { price_per_lb: price, pricing_unit: unit, ...flags },
               userId
             );
             // Only log a price-history row when the price actually changed (a
@@ -878,7 +1141,9 @@ export function DeskAdminProvider({
       {company && (
         <EditCompanyModal
           current={company}
+          userId={userId}
           onClose={() => setCompany(null)}
+          onLogoSaved={onChanged}
           onSave={async (updates) => {
             if (!(await ensureElevated(true))) return;
             await updateCompanySettings(updates, userId);

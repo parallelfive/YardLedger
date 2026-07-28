@@ -39,6 +39,8 @@ export type IconName =
   | 'pin'
   | 'edit'
   | 'bolt'
+  | 'sun'
+  | 'moon'
   | 'lock'
   | 'car'
   | 'hash'
@@ -207,6 +209,16 @@ export default function Icon({
       </>
     ),
     drop: <path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11Z" {...p} />,
+    sun: (
+      <>
+        <circle cx="12" cy="12" r="4" {...p} />
+        <path
+          d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+          {...p}
+        />
+      </>
+    ),
+    moon: <path d="M20 14.5A8 8 0 0 1 9.5 4 7 7 0 1 0 20 14.5Z" {...p} />,
     cal: (
       <>
         <rect x="3.5" y="5" width="17" height="16" rx="2" {...p} />
