@@ -50,12 +50,15 @@ export async function fetchRecentBuyTotals(
   // One extra day of buffer so a receipt near the window edge in a different
   // timezone isn't excluded by the query before day-bucketing.
   since.setDate(since.getDate() - days);
-  const { data, error } = await supabase
-    .from('receipts')
-    .select('subtotal, created_at')
-    .eq('type', 'buy')
-    .gte('created_at', since.toISOString());
-  if (error) throw error;
+  const data = await fetchAllPages<{ subtotal: number; created_at: string }>(
+    () =>
+      supabase
+        .from('receipts')
+        .select('subtotal, created_at')
+        .eq('type', 'buy')
+        .gte('created_at', since.toISOString())
+        .order('id', { ascending: true })
+  );
   // Bucket by CALENDAR day, not elapsed-ms / 86.4M. A DST transition in the
   // window makes a day 23 or 25 hours long, so the fixed-day-length math shifts
   // boundary receipts into the wrong bar (#74). Matching local date strings is
@@ -68,7 +71,7 @@ export async function fetchRecentBuyTotals(
     dayIndex.set(localDateInTz(d, timezone), i);
   }
   const buckets = new Array(days).fill(0) as number[];
-  for (const r of data ?? []) {
+  for (const r of data) {
     const idx = dayIndex.get(localDateInTz(r.created_at as string, timezone));
     if (idx !== undefined) buckets[idx] += Number(r.subtotal);
   }
@@ -82,22 +85,35 @@ export async function fetchDailySummary(
   const rangeStart = startOfLocalDayUtc(startDate);
   const rangeEnd = endOfLocalDayUtc(endDate);
 
-  // Fetch buy receipts with line items in range
-  const { data: receipts, error: receiptsError } = await supabase
-    .from('receipts')
-    .select('id, subtotal, line_items(metal_name, weight, price_per_lb)')
-    .eq('type', 'buy')
-    .gte('created_at', rangeStart)
-    .lte('created_at', rangeEnd);
-  if (receiptsError) throw receiptsError;
+  // Fetch buy receipts with line items in range (paginated — a busy month can
+  // exceed the 1000-row cap and silently undercount the summary) (#45).
+  const receipts = await fetchAllPages<{
+    id: string;
+    subtotal: number;
+    line_items: { metal_name: string; weight: number; price_per_lb: number }[];
+  }>(() =>
+    supabase
+      .from('receipts')
+      .select('id, subtotal, line_items(metal_name, weight, price_per_lb)')
+      .eq('type', 'buy')
+      .gte('created_at', rangeStart)
+      .lte('created_at', rangeEnd)
+      .order('id', { ascending: true })
+  );
 
   // Fetch sales in range
-  const { data: sales, error: salesError } = await supabase
-    .from('sales')
-    .select('weight, total_revenue, profit')
-    .gte('created_at', rangeStart)
-    .lte('created_at', rangeEnd);
-  if (salesError) throw salesError;
+  const sales = await fetchAllPages<{
+    weight: number;
+    total_revenue: number;
+    profit: number;
+  }>(() =>
+    supabase
+      .from('sales')
+      .select('weight, total_revenue, profit')
+      .gte('created_at', rangeStart)
+      .lte('created_at', rangeEnd)
+      .order('id', { ascending: true })
+  );
 
   let totalBoughtWeight = 0;
   let totalBoughtDollars = 0;
@@ -247,26 +263,30 @@ export async function fetchProfitabilityReport(
   const rangeStart = startOfLocalDayUtc(startDate);
   const rangeEnd = endOfLocalDayUtc(endDate);
 
-  // Fetch buy line items in range
-  const { data: buyData, error: buyError } = await supabase
-    .from('line_items')
-    .select(
-      'metal_id, metal_name, weight, quantity, unit, price_per_lb, receipts!inner(type), metals(metal_categories(name))'
-    )
-    .eq('receipts.type', 'buy')
-    .gte('created_at', rangeStart)
-    .lte('created_at', rangeEnd);
-  if (buyError) throw buyError;
+  // Fetch buy line items in range (paginated so a busy month isn't capped) (#45)
+  const buyData = await fetchAllPages<Record<string, unknown>>(() =>
+    supabase
+      .from('line_items')
+      .select(
+        'metal_id, metal_name, weight, quantity, unit, price_per_lb, receipts!inner(type), metals(metal_categories(name))'
+      )
+      .eq('receipts.type', 'buy')
+      .gte('created_at', rangeStart)
+      .lte('created_at', rangeEnd)
+      .order('id', { ascending: true })
+  );
 
   // Fetch sales in range
-  const { data: salesData, error: salesError } = await supabase
-    .from('sales')
-    .select(
-      'metal_id, metal_name, weight, cost_basis_per_lb, total_revenue, profit, metals(metal_categories(name))'
-    )
-    .gte('created_at', rangeStart)
-    .lte('created_at', rangeEnd);
-  if (salesError) throw salesError;
+  const salesData = await fetchAllPages<Record<string, unknown>>(() =>
+    supabase
+      .from('sales')
+      .select(
+        'metal_id, metal_name, weight, cost_basis_per_lb, total_revenue, profit, metals(metal_categories(name))'
+      )
+      .gte('created_at', rangeStart)
+      .lte('created_at', rangeEnd)
+      .order('id', { ascending: true })
+  );
 
   // Aggregate by metal_id
   const metalMap = new Map<
@@ -386,26 +406,31 @@ export interface ShrinkageRow {
 }
 
 export async function fetchShrinkageReport(): Promise<ShrinkageRow[]> {
-  // All buy line items aggregated by metal
-  const { data: buyData, error: buyError } = await supabase
-    .from('line_items')
-    .select(
-      'metal_id, metal_name, weight, receipts!inner(type), metals(metal_categories(name))'
-    )
-    .eq('receipts.type', 'buy');
-  if (buyError) throw buyError;
+  // All buy line items / sales / inventory — date-unbounded, so these are the
+  // most likely to blow past the 1000-row cap; paginate all three (#45).
+  const buyData = await fetchAllPages<Record<string, unknown>>(() =>
+    supabase
+      .from('line_items')
+      .select(
+        'metal_id, metal_name, weight, receipts!inner(type), metals(metal_categories(name))'
+      )
+      .eq('receipts.type', 'buy')
+      .order('id', { ascending: true })
+  );
 
-  // All sales aggregated by metal
-  const { data: salesData, error: salesError } = await supabase
-    .from('sales')
-    .select('metal_id, weight');
-  if (salesError) throw salesError;
+  const salesData = await fetchAllPages<Record<string, unknown>>(() =>
+    supabase
+      .from('sales')
+      .select('metal_id, weight')
+      .order('id', { ascending: true })
+  );
 
-  // Current inventory
-  const { data: invData, error: invError } = await supabase
-    .from('inventory')
-    .select('metal_id, weight');
-  if (invError) throw invError;
+  const invData = await fetchAllPages<Record<string, unknown>>(() =>
+    supabase
+      .from('inventory')
+      .select('metal_id, weight')
+      .order('id', { ascending: true })
+  );
 
   // Aggregate buys
   const buyMap = new Map<
