@@ -169,7 +169,19 @@ export function BuyFlow({
   // rides on the draft; seed it here so the cashier sees it pre-filled and
   // never has to walk outside. Still editable at the desk (hybrid capture).
   const [vehiclePlate, setVehiclePlate] = useState(draft?.vehicle_plate ?? '');
+  // The worker at the scale describes the rig (NM Purchase Record breaks it into
+  // year/make/model/color); these ride on the draft to the cashier alongside the
+  // plate so the front desk records the full vehicle, not just a plate.
+  const [vehicleYear, setVehicleYear] = useState(draft?.vehicle_year ?? '');
+  const [vehicleMake, setVehicleMake] = useState(draft?.vehicle_make ?? '');
+  const [vehicleModel, setVehicleModel] = useState(draft?.vehicle_model ?? '');
+  const [vehicleColor, setVehicleColor] = useState(draft?.vehicle_color ?? '');
   const [vin, setVin] = useState(draft?.transport_vin ?? '');
+  // Human-readable "Blue 2018 Ford F-150" for the printed record / summary.
+  const vehicleDesc = [vehicleColor, vehicleYear, vehicleMake, vehicleModel]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(' ');
   // Catalytic-converter serial number(s) — a statutory field for cats
   // (SB133/SB141); the DB accepts them as cat_converter_numbers.
   const [catSerials, setCatSerials] = useState('');
@@ -215,6 +227,7 @@ export function BuyFlow({
     seller: string;
     dl: string;
     plate: string;
+    vehicle: string;
     vin: string;
     affirmed: boolean;
     noTheft: boolean;
@@ -387,6 +400,10 @@ export function BuyFlow({
   const reset = (keepSeller: boolean) => {
     setItems([]);
     setVehiclePlate('');
+    setVehicleYear('');
+    setVehicleMake('');
+    setVehicleModel('');
+    setVehicleColor('');
     setVin('');
     setCatSerials('');
     setAffirmed(false);
@@ -506,6 +523,10 @@ export function BuyFlow({
         weight,
         // Worker captured these at the scale — carry them to the cashier.
         vehiclePlate: vehiclePlate.trim() || undefined,
+        vehicleYear: vehicleYear.trim() || undefined,
+        vehicleMake: vehicleMake.trim() || undefined,
+        vehicleModel: vehicleModel.trim() || undefined,
+        vehicleColor: vehicleColor.trim() || undefined,
         transportVin: vin.trim() || undefined,
       });
       if (print) {
@@ -603,6 +624,10 @@ export function BuyFlow({
         sellerStateOfIssue: idScan?.stateOfIssue || undefined,
         sellerIdPhotoUri: idPhoto || undefined,
         vehiclePlate: vehiclePlate.trim() || undefined,
+        vehicleYear: vehicleYear.trim() || undefined,
+        vehicleMake: vehicleMake.trim() || undefined,
+        vehicleModel: vehicleModel.trim() || undefined,
+        vehicleColor: vehicleColor.trim() || undefined,
         transportVin: vin.trim() || undefined,
         catConverterNumbers:
           tier === 'catalytic' ? catSerials.trim() || undefined : undefined,
@@ -644,6 +669,7 @@ export function BuyFlow({
         seller: seller.trim(),
         dl: dl.trim(),
         plate: vehiclePlate.trim(),
+        vehicle: vehicleDesc,
         vin: vin.trim(),
         affirmed: needsCompliance ? affirmed : false,
         noTheft: needsCompliance ? noTheft : false,
@@ -830,7 +856,7 @@ export function BuyFlow({
                   seller: saved.seller || 'Walk-in',
                   dl: saved.dl || '—',
                   plate: saved.plate || '—',
-                  vehicle: '—',
+                  vehicle: saved.vehicle || '—',
                   vin: saved.vin || undefined,
                   materials: saved.materials,
                   weight: saved.weight,
@@ -1690,7 +1716,19 @@ export function BuyFlow({
               <div
                 style={{ display: 'flex', flexDirection: 'column', gap: 10 }}
               >
-                <GroupLabel>Required for {tier}</GroupLabel>
+                <GroupLabel>Vehicle · captured at the scale</GroupLabel>
+                <div
+                  className="mono"
+                  style={{
+                    fontSize: 10.5,
+                    color: 'var(--ink-3)',
+                    marginTop: -4,
+                    lineHeight: 1.5,
+                  }}
+                >
+                  The yard employee at the scale records the rig with the
+                  seller. The cashier can adjust it before payout.
+                </div>
                 <Field label="Vehicle plate">
                   <TextInput
                     value={vehiclePlate}
@@ -1699,6 +1737,47 @@ export function BuyFlow({
                     mono
                   />
                 </Field>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <Field label="Year">
+                      <TextInput
+                        value={vehicleYear}
+                        onChange={setVehicleYear}
+                        placeholder="2018"
+                        mono
+                      />
+                    </Field>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Field label="Color">
+                      <TextInput
+                        value={vehicleColor}
+                        onChange={setVehicleColor}
+                        placeholder="Blue"
+                      />
+                    </Field>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <Field label="Make">
+                      <TextInput
+                        value={vehicleMake}
+                        onChange={setVehicleMake}
+                        placeholder="Ford"
+                      />
+                    </Field>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Field label="Model">
+                      <TextInput
+                        value={vehicleModel}
+                        onChange={setVehicleModel}
+                        placeholder="F-150"
+                      />
+                    </Field>
+                  </div>
+                </div>
                 {catNeedsVin && (
                   <Field label="Transport vehicle VIN (17 chars)">
                     <TextInput

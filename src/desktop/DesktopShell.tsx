@@ -116,6 +116,17 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
       ],
       ['Date of birth', sv('seller_dob')],
       ['Address', address],
+      [
+        'Vehicle',
+        [
+          sv('vehicle_color'),
+          sv('vehicle_year'),
+          sv('vehicle_make'),
+          sv('vehicle_model'),
+        ]
+          .filter(Boolean)
+          .join(' '),
+      ],
       ['Vehicle plate', sv('vehicle_plate')],
       ['Transport VIN', sv('transport_vin')],
     ] as [string, string][]
