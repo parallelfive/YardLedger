@@ -145,7 +145,11 @@ export default function SalesScreen({ navigation }: Props) {
                   {item.buyer_name || item.metal_name}
                 </Text>
                 <Text style={styles.rowMeta}>
-                  {item.metal_name} · {fmtLbs(Number(item.weight))} lb · {date}
+                  {item.metal_name} ·{' '}
+                  {(item as { unit?: string }).unit === 'each'
+                    ? `${fmtLbs(Number((item as { quantity?: number }).quantity ?? 0))} ${t.pieces.toLowerCase()}`
+                    : `${fmtLbs(Number(item.weight))} lb`}{' '}
+                  · {date}
                 </Text>
               </View>
               <View style={styles.rowRight}>
