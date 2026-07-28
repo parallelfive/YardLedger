@@ -66,3 +66,16 @@ export async function sendReportNow(): Promise<unknown> {
   if (error) throw error;
   return data;
 }
+
+// Dry-run the SFTP connection (connect + list remote dir, no upload) so an
+// operator can confirm credentials before enabling automated reporting.
+export async function testReportingConnection(): Promise<{
+  ok: boolean;
+  detail: string;
+}> {
+  const { data, error } = await supabase.functions.invoke(
+    'report-to-state?test=1'
+  );
+  if (error) return { ok: false, detail: (error as Error).message };
+  return data as { ok: boolean; detail: string };
+}

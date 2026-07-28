@@ -15,6 +15,8 @@ import {
 } from '../../compliance/jurisdictions';
 import {
   getReportingConfig,
+  saveReportingConfig,
+  testReportingConnection,
   fetchLastComplianceUpload,
   sendReportNow,
   type ReportingConfig,
@@ -34,6 +36,8 @@ import {
   TR,
   Pill,
   Btn,
+  Field,
+  TextInput,
   Segmented,
   GroupLabel,
   Placeholder,
@@ -362,6 +366,79 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
     }
   };
 
+  // ── SFTP connection editor (owner-gated) — set up the registry connection
+  // from the desktop terminal (previously mobile-only). Password is write-only.
+  const [cfgOpen, setCfgOpen] = useState(false);
+  const [cfgHost, setCfgHost] = useState('');
+  const [cfgPort, setCfgPort] = useState('22');
+  const [cfgUser, setCfgUser] = useState('');
+  const [cfgPass, setCfgPass] = useState('');
+  const [cfgDir, setCfgDir] = useState('');
+  const [cfgEnabled, setCfgEnabled] = useState(false);
+  const [cfgBusy, setCfgBusy] = useState(false);
+  const [cfgMsg, setCfgMsg] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  const openConfig = async () => {
+    if (!(await ensureElevated(true))) return; // owner only
+    setCfgHost(repCfg?.sftp_host ?? '');
+    setCfgPort(String(repCfg?.sftp_port ?? 22));
+    setCfgUser(repCfg?.sftp_username ?? '');
+    setCfgPass(''); // never round-trips; blank keeps the stored secret
+    setCfgDir(repCfg?.remote_dir ?? '');
+    setCfgEnabled(!!repCfg?.enabled);
+    setCfgMsg(null);
+    setCfgOpen(true);
+  };
+
+  const saveConfig = async () => {
+    if (cfgBusy) return;
+    setCfgBusy(true);
+    setCfgMsg(null);
+    try {
+      await saveReportingConfig({
+        sftpHost: cfgHost.trim(),
+        sftpPort: parseInt(cfgPort, 10) || 22,
+        sftpUsername: cfgUser.trim(),
+        sftpPassword: cfgPass, // blank leaves the stored password unchanged
+        remoteDir: cfgDir.trim(),
+        enabled: cfgEnabled,
+      });
+      setCfgOpen(false);
+      setReloadTick((t) => t + 1);
+    } catch (e) {
+      setCfgMsg((e as Error).message || 'Could not save.');
+    } finally {
+      setCfgBusy(false);
+    }
+  };
+
+  // Dry-run the connection. Save first (so the edge fn tests the current values),
+  // then connect + list without uploading.
+  const testConfig = async () => {
+    if (testing || cfgBusy) return;
+    setTesting(true);
+    setCfgMsg('Saving & testing…');
+    try {
+      await saveReportingConfig({
+        sftpHost: cfgHost.trim(),
+        sftpPort: parseInt(cfgPort, 10) || 22,
+        sftpUsername: cfgUser.trim(),
+        sftpPassword: cfgPass,
+        remoteDir: cfgDir.trim(),
+        enabled: cfgEnabled,
+      });
+      setCfgPass(''); // saved; don't keep it in the field
+      const res = await testReportingConnection();
+      setCfgMsg((res.ok ? '✓ ' : '✕ ') + res.detail);
+      setReloadTick((t) => t + 1);
+    } catch (e) {
+      setCfgMsg('✕ ' + ((e as Error).message || 'Test failed.'));
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const cols: Col[] = [
     { key: 'no', label: 'Receipt', w: '1.5fr' },
     { key: 'seller', label: 'Seller · ID', w: '1.6fr' },
@@ -639,21 +716,28 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                 </div>
               )}
             </div>
-            <Btn
-              variant={canSend ? 'solid' : 'ghost'}
-              tone="var(--gold)"
-              icon="upload"
-              disabled={!canSend}
-              onClick={() => setSendOpen(true)}
-            >
-              {!configured
-                ? 'Not configured'
-                : !repCfg?.enabled
-                  ? 'Disabled'
-                  : queued.length === 0
-                    ? 'Nothing to send'
-                    : `Send ${queued.length} now`}
-            </Btn>
+            <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+              {canReport && (
+                <Btn variant="ghost" icon="cog" onClick={openConfig}>
+                  {configured ? 'Edit connection' : 'Set up connection'}
+                </Btn>
+              )}
+              <Btn
+                variant={canSend ? 'solid' : 'ghost'}
+                tone="var(--gold)"
+                icon="upload"
+                disabled={!canSend}
+                onClick={() => setSendOpen(true)}
+              >
+                {!configured
+                  ? 'Not configured'
+                  : !repCfg?.enabled
+                    ? 'Disabled'
+                    : queued.length === 0
+                      ? 'Nothing to send'
+                      : `Send ${queued.length} now`}
+              </Btn>
+            </div>
           </Card>
         );
       })()}
@@ -1025,6 +1109,194 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
           </>
         )}
       </SlideOver>
+
+      {/* SFTP connection editor (owner-gated). Password is write-only — leave it
+          blank to keep the stored one. "Test" saves + dry-runs the connection. */}
+      {cfgOpen && (
+        <div
+          onClick={() => !cfgBusy && !testing && setCfgOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.42)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 60,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: 460,
+              maxWidth: '92vw',
+              maxHeight: '88vh',
+              overflowY: 'auto',
+              background: 'var(--surface)',
+              border: '1px solid var(--line)',
+              borderRadius: 16,
+              boxShadow: 'var(--shadow-lg)',
+              padding: 24,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginBottom: 4,
+              }}
+            >
+              <Icon name="cog" size={19} color="var(--gold)" stroke={2} />
+              <span
+                className="exp"
+                style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}
+              >
+                {jur.copy.registry} connection
+              </span>
+            </div>
+            <p
+              style={{
+                fontSize: 12.5,
+                color: 'var(--ink-3)',
+                margin: '0 0 16px',
+              }}
+            >
+              SFTP credentials the state registry issued for this yard. Use{' '}
+              <b>Test</b> to confirm them, and export the queue CSV to send a
+              sample for format validation before enabling.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <Field label="SFTP host">
+                <TextInput
+                  value={cfgHost}
+                  onChange={setCfgHost}
+                  placeholder="sftp.leadsonline.com"
+                  mono
+                />
+              </Field>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ width: 110 }}>
+                  <Field label="Port">
+                    <TextInput value={cfgPort} onChange={setCfgPort} mono />
+                  </Field>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Field label="Username">
+                    <TextInput value={cfgUser} onChange={setCfgUser} mono />
+                  </Field>
+                </div>
+              </div>
+              <Field
+                label={
+                  repCfg?.has_credentials
+                    ? 'Password (leave blank to keep current)'
+                    : 'Password'
+                }
+              >
+                <TextInput
+                  value={cfgPass}
+                  onChange={setCfgPass}
+                  placeholder={repCfg?.has_credentials ? '••••••••' : ''}
+                  type="password"
+                  mono
+                />
+              </Field>
+              <Field label="Remote directory">
+                <TextInput
+                  value={cfgDir}
+                  onChange={setCfgDir}
+                  placeholder="/uploads"
+                  mono
+                />
+              </Field>
+              <Field label="Automated upload">
+                <div style={{ display: 'flex', gap: 8 }} role="tablist">
+                  {(
+                    [
+                      [true, 'Enabled'],
+                      [false, 'Disabled'],
+                    ] as [boolean, string][]
+                  ).map(([val, lbl]) => {
+                    const on = cfgEnabled === val;
+                    return (
+                      <button
+                        key={lbl}
+                        role="tab"
+                        aria-selected={on}
+                        onClick={() => setCfgEnabled(val)}
+                        style={{
+                          flex: 1,
+                          padding: '9px 0',
+                          borderRadius: 9,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: on ? 'var(--ink)' : 'var(--surface-2)',
+                          color: on ? 'var(--bg)' : 'var(--ink-2)',
+                          border: `1px solid ${on ? 'var(--ink)' : 'var(--line)'}`,
+                        }}
+                      >
+                        {lbl}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            </div>
+            {cfgMsg && (
+              <div
+                style={{
+                  fontSize: 12.5,
+                  marginTop: 14,
+                  fontWeight: 600,
+                  color: cfgMsg.startsWith('✕')
+                    ? 'var(--rust)'
+                    : cfgMsg.startsWith('✓')
+                      ? 'var(--moss)'
+                      : 'var(--ink-3)',
+                }}
+              >
+                {cfgMsg}
+              </div>
+            )}
+            <div
+              style={{
+                display: 'flex',
+                gap: 10,
+                marginTop: 18,
+                justifyContent: 'space-between',
+              }}
+            >
+              <Btn
+                variant="ghost"
+                icon="bolt"
+                onClick={testConfig}
+                disabled={testing || cfgBusy || !cfgHost.trim()}
+              >
+                {testing ? 'Testing…' : 'Test'}
+              </Btn>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <Btn
+                  variant="ghost"
+                  onClick={() => setCfgOpen(false)}
+                  disabled={cfgBusy || testing}
+                >
+                  Cancel
+                </Btn>
+                <Btn
+                  variant="primary"
+                  icon="check"
+                  onClick={saveConfig}
+                  disabled={cfgBusy || testing}
+                >
+                  {cfgBusy ? 'Saving…' : 'Save'}
+                </Btn>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Send-now confirmation — the final, deliberate gate before anything
           transmits to the state. */}

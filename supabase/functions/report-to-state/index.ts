@@ -47,82 +47,115 @@ function csvCell(value: unknown): string {
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-// IMPORTANT: keep this column set IN SYNC with the in-app exporter
-// src/services/reports.ts (NMRLD_HEADERS + buildNmrldExportCsv) so the manual
-// export and this automated SFTP upload file the IDENTICAL record.
-const HEADERS = [
-  'nmrld_registration_number',
-  'receipt_number',
-  'transaction_datetime',
-  'seller_name',
-  'seller_dob',
-  'seller_address',
-  'seller_city',
-  'seller_state',
-  'seller_zip',
-  'seller_dl_number',
-  'seller_dl_state',
-  'seller_affirmed_ownership',
-  'seller_affirmed_no_theft',
-  'vehicle_year',
-  'vehicle_make',
-  'vehicle_model',
-  'vehicle_color',
-  'vehicle_plate',
-  'transport_vin',
-  'material',
-  'weight_lb',
-  'quantity_pieces',
-  'amount_paid',
-  'payment_method',
-  'is_catalytic_converter',
-  'cat_converter_numbers',
-  'hold_until',
-];
+// ── Jurisdiction registry (Deno) ────────────────────────────────────────────
+// Deno can't import the app's src/compliance/jurisdictions, so the per-state
+// rules are MIRRORED here. Adding a state = add an entry below AND a module in
+// the app; keep the two in sync (same reportability rule + column layout).
+// getJurisdiction(company_settings.state) selects it; unknown/unset → NM.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+interface Jurisdiction {
+  code: string;
+  registry: string;
+  headers: string[];
+  // Is a single line reportable to the state registry?
+  lineReportable: (li: any) => boolean;
+  // One CSV row's cells for a (receipt, line) pair.
+  buildRow: (r: any, li: any, registration: string) => unknown[];
+}
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildCsv(rows: any[], registrationNumber: string): string {
-  const lines = [HEADERS.join(',')];
+const NM: Jurisdiction = {
+  code: 'NM',
+  registry: 'LeadsOnline',
+  headers: [
+    'nmrld_registration_number',
+    'receipt_number',
+    'transaction_datetime',
+    'seller_name',
+    'seller_dob',
+    'seller_address',
+    'seller_city',
+    'seller_state',
+    'seller_zip',
+    'seller_dl_number',
+    'seller_dl_state',
+    'seller_affirmed_ownership',
+    'seller_affirmed_no_theft',
+    'vehicle_year',
+    'vehicle_make',
+    'vehicle_model',
+    'vehicle_color',
+    'vehicle_plate',
+    'transport_vin',
+    'material',
+    'weight_lb',
+    'quantity_pieces',
+    'amount_paid',
+    'payment_method',
+    'is_catalytic_converter',
+    'cat_converter_numbers',
+    'hold_until',
+  ],
+  // Regulated material except aluminum/steel under one ton; restricted always.
+  lineReportable: (li: any) => {
+    if (li.is_restricted) return true;
+    if (!li.is_regulated) return false;
+    if (li.metals?.is_report_exempt) return Number(li.weight ?? 0) >= 2000;
+    return true;
+  },
+  buildRow: (r: any, li: any, registration: string) => [
+    registration,
+    r.receipt_number,
+    r.created_at,
+    r.seller_name,
+    r.seller_dob,
+    r.seller_address,
+    r.seller_city,
+    r.seller_state,
+    r.seller_zip,
+    r.seller_dl_number,
+    r.seller_state_of_issue,
+    r.seller_affirmed ? 'yes' : 'no',
+    r.seller_no_theft_affirmed ? 'yes' : 'no',
+    r.vehicle_year,
+    r.vehicle_make,
+    r.vehicle_model,
+    r.vehicle_color,
+    r.vehicle_plate,
+    r.transport_vin,
+    li?.metal_name ?? '',
+    li?.unit === 'each' ? '' : (li?.weight ?? ''),
+    li?.unit === 'each' ? (li?.quantity ?? '') : '',
+    li ? li.total : r.subtotal,
+    r.payment_method,
+    r.is_catalytic ? 'yes' : 'no',
+    r.cat_converter_numbers,
+    r.hold_until,
+  ],
+};
+
+const JURISDICTIONS: Record<string, Jurisdiction> = { NM };
+
+function getJurisdiction(state?: string | null): Jurisdiction {
+  const key = (state ?? '').trim().toUpperCase();
+  return JURISDICTIONS[key] ?? JURISDICTIONS.NM;
+}
+
+// A receipt is reportable if it's catalytic or has any reportable line.
+function receiptReportable(j: Jurisdiction, r: any): boolean {
+  return !!r.is_catalytic || (r.line_items ?? []).some(j.lineReportable);
+}
+
+function buildCsv(j: Jurisdiction, rows: any[], registration: string): string {
+  const lines = [j.headers.join(',')];
   for (const r of rows) {
     const items = r.line_items?.length ? r.line_items : [null];
     for (const li of items) {
-      lines.push(
-        [
-          registrationNumber,
-          r.receipt_number,
-          r.created_at,
-          r.seller_name,
-          r.seller_dob,
-          r.seller_address,
-          r.seller_city,
-          r.seller_state,
-          r.seller_zip,
-          r.seller_dl_number,
-          r.seller_state_of_issue,
-          r.seller_affirmed ? 'yes' : 'no',
-          r.seller_no_theft_affirmed ? 'yes' : 'no',
-          r.vehicle_year,
-          r.vehicle_make,
-          r.vehicle_model,
-          r.vehicle_color,
-          r.vehicle_plate,
-          r.transport_vin,
-          li?.metal_name ?? '',
-          li?.unit === 'each' ? '' : (li?.weight ?? ''),
-          li?.unit === 'each' ? (li?.quantity ?? '') : '',
-          li ? li.total : r.subtotal,
-          r.payment_method,
-          r.is_catalytic ? 'yes' : 'no',
-          r.cat_converter_numbers,
-          r.hold_until,
-        ]
-          .map(csvCell)
-          .join(',')
-      );
+      lines.push(j.buildRow(r, li, registration).map(csvCell).join(','));
     }
   }
   return lines.join('\n');
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 async function uploadViaSftp(
   cfg: ReportingConfig,
@@ -157,13 +190,15 @@ async function reportCompany(admin: any, companyId: string) {
     return { companyId, status: 'skipped', reason: 'not configured/enabled' };
   }
 
-  // Dealer registration number (identifies us in the state file).
+  // Dealer registration number + the company's compliance jurisdiction (which
+  // state's reportability rule + file format to use). Unknown/unset → NM.
   const { data: settings } = await admin
     .from('company_settings')
-    .select('nmrld_registration_number')
+    .select('nmrld_registration_number, state')
     .eq('company_id', companyId)
     .maybeSingle();
   const registration = settings?.nmrld_registration_number ?? '';
+  const jurisdiction = getJurisdiction(settings?.state);
 
   // The SFTP password is encrypted at rest in Vault; fetch the decrypted value
   // via the service_role-only RPC (never stored/returned in plaintext elsewhere).
@@ -175,20 +210,9 @@ async function reportCompany(admin: any, companyId: string) {
     return { companyId, status: 'skipped', reason: 'no SFTP credentials set' };
   }
 
-  // Which unreported buys must be reported (per RLD, 2026-07-23): regulated
-  // material EXCEPT aluminum/steel below one ton — copper/brass/bronze/lead/
-  // catalytic/restricted always; aluminum/steel only at >= 1 ton or riding along
-  // on a receipt that has another reportable line. MUST stay in sync with the
-  // in-app helper src/utils/reporting.ts.
-  const REPORT_MIN_LBS = 2000;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const lineReportable = (li: any): boolean => {
-    if (li.is_restricted) return true;
-    if (!li.is_regulated) return false;
-    if (li.metals?.is_report_exempt)
-      return Number(li.weight ?? 0) >= REPORT_MIN_LBS;
-    return true;
-  };
+  // Which unreported buys must be reported is the jurisdiction's call (the NM
+  // rule: regulated except aluminum/steel under a ton; restricted/catalytic
+  // always). MUST stay in sync with src/compliance/jurisdictions.
   const { data: candidates, error: candErr } = await admin
     .from('receipts')
     .select(
@@ -199,10 +223,8 @@ async function reportCompany(admin: any, companyId: string) {
     .is('reported_at', null);
   if (candErr) return { companyId, status: 'error', reason: candErr.message };
   const reportableIds = (candidates ?? [])
-    .filter(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (r: any) => !!r.is_catalytic || (r.line_items ?? []).some(lineReportable)
-    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((r: any) => receiptReportable(jurisdiction, r))
     .map((r: { id: string }) => r.id);
   if (reportableIds.length === 0) {
     return { companyId, status: 'nothing-to-report', count: 0 };
@@ -235,7 +257,7 @@ async function reportCompany(admin: any, companyId: string) {
       cfg as ReportingConfig,
       sftpPassword as string,
       fileName,
-      buildCsv(rows, registration)
+      buildCsv(jurisdiction, rows, registration)
     );
   } catch (e) {
     // Upload failed — release the claim so these rows are retried next run.
@@ -259,6 +281,49 @@ async function reportCompany(admin: any, companyId: string) {
   });
 
   return { companyId, status: 'success', count: ids.length };
+}
+
+// Dry-run: connect to the yard's SFTP and list the remote dir WITHOUT uploading
+// or stamping anything — so an operator can confirm credentials before flipping
+// reporting on. Doesn't require `enabled` (you test before enabling).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function testConnection(admin: any, companyId: string) {
+  const { data: cfg } = await admin
+    .from('company_reporting_config')
+    .select('*')
+    .eq('company_id', companyId)
+    .maybeSingle();
+  if (!cfg || !cfg.sftp_host) {
+    return { ok: false, detail: 'No SFTP host configured yet.' };
+  }
+  const { data: pw } = await admin.rpc('get_reporting_secret', {
+    p_company_id: companyId,
+  });
+  if (!pw) return { ok: false, detail: 'No SFTP password saved yet.' };
+
+  const sftp = new SftpClient();
+  try {
+    await sftp.connect({
+      host: cfg.sftp_host,
+      port: cfg.sftp_port || 22,
+      username: cfg.sftp_username,
+      password: pw as string,
+    });
+    const dir = cfg.remote_dir?.replace(/\/$/, '') || '.';
+    await sftp.list(dir);
+    return {
+      ok: true,
+      detail: `Connected to ${cfg.sftp_host}, listed "${dir}".`,
+    };
+  } catch (e) {
+    return { ok: false, detail: (e as Error).message };
+  } finally {
+    try {
+      await sftp.end();
+    } catch {
+      /* ignore close errors */
+    }
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -309,6 +374,16 @@ Deno.serve(async (req: Request) => {
       .single();
     if (!profile || !['owner', 'admin'].includes(profile.role)) {
       return new Response('Forbidden', { status: 403 });
+    }
+    // Test mode (?test=1): dry-run the SFTP connection, never upload.
+    if (new URL(req.url).searchParams.get('test') === '1') {
+      // Always 200 — the pass/fail is in the body so the client reads the detail
+      // instead of a bare HTTP error.
+      const result = await testConnection(admin, profile.company_id);
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
     companyIds = [profile.company_id];
   }

@@ -1351,7 +1351,7 @@ export function TextInput({
   mono?: boolean;
   readOnly?: boolean;
   align?: 'left' | 'right';
-  type?: 'text' | 'number' | 'tel' | 'email';
+  type?: 'text' | 'number' | 'tel' | 'email' | 'password';
   inputMode?: 'text' | 'decimal' | 'numeric' | 'tel' | 'email';
   onKeyDown?: (e: ReactKeyboardEvent<HTMLInputElement>) => void;
   autoFocus?: boolean;
