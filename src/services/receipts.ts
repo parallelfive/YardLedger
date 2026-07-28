@@ -312,7 +312,11 @@ export async function searchReceipts(
 export async function fetchReceiptById(receiptId: string) {
   const { data, error } = await supabase
     .from('receipts')
-    .select('*, line_items(*, metals(name, price_per_lb))')
+    // Embed the staffer who recorded the buy (worker_id → users) so the detail
+    // can show the actual worker, not the seller's name (#22).
+    .select(
+      '*, worker:worker_id(name), line_items(*, metals(name, price_per_lb))'
+    )
     .eq('id', receiptId)
     .single();
   if (error) throw error;
