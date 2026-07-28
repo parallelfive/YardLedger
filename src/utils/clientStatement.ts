@@ -35,12 +35,25 @@ export interface StatementLine {
 
 export interface ClientStatement {
   year: number;
+  quarters: number[]; // selected quarters (1–4); empty = the whole year
+  periodLabel: string; // e.g. "2026", "2026 · Q1", "2026 · Q1, Q3"
   transactionCount: number;
   totalPaid: number;
   totalWeightLb: number;
   totalPieces: number;
   byMaterial: StatementMaterial[]; // sorted by amount desc
   lines: StatementLine[]; // chronological (oldest first)
+}
+
+// Quarter (1–4) of a date; Q1 = Jan–Mar … Q4 = Oct–Dec.
+export const quarterOf = (iso: string): number =>
+  Math.floor(new Date(iso).getMonth() / 3) + 1;
+
+// Human label for the chosen period. No quarters → the full year.
+export function periodLabel(year: number, quarters: number[]): string {
+  if (!quarters.length) return String(year);
+  const qs = Array.from(new Set(quarters)).sort((a, b) => a - b);
+  return `${year} · ${qs.map((q) => `Q${q}`).join(', ')}`;
 }
 
 // Distinct calendar years (desc) present in a customer's BUY receipts — drives
@@ -61,13 +74,18 @@ const amountLabel = (li: StatementLineItem): string =>
 
 export function buildClientStatement(
   receipts: StatementReceipt[],
-  year: number
+  year: number,
+  // Selected quarters (1–4). Empty = the whole year. Multi-select supported
+  // (e.g. [1,2] = H1, [1,3] = Q1 + Q3).
+  quarters: number[] = []
 ): ClientStatement {
-  const inYear = receipts.filter(
-    (r) =>
-      (r.type ?? 'buy') === 'buy' &&
-      new Date(r.created_at).getFullYear() === year
-  );
+  const qset = new Set(quarters);
+  const inYear = receipts.filter((r) => {
+    if ((r.type ?? 'buy') !== 'buy') return false;
+    const d = new Date(r.created_at);
+    if (d.getFullYear() !== year) return false;
+    return qset.size === 0 || qset.has(Math.floor(d.getMonth() / 3) + 1);
+  });
 
   const mat = new Map<string, StatementMaterial>();
   const lines: StatementLine[] = [];
@@ -114,8 +132,11 @@ export function buildClientStatement(
   );
   lines.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 
+  const qs = Array.from(qset).sort((a, b) => a - b);
   return {
     year,
+    quarters: qs,
+    periodLabel: periodLabel(year, qs),
     transactionCount: inYear.length,
     totalPaid,
     totalWeightLb,

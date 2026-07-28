@@ -77,7 +77,7 @@ export async function printClientStatement(
     </style></head>
     <body>
       <div class="hd"><h1>${escapeHtml(yardName || 'Purchase statement')}</h1>
-        <div class="sub">Purchase statement · ${s.year}</div></div>
+        <div class="sub">Purchase statement · ${escapeHtml(s.periodLabel)}</div></div>
       <div class="grid">
         <div><div class="k">Seller</div><div class="v">${escapeHtml(customer.name || '—')}</div></div>
         <div><div class="k">Phone</div><div class="v">${escapeHtml(customer.phone || '—')}</div></div>
@@ -98,8 +98,8 @@ export async function printClientStatement(
         <thead><tr><th>Date</th><th>Receipt</th><th>Materials</th><th style="text-align:right">Paid</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <div class="total"><span>Total paid · ${s.year}</span><span>${money(s.totalPaid)}</span></div>
-      <div class="foot">Summary of purchases from the seller named above for ${s.year}. Provided for the seller's records — <b>not a tax document</b> and not an official receipt. Generated ${new Date().toLocaleString()} · Tare.</div>
+      <div class="total"><span>Total paid · ${escapeHtml(s.periodLabel)}</span><span>${money(s.totalPaid)}</span></div>
+      <div class="foot">Summary of purchases from the seller named above for ${escapeHtml(s.periodLabel)}. Provided for the seller's records — <b>not a tax document</b> and not an official receipt. Generated ${new Date().toLocaleString()} · Tare.</div>
     </body></html>`;
 
   await Print.printAsync({ html });

@@ -107,14 +107,21 @@ export default function Customers({
       .catch(() => {
         if (active) setStmtReceipts([]);
       });
+    setQuarters([]); // reset to the whole year when switching sellers
     return () => {
       active = false;
     };
   }, [sel]);
+  // Selected quarters (1–4); empty = the whole year (multi-select).
+  const [quarters, setQuarters] = useState<number[]>([]);
+  const toggleQuarter = (q: number) =>
+    setQuarters((cur) =>
+      cur.includes(q) ? cur.filter((x) => x !== q) : [...cur, q]
+    );
   const stmtYears = useMemo(() => statementYears(stmtReceipts), [stmtReceipts]);
   const statement = useMemo(
-    () => buildClientStatement(stmtReceipts, year),
-    [stmtReceipts, year]
+    () => buildClientStatement(stmtReceipts, year, quarters),
+    [stmtReceipts, year, quarters]
   );
 
   const printStatement = () => {
@@ -143,9 +150,10 @@ export default function Customers({
     const csv =
       'date,receipt,materials,paid\n' +
       rowsCsv +
-      `\n"","",${esc(`TOTAL ${statement.year}`)},${esc(statement.totalPaid)}`;
+      `\n"","",${esc(`TOTAL ${statement.periodLabel}`)},${esc(statement.totalPaid)}`;
+    const slug = statement.periodLabel.replace(/\W+/g, '_');
     shareTextFile(
-      `statement_${sel.name.replace(/\W+/g, '_')}_${statement.year}.csv`,
+      `statement_${sel.name.replace(/\W+/g, '_')}_${slug}.csv`,
       csv,
       'text/csv',
       'public.comma-separated-values-text'
@@ -582,6 +590,45 @@ export default function Customers({
                       </option>
                     ))}
                   </select>
+                </div>
+                {/* period: whole year, or one/more quarters (multi-select) */}
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: 7,
+                    flexWrap: 'wrap',
+                    marginBottom: 14,
+                  }}
+                >
+                  {(
+                    [
+                      ['Year', quarters.length === 0],
+                      ['Q1', quarters.includes(1)],
+                      ['Q2', quarters.includes(2)],
+                      ['Q3', quarters.includes(3)],
+                      ['Q4', quarters.includes(4)],
+                    ] as [string, boolean][]
+                  ).map(([label, on], i) => (
+                    <button
+                      key={label}
+                      className="tap"
+                      onClick={() =>
+                        i === 0 ? setQuarters([]) : toggleQuarter(i)
+                      }
+                      style={{
+                        padding: '6px 13px',
+                        borderRadius: 99,
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: on ? 'var(--ink)' : 'var(--surface-2)',
+                        color: on ? 'var(--bg)' : 'var(--ink-2)',
+                        border: `1px solid ${on ? 'var(--ink)' : 'var(--line)'}`,
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
                 <div
                   style={{

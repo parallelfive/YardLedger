@@ -159,9 +159,15 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
   useEffect(() => {
     if (stmtYears.length) setYear(stmtYears[0]);
   }, [stmtYears]);
+  // Selected quarters (1–4); empty = the whole year (multi-select).
+  const [quarters, setQuarters] = useState<number[]>([]);
+  const toggleQuarter = (q: number) =>
+    setQuarters((cur) =>
+      cur.includes(q) ? cur.filter((x) => x !== q) : [...cur, q]
+    );
   const statement = useMemo(
-    () => buildClientStatement(receipts as StatementReceipt[], year),
-    [receipts, year]
+    () => buildClientStatement(receipts as StatementReceipt[], year, quarters),
+    [receipts, year, quarters]
   );
 
   const handlePrintStatement = async () => {
@@ -198,7 +204,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           <div class="header">
             ${companyHeader}
             <hr/>
-            <h3>${t.statementFor} ${escapeHtml(customer.name)} · ${statement.year}</h3>
+            <h3>${t.statementFor} ${escapeHtml(customer.name)} · ${escapeHtml(statement.periodLabel)}</h3>
             <p style="color:#666">${t.generatedOn} ${new Date().toLocaleDateString()}</p>
           </div>
           <div class="summary">
@@ -580,16 +586,47 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
             </Text>
           </TouchableOpacity>
 
-          {/* Year picker — the statement covers the selected year */}
+          {/* Statement period — a year, and optionally one/more quarters */}
           {stmtYears.length > 0 && (
-            <View style={styles.yearRow}>
-              {stmtYears.map((y) => {
-                const on = y === year;
-                return (
+            <>
+              <View style={styles.yearRow}>
+                {stmtYears.map((y) => {
+                  const on = y === year;
+                  return (
+                    <TouchableOpacity
+                      key={y}
+                      style={[styles.yearChip, on && styles.yearChipActive]}
+                      onPress={() => setYear(y)}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.yearChipText,
+                          on && styles.yearChipTextActive,
+                        ]}
+                      >
+                        {y}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={styles.yearRow}>
+                {(
+                  [
+                    ['Year', quarters.length === 0, 0],
+                    ['Q1', quarters.includes(1), 1],
+                    ['Q2', quarters.includes(2), 2],
+                    ['Q3', quarters.includes(3), 3],
+                    ['Q4', quarters.includes(4), 4],
+                  ] as [string, boolean, number][]
+                ).map(([label, on, q]) => (
                   <TouchableOpacity
-                    key={y}
+                    key={label}
                     style={[styles.yearChip, on && styles.yearChipActive]}
-                    onPress={() => setYear(y)}
+                    onPress={() =>
+                      q === 0 ? setQuarters([]) : toggleQuarter(q)
+                    }
                     activeOpacity={0.7}
                   >
                     <Text
@@ -598,12 +635,12 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
                         on && styles.yearChipTextActive,
                       ]}
                     >
-                      {y}
+                      {label}
                     </Text>
                   </TouchableOpacity>
-                );
-              })}
-            </View>
+                ))}
+              </View>
+            </>
           )}
 
           <TouchableOpacity
@@ -617,7 +654,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           >
             <Ionicons name="print-outline" size={18} color={colors.accentInk} />
             <Text style={styles.printButtonText}>
-              {t.printStatement} · {statement.year}
+              {t.printStatement} · {statement.periodLabel}
             </Text>
           </TouchableOpacity>
         </View>

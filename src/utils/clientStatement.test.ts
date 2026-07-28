@@ -75,4 +75,17 @@ describe('buildClientStatement', () => {
   it('lists the distinct buy years, newest first', () => {
     expect(statementYears(receipts)).toEqual([2026, 2025]);
   });
+
+  it('filters to selected quarters, multi-select supported', () => {
+    // Both 2026 buys fall in Q1 (Jan 5 + Mar 10).
+    expect(buildClientStatement(receipts, 2026).periodLabel).toBe('2026'); // full year
+    const q1 = buildClientStatement(receipts, 2026, [1]);
+    expect(q1.transactionCount).toBe(2);
+    expect(q1.periodLabel).toBe('2026 · Q1');
+    expect(buildClientStatement(receipts, 2026, [2]).transactionCount).toBe(0);
+    // Multi-select (order-independent, de-duped, sorted in the label).
+    const h1 = buildClientStatement(receipts, 2026, [2, 1, 1]);
+    expect(h1.transactionCount).toBe(2);
+    expect(h1.periodLabel).toBe('2026 · Q1, Q2');
+  });
 });
