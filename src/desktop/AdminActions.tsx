@@ -97,6 +97,10 @@ function Modal({
           transform: 'translate(-50%, -50%)',
           width: 380,
           maxWidth: '92vw',
+          // Cap the height and let the body scroll — a tall form (e.g. the full
+          // company-profile editor) was overflowing the viewport with no scroll.
+          maxHeight: '90vh',
+          overflowY: 'auto',
           background: 'var(--surface)',
           border: '1px solid var(--line)',
           borderRadius: 18,
