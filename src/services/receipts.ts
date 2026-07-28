@@ -1,6 +1,5 @@
 import { supabase } from '../config/supabase';
-import { File } from 'expo-file-system';
-import { decode } from 'base64-arraybuffer';
+import { readImageBytes } from '../utils/readImageBytes';
 import type { LineItemInput } from '../types';
 import { upsertCustomer } from './customers';
 import { startOfLocalDayUtc, endOfLocalDayUtc } from '../utils/dateRange';
@@ -50,21 +49,10 @@ async function uploadIdPhoto(
   label: string
 ): Promise<string> {
   const filePath = `${companyId}/${label}_${Date.now()}.jpg`;
-  // The desktop webcam hands us a base64 data URL (data:image/jpeg;base64,…);
-  // native image pickers hand a file:// URI read via expo-file-system. Branch so
-  // the same call works on both — the browser has no expo-file-system File.
-  let base64: string;
-  if (localUri.startsWith('data:')) {
-    const comma = localUri.indexOf(',');
-    if (comma < 0) throw new Error('Malformed data URL for photo upload');
-    base64 = localUri.slice(comma + 1);
-  } else {
-    const file = new File(localUri);
-    base64 = await file.base64();
-  }
+  // Cross-platform read (desktop webcam data: URL, web blob:, native file://).
   const { error } = await supabase.storage
     .from('customer-ids')
-    .upload(filePath, decode(base64), {
+    .upload(filePath, await readImageBytes(localUri), {
       contentType: 'image/jpeg',
       upsert: true,
     });

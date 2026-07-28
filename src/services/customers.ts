@@ -1,6 +1,5 @@
 import { supabase } from '../config/supabase';
-import { File } from 'expo-file-system';
-import { decode } from 'base64-arraybuffer';
+import { readImageBytes } from '../utils/readImageBytes';
 
 export interface Customer {
   id: string;
@@ -165,12 +164,9 @@ export async function uploadCustomerIdPhoto(
   }
   const filePath = `${companyId}/${customerId}_${Date.now()}.jpg`;
 
-  const file = new File(imageUri);
-  const base64 = await file.base64();
-
   const { error: uploadError } = await supabase.storage
     .from('customer-ids')
-    .upload(filePath, decode(base64), {
+    .upload(filePath, await readImageBytes(imageUri), {
       contentType: 'image/jpeg',
       upsert: true,
     });
