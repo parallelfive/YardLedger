@@ -1,10 +1,11 @@
-import * as Print from 'expo-print';
+import { printHtml } from '../utils/printHtml';
 import { escapeHtml } from '../utils/validation';
 
-// Desktop print documents. Print.printAsync works on web (opens the browser
-// print dialog → the operator can print or Save-as-PDF). Kept separate from
-// utils/printReceipt.ts because these are different documents (an audit
-// purchase-record and a shipping bill of lading), not a customer buy ticket.
+// Desktop print documents. printHtml() renders the HTML into an isolated iframe
+// and opens the browser print dialog (print or Save-as-PDF) — on web,
+// expo-print's printAsync would print the app page, not the document (#133).
+// Kept separate from utils/printReceipt.ts because these are different documents
+// (an audit purchase-record and a shipping bill of lading), not a buy ticket.
 
 const money = (n: number) =>
   '$' +
@@ -64,7 +65,7 @@ export async function printClaimStub(s: ClaimStubDoc): Promise<void> {
       <div class="mats">${escapeHtml(s.materials || '—')}</div>
       <div class="note">NOT A RECEIPT — TAKE TO FRONT DESK FOR PAYOUT</div>
     </body></html>`;
-  await Print.printAsync({ html });
+  await printHtml(html);
 }
 
 export interface ComplianceRecordDoc {
@@ -142,7 +143,7 @@ export async function printComplianceRecord(
     <div class="v" style="font-weight:500;line-height:1.5;margin:4px 0 18px">${escapeHtml(r.materials || '—')}</div>
     <div class="total"><span>Total paid · ${amountLabel}</span><span>${money(r.paid)}</span></div>
     <div class="foot">Generated ${new Date().toLocaleString()} · Tare</div>`;
-  await Print.printAsync({ html: shell('Purchase Record', body) });
+  await printHtml(shell('Purchase Record', body));
 }
 
 export interface DayCloseDoc {
@@ -198,7 +199,7 @@ export async function printDayClose(d: DayCloseDoc): Promise<void> {
     ${materials ? '<div class="k">Materials bought today</div>' + materials : ''}
     <div class="total"><span>Cash paid out today</span><span>${money(d.cashOut)}</span></div>
     <div class="foot">Generated ${new Date().toLocaleString()} · Tare</div>`;
-  await Print.printAsync({ html: shell('Day Close', body) });
+  await printHtml(shell('Day Close', body));
 }
 
 export interface BillOfLadingDoc {
@@ -236,5 +237,5 @@ export async function printBillOfLading(s: BillOfLadingDoc): Promise<void> {
     </table>
     <div class="total"><span>Load total</span><span>${money(s.total)}</span></div>
     <div class="foot">Generated ${new Date().toLocaleString()} · Tare</div>`;
-  await Print.printAsync({ html: shell('Bill of Lading', body) });
+  await printHtml(shell('Bill of Lading', body));
 }

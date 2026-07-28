@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as Print from 'expo-print';
+import { printHtml } from './printHtml';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import {
@@ -159,7 +160,7 @@ export async function printReceipt(receipt: PrintReceiptData): Promise<void> {
     // Will use defaults
   }
   const html = buildReceiptHtml(receipt, company);
-  await Print.printAsync({ html });
+  await printHtml(html);
 }
 
 export async function shareReceipt(receipt: PrintReceiptData): Promise<void> {
@@ -175,7 +176,7 @@ export async function shareReceipt(receipt: PrintReceiptData): Promise<void> {
   // dialog, from which the operator can "Save as PDF" or print — the closest
   // equivalent action.
   if (Platform.OS === 'web') {
-    await Print.printAsync({ html });
+    await printHtml(html);
     return;
   }
 
