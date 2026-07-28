@@ -4,6 +4,29 @@ import { localDateInTz } from '../utils/timezone';
 import { isReportOverdue } from '../utils/businessDays';
 import { buildNmrldExportCsv } from '../utils/nmrldExport';
 
+// PostgREST caps a single response at ~1000 rows. For unbounded compliance /
+// report reads, page through with .range() so a busy yard's state filing (or a
+// long report) is never SILENTLY truncated (#45). `build()` must return a fresh
+// query each call (filters + order, no range).
+const PAGE_SIZE = 1000;
+interface Rangeable<T> {
+  range(
+    from: number,
+    to: number
+  ): PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+}
+async function fetchAllPages<T>(build: () => Rangeable<T>): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await build().range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const page = data ?? [];
+    out.push(...page);
+    if (page.length < PAGE_SIZE) break;
+  }
+  return out;
+}
+
 // ---------- Daily Summary ----------
 
 export interface DailySummary {
@@ -493,18 +516,18 @@ export async function fetchComplianceReport(
   startDate: string,
   endDate: string
 ): Promise<ComplianceReceiptRow[]> {
-  const { data, error } = await supabase
-    .from('receipts')
-    .select(
-      '*, line_items(metal_name, weight, total, is_restricted, is_regulated, unit, quantity, metals(is_report_exempt))'
-    )
-    .eq('type', 'buy')
-    .gte('created_at', startOfLocalDayUtc(startDate))
-    .lte('created_at', endOfLocalDayUtc(endDate))
-    .order('created_at', { ascending: false });
-
-  if (error) throw error;
-  return (data ?? []) as ComplianceReceiptRow[];
+  // Paginated so a range with >1000 buys still exports every record (#45).
+  return fetchAllPages<ComplianceReceiptRow>(() =>
+    supabase
+      .from('receipts')
+      .select(
+        '*, line_items(metal_name, weight, total, is_restricted, is_regulated, unit, quantity, metals(is_report_exempt))'
+      )
+      .eq('type', 'buy')
+      .gte('created_at', startOfLocalDayUtc(startDate))
+      .lte('created_at', endOfLocalDayUtc(endDate))
+      .order('created_at', { ascending: false })
+  );
 }
 
 // ---------- NMRLD database export ----------
@@ -569,17 +592,18 @@ export async function exportNmrldCsv(
 export async function fetchUnreportedReceipts(): Promise<
   ComplianceReceiptRow[]
 > {
-  const { data, error } = await supabase
-    .from('receipts')
-    .select(
-      '*, line_items(metal_name, weight, total, unit, quantity, is_restricted, is_regulated, metals(is_report_exempt))'
-    )
-    .eq('type', 'buy')
-    .is('reported_at', null)
-    .order('created_at', { ascending: true });
-
-  if (error) throw error;
-  return (data ?? []) as ComplianceReceiptRow[];
+  // Paginated — the full unreported backlog (potentially >1000) is exactly what
+  // the state filing must contain, so it can't be capped (#45).
+  return fetchAllPages<ComplianceReceiptRow>(() =>
+    supabase
+      .from('receipts')
+      .select(
+        '*, line_items(metal_name, weight, total, unit, quantity, is_restricted, is_regulated, metals(is_report_exempt))'
+      )
+      .eq('type', 'buy')
+      .is('reported_at', null)
+      .order('created_at', { ascending: true })
+  );
 }
 
 // Stamp receipts as reported and write an audit-log entry.
@@ -625,14 +649,16 @@ export interface ReportingStatus {
 export async function fetchReportingStatus(): Promise<ReportingStatus> {
   // Pull the unreported buys' purchase dates so we can flag which are past the
   // 2-business-day deadline (business-day math is simplest in JS).
-  const { data: pending, error } = await supabase
-    .from('receipts')
-    .select('created_at')
-    .eq('type', 'buy')
-    .is('reported_at', null)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  const rows = pending ?? [];
+  // Paginated so the pending/overdue counts and oldest-date are accurate past
+  // 1000 unreported buys (#45).
+  const rows = await fetchAllPages<{ created_at: string }>(() =>
+    supabase
+      .from('receipts')
+      .select('created_at')
+      .eq('type', 'buy')
+      .is('reported_at', null)
+      .order('created_at', { ascending: true })
+  );
   const overdue = rows.filter((r) =>
     isReportOverdue(r.created_at as string)
   ).length;
