@@ -12,7 +12,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { CustomersStackParamList } from '../../navigation/MainNavigator';
-import * as Print from 'expo-print';
+import { printHtml } from '../../utils/printHtml';
 import { Ionicons } from '@expo/vector-icons';
 import {
   fetchCustomerById,
@@ -228,7 +228,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           </table>
         </body></html>`;
 
-      await Print.printAsync({ html });
+      await printHtml(html);
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }

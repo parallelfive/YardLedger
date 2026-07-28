@@ -1,4 +1,4 @@
-import * as Print from 'expo-print';
+import { printHtml } from './printHtml';
 import { escapeHtml } from './validation';
 import type { ClientStatement } from './clientStatement';
 
@@ -102,5 +102,5 @@ export async function printClientStatement(
       <div class="foot">Summary of purchases from the seller named above for ${escapeHtml(s.periodLabel)}. Provided for the seller's records — <b>not a tax document</b> and not an official receipt. Generated ${new Date().toLocaleString()} · Tare.</div>
     </body></html>`;
 
-  await Print.printAsync({ html });
+  await printHtml(html);
 }

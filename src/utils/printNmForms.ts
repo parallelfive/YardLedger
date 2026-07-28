@@ -1,4 +1,4 @@
-import * as Print from 'expo-print';
+import { printHtml } from './printHtml';
 import {
   fetchCompanySettings,
   type CompanySettings,
@@ -206,7 +206,7 @@ export async function printNmPurchaseRecord(
     </body></html>
   `;
 
-  await Print.printAsync({ html });
+  await printHtml(html);
 }
 
 /**
@@ -332,5 +332,5 @@ export async function printNmCatConverterForm(
     </body></html>
   `;
 
-  await Print.printAsync({ html });
+  await printHtml(html);
 }

@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
-import * as Print from 'expo-print';
+import { printHtml } from '../../utils/printHtml';
 import { shareTextFile } from '../../utils/shareFile';
 import { escapeHtml } from '../../utils/validation';
 import DateRangeSelector, {
@@ -217,7 +217,7 @@ export default function ComplianceReportScreen() {
   const handlePrint = async (restrictedOnly: boolean) => {
     try {
       const html = await buildHtml(restrictedOnly);
-      await Print.printAsync({ html });
+      await printHtml(html);
     } catch (err) {
       Alert.alert(t.error, (err as Error).message);
     }

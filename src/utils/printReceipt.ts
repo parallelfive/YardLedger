@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as Print from 'expo-print';
+import { printHtml } from './printHtml';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
 import {
@@ -68,21 +69,32 @@ function buildReceiptHtml(
   // Company header
   const companyName = escapeHtml(company?.company_name || 'YardLedger');
   const logoHtml = company?.logo_url
-    ? `<img src="${company.logo_url}" style="max-width:120px;max-height:80px;object-fit:contain;margin-bottom:8px;" />`
+    ? `<img class="logo" src="${company.logo_url}" alt="" />`
     : '';
   const addressHtml = company?.address
-    ? `<div style="font-size:12px;color:#666;margin-bottom:2px;">${escapeHtml(company.address).replace(/\n/g, '<br>')}</div>`
+    ? `<div class="muted">${escapeHtml(company.address).replace(/\n/g, '<br>')}</div>`
     : '';
   const companyPhoneHtml = company?.phone
-    ? `<div style="font-size:12px;color:#666;">${escapeHtml(company.phone)}</div>`
+    ? `<div class="muted">${escapeHtml(company.phone)}</div>`
     : '';
 
   const signatureHtml = receipt.signature_uri
-    ? `<div style="margin-top:24px;border-top:1px solid #ccc;padding-top:12px;">
-        <p style="margin:0 0 8px;font-size:12px;color:#666;">Customer Signature</p>
-        <img src="${receipt.signature_uri}" style="max-width:300px;height:100px;object-fit:contain;" />
+    ? `<div class="sig">
+        <p>Seller signature</p>
+        <img src="${receipt.signature_uri}" alt="" />
       </div>`
     : '';
+
+  // A meta row only renders when there's a value — keeps the receipt tidy.
+  const metaRow = (k: string, v: string) =>
+    v
+      ? `<div class="row"><span class="k">${k}</span><span class="v">${v}</span></div>`
+      : '';
+
+  const vehicle = [receipt.vehicle_plate, receipt.vehicle_description]
+    .filter(Boolean)
+    .map((s) => escapeHtml(String(s)))
+    .join(' · ');
 
   return `
     <!DOCTYPE html>
@@ -90,49 +102,75 @@ function buildReceiptHtml(
     <head>
       <meta charset="utf-8" />
       <style>
-        body { font-family: -apple-system, sans-serif; padding: 24px; color: #222; max-width: 80mm; margin: 0 auto; }
-        .company-header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #222; padding-bottom: 12px; }
-        h1 { font-size: 22px; margin: 0 0 4px; }
-        .receipt-number { color: #666; font-size: 14px; margin-bottom: 16px; }
-        .info-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 14px; }
-        .info-label { color: #666; }
-        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        th { text-align: left; border-bottom: 2px solid #222; padding: 8px 4px; font-size: 13px; }
-        td { padding: 8px 4px; border-bottom: 1px solid #eee; font-size: 13px; }
-        .total-row { display: flex; justify-content: space-between; margin-top: 16px; padding-top: 12px; border-top: 2px solid #222; }
-        .total-label { font-size: 18px; font-weight: bold; }
-        .total-value { font-size: 22px; font-weight: bold; }
+        * { box-sizing: border-box; }
+        html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        @page { margin: 8mm; }
+        body {
+          font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+          color: #1a1712; margin: 0 auto; padding: 26px 22px;
+          max-width: 92mm; font-size: 13px; line-height: 1.45;
+        }
+        .brand { text-align: center; margin-bottom: 18px; }
+        .brand .logo { max-width: 132px; max-height: 76px; object-fit: contain; margin-bottom: 10px; }
+        .brand h1 { font-size: 20px; letter-spacing: 0.4px; margin: 0 0 3px; font-weight: 800; }
+        .muted { font-size: 11px; color: #7a7269; line-height: 1.45; }
+        .doctype {
+          text-align: center; font-size: 10px; letter-spacing: 2.6px;
+          text-transform: uppercase; color: #8a8178; font-weight: 700;
+          border-top: 1px solid #e3ddd2; border-bottom: 1px solid #e3ddd2;
+          padding: 7px 0; margin: 0 0 16px;
+        }
+        .meta { margin-bottom: 8px; }
+        .row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; font-size: 12.5px; }
+        .row .k { color: #8a8178; white-space: nowrap; }
+        .row .v { font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; }
+        table { width: 100%; border-collapse: collapse; margin: 14px 0 4px; }
+        thead th {
+          font-size: 9.5px; letter-spacing: 0.8px; text-transform: uppercase;
+          color: #8a8178; border-bottom: 1.5px solid #1a1712; padding: 6px 3px; text-align: right;
+        }
+        thead th:first-child { text-align: left; }
+        tbody td { padding: 8px 3px; border-bottom: 1px solid #eee6d9; font-size: 12.5px; font-variant-numeric: tabular-nums; vertical-align: top; }
+        .payout {
+          margin-top: 16px; border: 2px solid #1a1712; border-radius: 11px;
+          padding: 13px 16px; display: flex; align-items: center; justify-content: space-between;
+          gap: 12px; background: #f6f1e8;
+        }
+        .payout .lbl { font-size: 10.5px; letter-spacing: 1.6px; text-transform: uppercase; font-weight: 700; color: #5a544b; }
+        .payout .amt { font-size: 29px; font-weight: 800; letter-spacing: -0.5px; font-variant-numeric: tabular-nums; }
+        .sig { margin-top: 22px; border-top: 1px solid #e3ddd2; padding-top: 12px; }
+        .sig p { margin: 0 0 7px; font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; color: #8a8178; }
+        .sig img { max-width: 260px; height: 84px; object-fit: contain; }
+        .foot { margin-top: 22px; text-align: center; font-size: 10px; color: #9a9188; line-height: 1.7; }
+        .foot .thanks { font-size: 12.5px; color: #3a352e; font-weight: 700; margin-bottom: 3px; letter-spacing: 0.3px; }
       </style>
     </head>
     <body>
-      <div class="company-header">
+      <div class="brand">
         ${logoHtml}
         <h1>${companyName}</h1>
         ${addressHtml}
         ${companyPhoneHtml}
       </div>
 
-      <div class="receipt-number">${receipt.receipt_number}</div>
+      <div class="doctype">Purchase Receipt</div>
 
-      <div class="info-row">
-        <span class="info-label">Customer</span>
-        <span>${escapeHtml(receipt.customer_name)}</span>
+      <div class="meta">
+        ${metaRow('Receipt&nbsp;#', escapeHtml(receipt.receipt_number))}
+        ${metaRow('Date', date)}
+        ${metaRow('Paid to', escapeHtml(receipt.customer_name))}
+        ${metaRow('Phone', escapeHtml(receipt.customer_phone ?? ''))}
+        ${metaRow('Vehicle', vehicle)}
+        ${receipt.seller_affirmed ? metaRow('Ownership affirmed', 'Yes') : ''}
       </div>
-      ${receipt.customer_phone ? `<div class="info-row"><span class="info-label">Phone</span><span>${escapeHtml(receipt.customer_phone)}</span></div>` : ''}
-      ${receipt.vehicle_plate ? `<div class="info-row"><span class="info-label">Vehicle</span><span>${escapeHtml(receipt.vehicle_plate)} ${escapeHtml(receipt.vehicle_description ?? '')}</span></div>` : ''}
-      <div class="info-row">
-        <span class="info-label">Date</span>
-        <span>${date}</span>
-      </div>
-      ${receipt.seller_affirmed ? '<div class="info-row"><span class="info-label">Seller Affirmed</span><span>Yes</span></div>' : ''}
 
       <table>
         <thead>
           <tr>
-            <th>Metal</th>
-            <th style="text-align:right">Weight</th>
-            <th style="text-align:right">Price</th>
-            <th style="text-align:right">Total</th>
+            <th>Material</th>
+            <th>Qty / Wt</th>
+            <th>Unit price</th>
+            <th>Amount</th>
           </tr>
         </thead>
         <tbody>
@@ -140,12 +178,18 @@ function buildReceiptHtml(
         </tbody>
       </table>
 
-      <div class="total-row">
-        <span class="total-label">Total</span>
-        <span class="total-value">$${Number(receipt.subtotal).toFixed(2)}</span>
+      <div class="payout">
+        <span class="lbl">Total Paid</span>
+        <span class="amt">$${Number(receipt.subtotal).toFixed(2)}</span>
       </div>
 
       ${signatureHtml}
+
+      <div class="foot">
+        <div class="thanks">Thank you</div>
+        Please retain this receipt for your records.<br />
+        ${companyName}
+      </div>
     </body>
     </html>
   `;
@@ -159,7 +203,7 @@ export async function printReceipt(receipt: PrintReceiptData): Promise<void> {
     // Will use defaults
   }
   const html = buildReceiptHtml(receipt, company);
-  await Print.printAsync({ html });
+  await printHtml(html);
 }
 
 export async function shareReceipt(receipt: PrintReceiptData): Promise<void> {
@@ -175,7 +219,7 @@ export async function shareReceipt(receipt: PrintReceiptData): Promise<void> {
   // dialog, from which the operator can "Save as PDF" or print — the closest
   // equivalent action.
   if (Platform.OS === 'web') {
-    await Print.printAsync({ html });
+    await printHtml(html);
     return;
   }
 
