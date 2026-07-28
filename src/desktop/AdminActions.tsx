@@ -69,6 +69,7 @@ function Modal({
   onClose,
   children,
   zIndex = 120,
+  width = 380,
 }: {
   title: string;
   sub?: string;
@@ -76,6 +77,7 @@ function Modal({
   onClose: () => void;
   children: ReactNode;
   zIndex?: number;
+  width?: number;
 }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex }}>
@@ -95,7 +97,7 @@ function Modal({
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: 380,
+          width,
           maxWidth: '92vw',
           // Cap the height and let the body scroll — a tall form (e.g. the full
           // company-profile editor) was overflowing the viewport with no scroll.
@@ -561,6 +563,7 @@ function EditCompanyModal({
       sub="Owner only"
       icon="building"
       onClose={onClose}
+      width={620}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <Field label="Company name">
@@ -570,13 +573,6 @@ function EditCompanyModal({
             placeholder="Company name"
           />
         </Field>
-        <Field label="Phone">
-          <TextInput
-            value={phone}
-            onChange={setPhone}
-            placeholder="(555) 000-0000"
-          />
-        </Field>
         <Field label="Address">
           <TextInput
             value={address}
@@ -584,6 +580,27 @@ function EditCompanyModal({
             placeholder="Street, city, ZIP"
           />
         </Field>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <Field label="Phone">
+              <TextInput
+                value={phone}
+                onChange={setPhone}
+                placeholder="(555) 000-0000"
+              />
+            </Field>
+          </div>
+          <div style={{ flex: 1 }}>
+            <Field label="EIN">
+              <TextInput
+                value={ein}
+                onChange={setEin}
+                placeholder="Tax ID"
+                mono
+              />
+            </Field>
+          </div>
+        </div>
         <Field label="Operating state">
           <select
             value={state}
@@ -615,25 +632,28 @@ function EditCompanyModal({
             built-in rules are listed.
           </div>
         </Field>
-        <Field label="License / registration #">
-          <TextInput
-            value={license}
-            onChange={setLicense}
-            placeholder="Dealer license #"
-            mono
-          />
-        </Field>
-        <Field label={jur.copy.registrationLabel}>
-          <TextInput
-            value={registry}
-            onChange={setRegistry}
-            placeholder={`${jur.copy.registry} / state registry ID`}
-            mono
-          />
-        </Field>
-        <Field label="EIN">
-          <TextInput value={ein} onChange={setEin} placeholder="Tax ID" mono />
-        </Field>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <Field label="License / registration #">
+              <TextInput
+                value={license}
+                onChange={setLicense}
+                placeholder="Dealer license #"
+                mono
+              />
+            </Field>
+          </div>
+          <div style={{ flex: 1 }}>
+            <Field label={jur.copy.registrationLabel}>
+              <TextInput
+                value={registry}
+                onChange={setRegistry}
+                placeholder={`${jur.copy.registry} / state registry ID`}
+                mono
+              />
+            </Field>
+          </div>
+        </div>
 
         {/* compliance rule overrides — presets come from the jurisdiction */}
         <div
@@ -687,47 +707,53 @@ function EditCompanyModal({
             </Field>
           </div>
         </div>
-        <Field label="Converter payment">
-          <div style={{ display: 'flex', gap: 8 }} role="tablist">
-            {(
-              [
-                [true, 'Check only'],
-                [false, 'Any method'],
-              ] as [boolean, string][]
-            ).map(([val, lbl]) => {
-              const on = checkOnly === val;
-              return (
-                <button
-                  key={lbl}
-                  role="tab"
-                  aria-selected={on}
-                  onClick={() => setCheckOnly(val)}
-                  style={{
-                    flex: 1,
-                    padding: '9px 0',
-                    borderRadius: 9,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: on ? 'var(--ink)' : 'var(--surface-2)',
-                    color: on ? 'var(--bg)' : 'var(--ink-2)',
-                    border: `1px solid ${on ? 'var(--ink)' : 'var(--line)'}`,
-                  }}
-                >
-                  {lbl}
-                </button>
-              );
-            })}
+        <div style={{ display: 'flex', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <Field label="Converter payment">
+              <div style={{ display: 'flex', gap: 8 }} role="tablist">
+                {(
+                  [
+                    [true, 'Check only'],
+                    [false, 'Any method'],
+                  ] as [boolean, string][]
+                ).map(([val, lbl]) => {
+                  const on = checkOnly === val;
+                  return (
+                    <button
+                      key={lbl}
+                      role="tab"
+                      aria-selected={on}
+                      onClick={() => setCheckOnly(val)}
+                      style={{
+                        flex: 1,
+                        padding: '9px 0',
+                        borderRadius: 9,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: on ? 'var(--ink)' : 'var(--surface-2)',
+                        color: on ? 'var(--bg)' : 'var(--ink-2)',
+                        border: `1px solid ${on ? 'var(--ink)' : 'var(--line)'}`,
+                      }}
+                    >
+                      {lbl}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
           </div>
-        </Field>
-        <Field label="Time zone (IANA)">
-          <TextInput
-            value={timezone}
-            onChange={setTimezone}
-            placeholder="America/Denver"
-            mono
-          />
-        </Field>
+          <div style={{ flex: 1 }}>
+            <Field label="Time zone (IANA)">
+              <TextInput
+                value={timezone}
+                onChange={setTimezone}
+                placeholder="America/Denver"
+                mono
+              />
+            </Field>
+          </div>
+        </div>
       </div>
       {err && (
         <div
