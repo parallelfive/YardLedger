@@ -31,7 +31,7 @@ import {
   type ComplianceReceiptRow,
 } from '../../services/reports';
 import { Tag, SectionLabel, fmtMoney, fmtLbs } from '../../components/foundry';
-import { TareHeader, ResponsiveContainer } from '../../components';
+import { TareHeader, ResponsiveContainer, ReportError } from '../../components';
 import { fetchCompanySettings } from '../../services/companySettings';
 import { stateName } from '../../utils';
 import { isReportOverdue } from '../../utils/businessDays';
@@ -80,9 +80,11 @@ export default function ReportsListScreen({ navigation }: Props) {
   const [rows, setRows] = useState<ComplianceReceiptRow[]>([]);
   const [stateCode, setStateCode] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const { start, end } = getDateRange(preset);
       const [data, settings] = await Promise.all([
@@ -92,7 +94,8 @@ export default function ReportsListScreen({ navigation }: Props) {
       setRows(data);
       if (settings?.state) setStateCode(settings.state);
     } catch {
-      setRows([]);
+      // Don't render zeroed compliance stats on a failed load (#106).
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -158,6 +161,15 @@ export default function ReportsListScreen({ navigation }: Props) {
     { title: t.onHoldReport, screen: 'OnHold' },
     { title: t.reportingStatus, screen: 'ReportingStatus' },
   ];
+
+  if (error && rows.length === 0 && !loading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <TareHeader title={t.compliance} rightLabel={stateName(stateCode)} />
+        <ReportError onRetry={load} />
+      </View>
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

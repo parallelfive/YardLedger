@@ -18,7 +18,7 @@ import {
   type DailySummary,
 } from '../../services/reports';
 import { Sparkline, SectionLabel, fmtMoney0 } from '../../components/foundry';
-import { ResponsiveContainer } from '../../components';
+import { ResponsiveContainer, ReportError } from '../../components';
 import { useT } from '../../hooks/useT';
 import { type Palette, spacing, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
@@ -32,9 +32,11 @@ export default function DailySummaryScreen() {
   const [data, setData] = useState<DailySummary | null>(null);
   const [trend, setTrend] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const { start, end } = getDateRange(preset);
       const [summary, recent] = await Promise.all([
@@ -44,7 +46,7 @@ export default function DailySummaryScreen() {
       setData(summary);
       setTrend(recent);
     } catch {
-      // Will show empty
+      setError(true); // surface the failure instead of a misleading empty state
     } finally {
       setLoading(false);
     }
@@ -67,6 +69,8 @@ export default function DailySummaryScreen() {
             size="large"
             style={styles.loader}
           />
+        ) : error && !data ? (
+          <ReportError onRetry={loadData} />
         ) : data ? (
           <>
             {trend.length > 0 && (

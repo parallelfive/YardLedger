@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchReceiptsOnHold, type OnHoldRow } from '../../services/reports';
-import { RefreshableList } from '../../components';
+import { RefreshableList, ReportError } from '../../components';
 import { Tag, SectionLabel } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
 import { useResponsive } from '../../hooks';
@@ -26,13 +26,16 @@ export default function OnHoldScreen() {
   const { isWide } = useResponsive();
   const [rows, setRows] = useState<OnHoldRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       setRows(await fetchReceiptsOnHold());
     } catch {
       setRows([]);
+      setError(true); // failure, not an empty hold list (#106)
     } finally {
       setLoading(false);
     }
@@ -49,6 +52,14 @@ export default function OnHoldScreen() {
     }),
     [rows]
   );
+
+  if (error && rows.length === 0 && !loading) {
+    return (
+      <View style={styles.container}>
+        <ReportError onRetry={load} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

@@ -20,6 +20,7 @@ import {
 } from '../../services/reports';
 import { useT } from '../../hooks/useT';
 import { useResponsive } from '../../hooks';
+import { ReportError } from '../../components';
 import {
   SectionLabel,
   MetalDot,
@@ -57,14 +58,16 @@ export default function ProfitabilityScreen() {
   const [preset, setPreset] = useState<DatePreset>('month');
   const [data, setData] = useState<ProfitabilityReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const { start, end } = getDateRange(preset);
       setData(await fetchProfitabilityReport(start, end));
     } catch {
-      // Will show empty
+      setError(true); // surface the failure instead of a misleading empty state
     } finally {
       setLoading(false);
     }
@@ -83,6 +86,15 @@ export default function ProfitabilityScreen() {
           size="large"
           style={styles.loader}
         />
+      </View>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <View style={styles.container}>
+        <DateRangeSelector selected={preset} onSelect={setPreset} />
+        <ReportError onRetry={loadData} />
       </View>
     );
   }

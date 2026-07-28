@@ -16,6 +16,7 @@ import {
 } from '../../services/reports';
 import { useT } from '../../hooks/useT';
 import { useResponsive } from '../../hooks';
+import { ReportError } from '../../components';
 import {
   SectionLabel,
   MetalDot,
@@ -51,13 +52,15 @@ export default function InventoryValuationScreen() {
   const { isWide } = useResponsive();
   const [data, setData] = useState<InventoryValuationReport | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       setData(await fetchInventoryValuation());
     } catch {
-      // Will show empty
+      setError(true); // surface the failure instead of a misleading empty state
     } finally {
       setLoading(false);
     }
@@ -77,6 +80,14 @@ export default function InventoryValuationScreen() {
           size="large"
           style={styles.loader}
         />
+      </View>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <View style={styles.container}>
+        <ReportError onRetry={loadData} />
       </View>
     );
   }
