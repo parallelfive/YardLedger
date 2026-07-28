@@ -522,6 +522,15 @@ export interface ComplianceReceiptRow {
   payment_method: string | null;
   hold_until: string | null;
   reported_at: string | null;
+  // Evidence photo object-PATHS in the private bucket (signed on demand at
+  // render time). Fetched via select('*'); sign with signPrivatePath.
+  seller_id_photo_uri: string | null;
+  dl_photo_uri: string | null;
+  seller_photo_uri: string | null;
+  material_photo_uri: string | null;
+  cat_converter_photo_uri: string | null;
+  cat_title_photo_uri: string | null;
+  signature_uri: string | null;
   subtotal: number;
   line_items: {
     metal_name: string;

@@ -40,13 +40,13 @@ import {
   TextInput,
   Segmented,
   GroupLabel,
-  Placeholder,
   SlideOver,
   SlideHead,
   money,
   lbs,
   type Col,
 } from '../ui';
+import { signPrivatePath } from '../../services/storage';
 
 // 'Outstanding' is date-unbounded — every unreported buy, so an old one that
 // fell outside Today/Week/Month (e.g. missed over a month rollover) is still
@@ -82,6 +82,8 @@ interface RecordVM {
   id: string;
   no: string;
   seller: string;
+  dob: string;
+  address: string;
   dl: string;
   plate: string;
   vehicle: string;
@@ -94,6 +96,8 @@ interface RecordVM {
   reported: boolean;
   affirmed: boolean;
   pay: string;
+  // Evidence photo paths (private bucket) — signed on demand in the slide-over.
+  photos: { label: string; path: string }[];
 }
 
 const toVM = (r: ComplianceReceiptRow): RecordVM => {
@@ -106,6 +110,14 @@ const toVM = (r: ComplianceReceiptRow): RecordVM => {
     id: r.id,
     no: r.receipt_number,
     seller: r.seller_name || r.customer_name || 'Walk-in',
+    dob: r.seller_dob || '—',
+    address:
+      [
+        r.seller_address,
+        [r.seller_city, r.seller_state, r.seller_zip].filter(Boolean).join(' '),
+      ]
+        .filter(Boolean)
+        .join(', ') || '—',
     dl: r.seller_dl_number || '—',
     plate: r.vehicle_plate || '—',
     vehicle,
@@ -127,8 +139,118 @@ const toVM = (r: ComplianceReceiptRow): RecordVM => {
     reported: !!r.reported_at,
     affirmed: !!r.seller_affirmed,
     pay: r.payment_method || '—',
+    photos: (
+      [
+        ['ID scan', r.seller_id_photo_uri],
+        ['Driver license', r.dl_photo_uri],
+        ['Seller', r.seller_photo_uri],
+        ['Material', r.material_photo_uri],
+        ['Converter', r.cat_converter_photo_uri],
+        ['Title', r.cat_title_photo_uri],
+        ['Signature', r.signature_uri],
+      ] as [string, string | null][]
+    )
+      .filter((p): p is [string, string] => !!p[1])
+      .map(([label, path]) => ({ label, path })),
   };
 };
+
+// Compliance evidence photos live in a private bucket as object PATHS; mint a
+// short-lived signed URL per photo at render time (#107 — the panel used to show
+// hardcoded placeholders instead of the stored evidence).
+function CompliancePhotos({
+  photos,
+}: {
+  photos: { label: string; path: string }[];
+}) {
+  const [urls, setUrls] = useState<Record<string, string | null>>({});
+  useEffect(() => {
+    let active = true;
+    Promise.all(
+      photos.map(async (p) => [p.label, await signPrivatePath(p.path)] as const)
+    ).then((pairs) => {
+      if (active) setUrls(Object.fromEntries(pairs));
+    });
+    return () => {
+      active = false;
+    };
+  }, [photos]);
+
+  if (photos.length === 0) {
+    return (
+      <div className="mono" style={{ fontSize: 12, color: 'var(--ink-3)' }}>
+        No photos captured for this record.
+      </div>
+    );
+  }
+  return (
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+      {photos.map((p) => {
+        const url = urls[p.label];
+        return (
+          <div key={p.label} style={{ width: 104 }}>
+            <div
+              style={{
+                height: 88,
+                borderRadius: 10,
+                overflow: 'hidden',
+                background: 'var(--surface-2)',
+                border: '1px solid var(--line)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {url === undefined ? (
+                <span
+                  className="mono"
+                  style={{ fontSize: 10, color: 'var(--ink-3)' }}
+                >
+                  …
+                </span>
+              ) : url ? (
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: 'block', width: '100%', height: '100%' }}
+                >
+                  <img
+                    src={url}
+                    alt={p.label}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                </a>
+              ) : (
+                <span
+                  className="mono"
+                  style={{ fontSize: 10, color: 'var(--ink-3)' }}
+                >
+                  unavailable
+                </span>
+              )}
+            </div>
+            <div
+              className="mono"
+              style={{
+                fontSize: 9.5,
+                color: 'var(--ink-3)',
+                marginTop: 5,
+                textAlign: 'center',
+              }}
+            >
+              {p.label}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 function ExportTile({
   icon,
@@ -976,6 +1098,11 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
               className="screen-scroll"
               style={{
                 flex: 1,
+                // A flex:1 scroll child needs an explicit overflow + min-height:0,
+                // or it grows to fit its content and pushes the footer off-screen
+                // instead of scrolling (#98).
+                overflowY: 'auto',
+                minHeight: 0,
                 padding: 22,
                 display: 'flex',
                 flexDirection: 'column',
@@ -1012,7 +1139,9 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                 >
                   {(
                     [
+                      ['Date of birth', sel.dob],
                       ['Driver license', sel.dl],
+                      ['Address', sel.address],
                       ['Plate', sel.plate],
                       ['Vehicle', sel.vehicle],
                       ['Payment', sel.pay],
@@ -1069,11 +1198,7 @@ export default function Compliance({ canReport }: { canReport: boolean }) {
                 <GroupLabel style={{ marginBottom: 10 }}>
                   Compliance photos
                 </GroupLabel>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <Placeholder label="ID scan" h={88} />
-                  <Placeholder label="Material" h={88} />
-                  <Placeholder label="Vehicle" h={88} />
-                </div>
+                <CompliancePhotos photos={sel.photos} />
               </Card>
               <div style={{ display: 'flex', gap: 10 }}>
                 <Btn
