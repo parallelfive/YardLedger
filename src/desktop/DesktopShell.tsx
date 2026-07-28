@@ -334,6 +334,8 @@ export default function DesktopShell() {
   const { mode, isLight, toggle: toggleTheme } = useTheme();
 
   const [tab, setTab] = useState<TabId>('home');
+  // A seller to auto-open on the Customers tab, set by nav.viewSeller.
+  const [pendingSeller, setPendingSeller] = useState<string | null>(null);
   const [overlay, setOverlay] = useState<Overlay>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const [query, setQuery] = useState('');
@@ -455,6 +457,12 @@ export default function DesktopShell() {
     openTicket: (r: ReceiptRow) => setOverlay({ type: 'ticket', data: r }),
     openCloseDay: () => setOverlay({ type: 'closeday' }),
     openCashier: () => setOverlay({ type: 'cashier' }),
+    // Jump to the Sellers tab and auto-open a specific seller's profile/history
+    // (e.g. from a compliance record). Consumed + cleared by the Customers screen.
+    viewSeller: (customerId: string) => {
+      setPendingSeller(customerId);
+      setTab('customers');
+    },
     close: () => setOverlay(null),
   };
 
@@ -520,8 +528,16 @@ export default function DesktopShell() {
     );
   else if (tab === 'inventory') screen = <Inventory nav={nav} />;
   else if (tab === 'sales') screen = <Sales nav={nav} />;
-  else if (tab === 'customers') screen = <Customers nav={nav} />;
-  else if (tab === 'compliance') screen = <Compliance canReport={isAdmin} />;
+  else if (tab === 'customers')
+    screen = (
+      <Customers
+        nav={nav}
+        openSellerId={pendingSeller}
+        onSellerOpened={() => setPendingSeller(null)}
+      />
+    );
+  else if (tab === 'compliance')
+    screen = <Compliance canReport={isAdmin} nav={nav} />;
   else screen = <Settings canManage={isAdmin} />;
 
   return (
