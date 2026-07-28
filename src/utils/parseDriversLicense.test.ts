@@ -35,9 +35,11 @@ describe('parseDriversLicense — DOB', () => {
     expect(parseDriversLicense('DOB: 03/15/1985').dob).toBe('1985-03-15');
   });
 
-  it('pivots a 2-digit year around 50', () => {
+  it('pivots a 2-digit birth year into the past, never the future (#20)', () => {
     expect(parseDriversLicense('DOB 03/15/85').dob).toBe('1985-03-15');
     expect(parseDriversLicense('DOB 03/15/20').dob).toBe('2020-03-15');
+    // "50" must be 1950, not a future 2050.
+    expect(parseDriversLicense('DOB 03/15/50').dob).toBe('1950-03-15');
   });
 
   it('does not mistake the expiration date for the birth date', () => {

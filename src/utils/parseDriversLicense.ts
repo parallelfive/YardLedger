@@ -116,7 +116,11 @@ function normalizeDateToISO(dateStr: string): string {
   let year = parts[2];
   if (year.length === 2) {
     const yr = parseInt(year, 10);
-    year = yr > 50 ? `19${year}` : `20${year}`;
+    // These dates are birth dates (extractDob), so a 2-digit year must land in
+    // the PAST. Pivot on the current 2-digit year rather than a fixed 50, so
+    // e.g. "50" is 1950 (not a future 2050) while "20" stays 2020 (#20).
+    const currentYY = new Date().getFullYear() % 100;
+    year = yr > currentYY ? `19${year}` : `20${year}`;
   }
 
   return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
