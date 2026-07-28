@@ -1,7 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useCustomers } from '../../hooks/useCustomers';
 import { useReceipts } from '../../hooks/useReceipts';
-import { updateCustomer, type Customer } from '../../services/customers';
+import { useCurrentCompany } from '../../hooks';
+import {
+  updateCustomer,
+  fetchCustomerReceipts,
+  type Customer,
+} from '../../services/customers';
+import {
+  buildClientStatement,
+  statementYears,
+  type StatementReceipt,
+} from '../../utils/clientStatement';
+import { printClientStatement } from '../../utils/printClientStatement';
 import { shareTextFile } from '../../utils/shareFile';
 import Icon from '../Icon';
 import {
@@ -72,9 +83,74 @@ export default function Customers({
 }) {
   const { customers, loading, error, refresh } = useCustomers();
   const { receipts } = useReceipts();
+  const company = useCurrentCompany();
   const [q, setQ] = useState('');
   const [sel, setSel] = useState<Customer | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // The selected seller's FULL receipt history (all years, by customer_id) —
+  // powers the yearly statement (the day-book `receipts` list is date-limited).
+  const [stmtReceipts, setStmtReceipts] = useState<StatementReceipt[]>([]);
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  useEffect(() => {
+    if (!sel) return;
+    let active = true;
+    fetchCustomerReceipts(sel.id)
+      .then((data) => {
+        if (!active) return;
+        const list = data as StatementReceipt[];
+        setStmtReceipts(list);
+        const years = statementYears(list);
+        // Default the picker to the seller's most recent active year.
+        if (years.length) setYear(years[0]);
+      })
+      .catch(() => {
+        if (active) setStmtReceipts([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [sel]);
+  const stmtYears = useMemo(() => statementYears(stmtReceipts), [stmtReceipts]);
+  const statement = useMemo(
+    () => buildClientStatement(stmtReceipts, year),
+    [stmtReceipts, year]
+  );
+
+  const printStatement = () => {
+    if (!sel) return;
+    printClientStatement(
+      statement,
+      { name: sel.name, phone: sel.phone, address: sel.address },
+      company?.name ?? ''
+    ).catch(() => {});
+  };
+  const exportStatementCsv = () => {
+    if (!sel) return;
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rowsCsv = statement.lines
+      .map((l) =>
+        [
+          new Date(l.date).toLocaleDateString(),
+          l.receiptNumber,
+          l.materials,
+          l.amount,
+        ]
+          .map(esc)
+          .join(',')
+      )
+      .join('\n');
+    const csv =
+      'date,receipt,materials,paid\n' +
+      rowsCsv +
+      `\n"","",${esc(`TOTAL ${statement.year}`)},${esc(statement.totalPaid)}`;
+    shareTextFile(
+      `statement_${sel.name.replace(/\W+/g, '_')}_${statement.year}.csv`,
+      csv,
+      'text/csv',
+      'public.comma-separated-values-text'
+    ).catch(() => {});
+  };
 
   // name(lowercased) → lifetime buy stats
   const statsByName = useMemo(() => {
@@ -468,6 +544,110 @@ export default function Customers({
                   icon="sales"
                 />
               </div>
+
+              {/* yearly statement */}
+              <Card pad={18}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    marginBottom: 14,
+                  }}
+                >
+                  <PanelHead
+                    title="Yearly statement"
+                    sub="Seller’s purchase summary"
+                    icon="receipt"
+                  />
+                  <select
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    style={{
+                      height: 34,
+                      padding: '0 10px',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--line)',
+                      borderRadius: 9,
+                      color: 'var(--ink)',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      outline: 'none',
+                    }}
+                  >
+                    {(stmtYears.length ? stmtYears : [year]).map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr',
+                    gap: 10,
+                    marginBottom: 14,
+                  }}
+                >
+                  {(
+                    [
+                      ['Transactions', String(statement.transactionCount)],
+                      [
+                        'Volume',
+                        `${lbs(statement.totalWeightLb)}${statement.totalPieces > 0 ? ` +${statement.totalPieces}pc` : ''}`,
+                      ],
+                      ['Paid', money(statement.totalPaid)],
+                    ] as const
+                  ).map(([k, v]) => (
+                    <div key={k}>
+                      <div
+                        className="mono"
+                        style={{
+                          fontSize: 9.5,
+                          letterSpacing: 0.5,
+                          textTransform: 'uppercase',
+                          color: 'var(--ink-3)',
+                        }}
+                      >
+                        {k}
+                      </div>
+                      <div
+                        className="num"
+                        style={{
+                          fontSize: 17,
+                          fontWeight: 700,
+                          color: 'var(--ink)',
+                          marginTop: 2,
+                        }}
+                      >
+                        {v}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <Btn
+                    variant="primary"
+                    icon="printer"
+                    full
+                    disabled={statement.transactionCount === 0}
+                    onClick={printStatement}
+                  >
+                    Print / PDF
+                  </Btn>
+                  <Btn
+                    variant="ghost"
+                    icon="download"
+                    full
+                    disabled={statement.transactionCount === 0}
+                    onClick={exportStatementCsv}
+                  >
+                    Export CSV
+                  </Btn>
+                </div>
+              </Card>
 
               {/* identity */}
               <Card pad={18}>

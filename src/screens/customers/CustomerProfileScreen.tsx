@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,11 @@ import { fetchCompanySettings } from '../../services/companySettings';
 import { SignedImage, ResponsiveContainer } from '../../components';
 import { SectionLabel, Tag, fmtMoney, fmtLbs } from '../../components/foundry';
 import { escapeHtml } from '../../utils/validation';
+import {
+  buildClientStatement,
+  statementYears,
+  type StatementReceipt,
+} from '../../utils/clientStatement';
 import { useT } from '../../hooks/useT';
 import { useIdScanner } from '../../hooks/useIdScanner';
 import { useTheme, useThemedStyles } from '../../theme';
@@ -144,6 +149,21 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
     0
   );
 
+  // Year-filtered statement (the seller's purchases for one year, per-piece
+  // aware). Defaults to their most recent active year.
+  const stmtYears = useMemo(
+    () => statementYears(receipts as StatementReceipt[]),
+    [receipts]
+  );
+  const [year, setYear] = useState<number>(new Date().getFullYear());
+  useEffect(() => {
+    if (stmtYears.length) setYear(stmtYears[0]);
+  }, [stmtYears]);
+  const statement = useMemo(
+    () => buildClientStatement(receipts as StatementReceipt[], year),
+    [receipts, year]
+  );
+
   const handlePrintStatement = async () => {
     if (!customer) return;
     try {
@@ -154,14 +174,14 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
            <p style="margin:4px 0;color:#666">${escapeHtml(company.phone)}</p>`
         : '';
 
-      const rows = receipts
+      const rows = statement.lines
         .map(
-          (r) => `
+          (l) => `
         <tr>
-          <td>${new Date(r.created_at).toLocaleDateString()}</td>
-          <td>${escapeHtml(r.receipt_number)}</td>
-          <td>${r.line_items.map((li) => `${escapeHtml(li.metal_name)} (${Number(li.weight).toFixed(2)} lbs)`).join(', ')}</td>
-          <td style="text-align:right">$${Number(r.subtotal).toFixed(2)}</td>
+          <td>${new Date(l.date).toLocaleDateString()}</td>
+          <td>${escapeHtml(l.receiptNumber)}</td>
+          <td>${escapeHtml(l.materials || '—')}</td>
+          <td style="text-align:right">$${l.amount.toFixed(2)}</td>
         </tr>`
         )
         .join('');
@@ -178,12 +198,12 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           <div class="header">
             ${companyHeader}
             <hr/>
-            <h3>${t.statementFor} ${escapeHtml(customer.name)}</h3>
+            <h3>${t.statementFor} ${escapeHtml(customer.name)} · ${statement.year}</h3>
             <p style="color:#666">${t.generatedOn} ${new Date().toLocaleDateString()}</p>
           </div>
           <div class="summary">
-            <strong>${t.totalTransactions}:</strong> ${receipts.length} &nbsp;&nbsp;
-            <strong>${t.totalSpent}:</strong> $${totalSpent.toFixed(2)}
+            <strong>${t.totalTransactions}:</strong> ${statement.transactionCount} &nbsp;&nbsp;
+            <strong>${t.totalSpent}:</strong> $${statement.totalPaid.toFixed(2)}
           </div>
           ${customer.drivers_license ? `<p><strong>${t.dlNumber}:</strong> ${escapeHtml(customer.drivers_license)}</p>` : ''}
           ${customer.phone ? `<p><strong>${t.phone}:</strong> ${escapeHtml(customer.phone)}</p>` : ''}
@@ -197,7 +217,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
             <tbody>${rows}</tbody>
             <tfoot><tr>
               <td colspan="3" style="text-align:right;font-weight:bold">${t.total}</td>
-              <td style="text-align:right;font-weight:bold">$${totalSpent.toFixed(2)}</td>
+              <td style="text-align:right;font-weight:bold">$${statement.totalPaid.toFixed(2)}</td>
             </tr></tfoot>
           </table>
         </body></html>`;
@@ -560,13 +580,45 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
             </Text>
           </TouchableOpacity>
 
+          {/* Year picker — the statement covers the selected year */}
+          {stmtYears.length > 0 && (
+            <View style={styles.yearRow}>
+              {stmtYears.map((y) => {
+                const on = y === year;
+                return (
+                  <TouchableOpacity
+                    key={y}
+                    style={[styles.yearChip, on && styles.yearChipActive]}
+                    onPress={() => setYear(y)}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.yearChipText,
+                        on && styles.yearChipTextActive,
+                      ]}
+                    >
+                      {y}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
           <TouchableOpacity
-            style={styles.printButton}
+            style={[
+              styles.printButton,
+              statement.transactionCount === 0 && styles.printButtonDisabled,
+            ]}
             activeOpacity={0.8}
             onPress={handlePrintStatement}
+            disabled={statement.transactionCount === 0}
           >
             <Ionicons name="print-outline" size={18} color={colors.accentInk} />
-            <Text style={styles.printButtonText}>{t.printStatement}</Text>
+            <Text style={styles.printButtonText}>
+              {t.printStatement} · {statement.year}
+            </Text>
           </TouchableOpacity>
         </View>
       </ResponsiveContainer>
@@ -887,6 +939,30 @@ const makeStyles = (colors: Palette) =>
       fontFamily: fonts.sansSemiBold,
     },
     flagButtonTextActive: { color: colors.rust },
+    yearRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+      justifyContent: 'center',
+    },
+    yearChip: {
+      paddingVertical: 8,
+      paddingHorizontal: 16,
+      borderRadius: 99,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.card,
+    },
+    yearChipActive: {
+      borderColor: colors.accent,
+      backgroundColor: colors.accentMuted,
+    },
+    yearChipText: {
+      color: colors.textSecondary,
+      fontSize: 13,
+      fontFamily: fonts.monoSemiBold,
+    },
+    yearChipTextActive: { color: colors.accent },
     printButton: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -896,6 +972,7 @@ const makeStyles = (colors: Palette) =>
       padding: spacing.lg,
       borderRadius: borderRadius.lg,
     },
+    printButtonDisabled: { backgroundColor: colors.borderSubtle },
     printButtonText: {
       color: colors.accentInk,
       fontSize: fontSize.lg,
