@@ -78,14 +78,35 @@ it genuinely is today, and that matters for bigger yards.**
 small yards** but a **liability for big yards** — nobody hand-keys a 40,000 lb
 truck weight. So the winning stance is **no-hardware-_required_, hardware-
 _optional_**: work with zero peripherals, but **integrate the truck scale, label
-printer, etc. via the Web Serial API / WebHID (Chromium) when present**. Browsers
-_can_ read serial/USB now (Chrome/Edge; not iOS Safari; needs a permission
-gesture) — more limited than native, but enough to close the gap for the
-peripherals yards actually care about, starting with the scale.
+printer, etc. when present**.
 
-**Verdict:** don't claim web is universally stronger. Claim: _"All the speed,
-mobility, and cost of web — and it still reads your scale."_ Closing the hardware
-gap (via Web Serial, scale-first) neutralizes the incumbents' one real edge.
+**Two ways to read the scale, and the honest browser limits (verified
+2026-07-28):**
+
+- **Direct via Web Serial API** — browsers _can_ read RS-232/USB serial now, but
+  only on **desktop Chrome/Edge/Opera** and **Android Chrome** (landed Chrome
+  148, Apr 2026). **iOS/iPad: not supported at all** (Apple forces WebKit) and
+  Firefox: no. ~72% global support ([caniuse](https://caniuse.com/web-serial),
+  [Chrome Status](https://chromestatus.com/feature/6043992171085824)). Needs a
+  one-time permission gesture. Great for a desktop/Android scale station; a
+  dead-end on iPhone/iPad.
+- **Serial→network bridge (device-agnostic)** — a cheap serial-to-WiFi/Bluetooth
+  bridge at the indicator streams the weight over the LAN, so **any** device
+  (iPhone included) reads it. This is a small BOM item, not a Windows PC, and is
+  the path that keeps the phone-first pitch intact on Apple hardware.
+
+So scale integration is real, but the _zero-adapter_ version is desktop/Android
+only; iOS parity needs the bridge. Plan for both.
+
+**Verdict:** don't claim web is universally stronger — it isn't on the hardware
+axis. Claim: _"All the speed, mobility, and cost of web — and it still reads your
+scale"_ (direct on desktop/Android, via a cheap bridge on iPhone/iPad). Closing
+the scale gap neutralizes the incumbents' one real edge.
+
+_Caveat: §3 gaps are "expensive & clunky for mid-market," not "absent" — Scrap
+Dragon / cieTrade / AMCS do these at enterprise price/UX. Our opening is
+affordability + modern/mobile, and this whole doc is an **informed hypothesis to
+validate with real yards**, not a proven plan._
 
 ## 5. v1 — the 2–3 bets we lead with
 
