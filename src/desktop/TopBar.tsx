@@ -210,10 +210,10 @@ export default function TopBar({
           )}
         </div>
         <IconBtn
-          // Show the current theme with the obvious glyph — sun in light, moon
-          // in dark; the tooltip states the action. The old drop/bolt pair read
-          // as random and had people questioning which mode they were in (#99).
-          icon={isLight ? 'sun' : 'moon'}
+          // Show the theme you'll switch TO (matches the label): a moon in light
+          // mode ("go dark"), a sun in dark mode ("go light"). Showing the
+          // current mode instead read as inverted (#99).
+          icon={isLight ? 'moon' : 'sun'}
           onClick={onToggleTheme}
           label={isLight ? 'Switch to dark theme' : 'Switch to light theme'}
         />
