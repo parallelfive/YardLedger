@@ -1,0 +1,107 @@
+# Mobile iOS Build & Submit — compiles a signed IPA on a GitHub macOS runner and
+# uploads it to TestFlight/App Store Connect. Mirrors the Parallel Five pattern
+# (luminaria): a LOCAL EAS build using our OWN P5 distribution cert + provisioning
+# profile decoded from GitHub secrets — no EAS-managed cloud certs (which conflict
+# with the shared P5 org certs). Submit is via the App Store Connect API key.
+#
+# Manual (workflow_dispatch) by design so builds are deliberate and we don't burn
+# 10x-billed macOS minutes on every merge. To auto-build on main later, add a
+# `push:` trigger with a paths filter.
+#
+# `environment: production` resolves the prod Supabase URL/anon key that get baked
+# into the build, and engages any required reviewer on the environment.
+name: Mobile iOS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: 'Submit to TestFlight/App Store after build'
+        type: boolean
+        default: true
+
+concurrency:
+  group: mobile-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    name: Build & submit iOS (IPA)
+    runs-on: macos-26
+    environment: production
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select latest Xcode 26 (SDK 55 / RN 0.83 needs a modern toolchain)
+        run: |
+          set -euo pipefail
+          XCODE=$(ls -d /Applications/Xcode_26* 2>/dev/null | sort -V | tail -1)
+          sudo xcode-select -s "$XCODE"
+          xcodebuild -version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Decode iOS signing credentials
+        env:
+          APPLE_DIST_CERT_P12: ${{ secrets.IOS_DISTRIBUTION_CERT_BASE64 }}
+          APPLE_DIST_CERT_PASSWORD: ${{ secrets.IOS_CERT_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+        run: |
+          set -euo pipefail
+          echo "$APPLE_DIST_CERT_P12" | base64 --decode > ./dist-cert.p12
+          echo "$APPLE_PROVISIONING_PROFILE" | base64 --decode > ./profile.mobileprovision
+          jq -n \
+            --arg provisioningProfilePath './profile.mobileprovision' \
+            --arg path './dist-cert.p12' \
+            --arg password "$APPLE_DIST_CERT_PASSWORD" \
+            '{ ios: { provisioningProfilePath: $provisioningProfilePath, distributionCertificate: { path: $path, password: $password } } }' \
+            > ./credentials.json
+
+      - name: Build IPA (local, points at prod Supabase)
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+        run: |
+          set -o pipefail
+          eas build --platform ios --profile production --local \
+            --non-interactive --output ./build/tare.ipa 2>&1 | tee eas-ios.log
+
+      - name: Decode App Store Connect API key
+        if: ${{ inputs.submit }}
+        env:
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+        run: printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" | base64 --decode | tr -d '\r' > ./asc-api-key.p8
+
+      - name: Submit to TestFlight
+        if: ${{ inputs.submit }}
+        env:
+          ASC_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.appstoreconnect/private_keys"
+          cp ./asc-api-key.p8 "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
+          xcrun altool --upload-app -f ./build/tare.ipa --type ios \
+            --apiKey "$ASC_API_KEY_ID" --apiIssuer "$ASC_API_ISSUER_ID"
+
+      - name: Clean up secrets
+        if: always()
+        run: rm -rf ./dist-cert.p12 ./profile.mobileprovision ./credentials.json ./asc-api-key.p8 "$HOME/.appstoreconnect/private_keys"
+
+      - name: Upload IPA artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tare-ios-ipa
+          path: ./build/tare.ipa
+          if-no-files-found: error
+          retention-days: 14
