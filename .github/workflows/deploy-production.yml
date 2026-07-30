@@ -1,0 +1,75 @@
+# Production Deploy — migrate the prod (cloud) Supabase DB and deploy edge
+# functions. Manual (workflow_dispatch) only; prod deploys are deliberate.
+#
+# Prod is a DEDICATED cloud Supabase project on its own account (free tier for
+# now), separate from P5 org resources and from the Coolify TEST env. Nothing
+# here can touch test — the preflight fails the run unless the prod project ref
+# actually appears in the prod Supabase URL.
+#
+# WHERE EACH VALUE LIVES (do not "normalize" — the split is what keeps prod/test
+# from crossing wires):
+#   `production` environment → Variables (not sensitive)
+#     SUPABASE_PROJECT_ID          prod project ref
+#     EXPO_PUBLIC_SUPABASE_URL     prod project URL
+#   `production` environment → Secrets
+#     SUPABASE_DB_PASSWORD         prod database password
+#     EXPO_PUBLIC_SUPABASE_ANON_KEY  prod anon key (used by the mobile build)
+#   Repository (or the environment) → Secret
+#     SUPABASE_ACCESS_TOKEN        personal access token for the prod account
+name: Production Deploy
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Migrate prod DB + deploy edge functions
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight — confirm PROD values resolved (never touch test)
+        env:
+          PROJECT_REF: ${{ vars.SUPABASE_PROJECT_ID }}
+          SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+          [ -n "$PROJECT_REF" ]  || fail "SUPABASE_PROJECT_ID (production variable) is empty"
+          [ -n "$SUPABASE_URL" ] || fail "EXPO_PUBLIC_SUPABASE_URL (production variable) is empty"
+          [ -n "$DB_PASSWORD" ]  || fail "SUPABASE_DB_PASSWORD (production secret) is empty"
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || fail "SUPABASE_ACCESS_TOKEN is empty"
+          case "$SUPABASE_URL" in
+            *"$PROJECT_REF"*) : ;;
+            *) fail "project ref '$PROJECT_REF' not in the Supabase URL — values resolved from different environments" ;;
+          esac
+          echo "Prod target: $PROJECT_REF"
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link to prod project
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "${{ vars.SUPABASE_PROJECT_ID }}"
+
+      - name: Apply migrations (supabase/migrations)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push
+
+      - name: Deploy edge functions
+        run: |
+          set -euo pipefail
+          supabase functions deploy report-to-state  --project-ref "${{ vars.SUPABASE_PROJECT_ID }}"
+          supabase functions deploy purge-expired-pii --project-ref "${{ vars.SUPABASE_PROJECT_ID }}"
