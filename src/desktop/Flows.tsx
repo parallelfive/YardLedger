@@ -101,12 +101,14 @@ const netOf = (it: BuyItem): number =>
 // A material priced by the piece rather than by weight.
 const isPiece = (m?: { pricing_unit?: string }): boolean =>
   m?.pricing_unit === 'each';
-// The effective unit price for a line: for per-piece, the operator's keyed price
-// (a converter's value) or the catalog default; for weight, the catalog $/lb.
+// The effective unit price for a line: the operator's keyed price when they
+// overrode it (a converter's value, or a $/lb haircut for dirty material), else
+// the catalog default. Applies to per-piece AND weight lines — an override on
+// any material is gated by admin elevation at save.
 const unitPriceOf = (
   it: BuyItem,
   m: { price_per_lb: number; pricing_unit?: string }
-): number => (isPiece(m) ? (it.price ?? m.price_per_lb) : m.price_per_lb);
+): number => it.price ?? m.price_per_lb;
 // The line's payout: pieces × $/piece for per-piece metals, net weight × $/lb
 // otherwise. Rounded per line to match the DB's stored subtotal.
 const lineTotalOf = (
@@ -115,7 +117,7 @@ const lineTotalOf = (
 ): number =>
   isPiece(m)
     ? calculateLineItemTotal(it.qty || 0, unitPriceOf(it, m))
-    : calculateLineItemTotal(netOf(it), m.price_per_lb);
+    : calculateLineItemTotal(netOf(it), unitPriceOf(it, m));
 
 const miniLabel = {
   fontSize: 10.5,
@@ -1568,6 +1570,56 @@ export function BuyFlow({
                               </div>
                             </div>
                           )}
+                          {/* $/lb — editable; a value other than catalog is a
+                              price override (admin-gated at save, like per-piece) */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            <span
+                              className="mono"
+                              style={{ fontSize: 12, color: 'var(--ink-3)' }}
+                            >
+                              $
+                            </span>
+                            <input
+                              type="number"
+                              value={it.price ?? m.price_per_lb}
+                              onChange={(e) =>
+                                patch(i, {
+                                  price: Math.max(0, Number(e.target.value)),
+                                })
+                              }
+                              aria-label="Price per pound"
+                              className="mono num"
+                              style={{ ...wInput, width: 92 }}
+                            />
+                            <span
+                              className="mono"
+                              style={{ fontSize: 11, color: 'var(--ink-3)' }}
+                            >
+                              /lb
+                            </span>
+                            {it.price != null &&
+                              it.price !== m.price_per_lb && (
+                                <span
+                                  className="mono"
+                                  style={{
+                                    marginLeft: 'auto',
+                                    fontSize: 9.5,
+                                    fontWeight: 700,
+                                    letterSpacing: 0.4,
+                                    textTransform: 'uppercase',
+                                    color: 'var(--gold)',
+                                  }}
+                                >
+                                  Override · was {money(m.price_per_lb)}
+                                </span>
+                              )}
+                          </div>
                         </div>
                       )}
                     </div>
