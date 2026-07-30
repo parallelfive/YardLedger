@@ -22,6 +22,7 @@ import { type DraftTicket } from '../services/draftTickets';
 import { DeskAdminProvider } from './AdminActions';
 import { printReceipt } from '../utils/printReceipt';
 import { fetchReceiptById } from '../services/receipts';
+import { CompliancePhotos, buildCompliancePhotos } from './CompliancePhotos';
 import {
   Card,
   PanelHead,
@@ -250,6 +251,14 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
                   </span>
                 </div>
               ))}
+          </Card>
+        )}
+        {full !== null && (
+          <Card pad={18}>
+            <PanelHead title="Compliance photos" />
+            <div style={{ marginTop: 4 }}>
+              <CompliancePhotos photos={buildCompliancePhotos(f)} />
+            </div>
           </Card>
         )}
         <Card pad={18}>
