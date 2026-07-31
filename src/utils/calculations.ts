@@ -1,9 +1,11 @@
 import type { LineItemInput } from '../types';
 
 // Effective net weight for a buy line. In tare/vehicle mode the payable weight
-// is gross minus tare, clamped at 0 so a half-entered ticket (tare typed before
-// gross) never pays out a negative weight; otherwise it's the directly-weighed
-// net. This is what the operator is paid on, so it must match the buy flow.
+// is gross minus tare; in net mode it's the directly-weighed net. Both are
+// clamped at 0 so neither a half-entered ticket (tare typed before gross) nor a
+// directly-typed negative net — the desktop number inputs accept a minus sign,
+// the mobile keypad can't — ever pays out a negative weight (#97). This is what
+// the operator is paid on, so it must match the buy flow.
 export function calculateNetWeight(
   mode: 'net' | 'tare',
   values: { net?: number; gross?: number; tare?: number }
@@ -11,7 +13,7 @@ export function calculateNetWeight(
   if (mode === 'tare') {
     return Math.max(0, (values.gross || 0) - (values.tare || 0));
   }
-  return values.net || 0;
+  return Math.max(0, values.net || 0);
 }
 
 // Round to cents so the client subtotal equals sum(round(line)) and matches
