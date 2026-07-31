@@ -46,8 +46,8 @@ export default function SetAdminPinScreen({ onDone }: { onDone: () => void }) {
     try {
       await setPin(pin);
       onDone();
-    } catch (e) {
-      setError((e as Error).message);
+    } catch (error_) {
+      setError((error_ as Error).message);
     } finally {
       setSaving(false);
     }

@@ -144,7 +144,7 @@ export default function PasscodeLoginScreen({
             style={[
               styles.idAvatar,
               {
-                backgroundColor: ok ? ring + '28' : colors.surface,
+                backgroundColor: ok ? `${ring}28` : colors.surface,
                 borderColor: ok ? ring : colors.borderStrong,
               },
             ]}

@@ -438,8 +438,8 @@ export function BuyFlow({
         tareWeight: tare,
         createdBy: workerId || null,
       });
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     }
   };
 
@@ -548,8 +548,8 @@ export function BuyFlow({
       }
       onSaved?.();
       onDone();
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
       setBusy(false);
     }
   };
@@ -681,8 +681,8 @@ export function BuyFlow({
         regulated: needsCompliance,
         warning: draftWarning || undefined,
       });
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -1516,15 +1516,16 @@ export function BuyFlow({
                                     background: 'var(--surface-2)',
                                     border: '1px solid var(--line)',
                                     borderRadius: 8,
-                                    color: presets.length
-                                      ? 'var(--ink-2)'
-                                      : 'var(--ink-3)',
+                                    color:
+                                      presets.length > 0
+                                        ? 'var(--ink-2)'
+                                        : 'var(--ink-3)',
                                     fontSize: 12,
                                     outline: 'none',
                                   }}
                                 >
                                   <option value="">
-                                    {presets.length
+                                    {presets.length > 0
                                       ? 'Tare preset…'
                                       : 'No saved tares yet'}
                                   </option>
@@ -2141,7 +2142,7 @@ export function SaleFlow({
   const [err, setErr] = useState<string | null>(null);
 
   const buyerSuggest =
-    buyerFocus && buyer.trim().length >= 1
+    buyerFocus && buyer.trim().length > 0
       ? processors
           .filter((p) => {
             const bl = buyer.trim().toLowerCase();
@@ -2205,15 +2206,15 @@ export function SaleFlow({
       onSaved?.();
       const id = (sale as { id?: string })?.id ?? '';
       setSaved({
-        loadNo: id ? 'SO-' + id.slice(0, 8) : '—',
+        loadNo: id ? `SO-${id.slice(0, 8)}` : '—',
         total,
         weight,
         buyer: buyer.trim(),
         metal: inv.metal_name,
         unit: piece ? 'each' : 'lb',
       });
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -2475,7 +2476,9 @@ export function SaleFlow({
                 }}
               >
                 <option value="">
-                  {onHandRows.length ? 'Select a metal…' : 'Nothing on hand'}
+                  {onHandRows.length > 0
+                    ? 'Select a metal…'
+                    : 'Nothing on hand'}
                 </option>
                 {onHandRows.map((r) => {
                   const rPiece =

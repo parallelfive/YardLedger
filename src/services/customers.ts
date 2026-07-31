@@ -18,7 +18,7 @@ export interface Customer {
 export async function searchCustomers(query: string): Promise<Customer[]> {
   // Escape LIKE metacharacters so a user typing % or _ doesn't broaden the
   // match (and \ doesn't smuggle escapes) in the ilike pattern.
-  const escaped = query.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const escaped = query.replace(/[%\\_]/g, (c) => `\\${c}`);
   const { data, error } = await supabase
     .from('customers')
     .select('*')
@@ -72,7 +72,7 @@ export async function upsertCustomer(
   // returns null (not a thrown PGRST116) when there's no match. A real lookup
   // error is thrown, not swallowed — otherwise it would fall through to insert
   // and create an unwanted duplicate on a transient failure.
-  const escapedName = name.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const escapedName = name.replace(/[%\\_]/g, (c) => `\\${c}`);
   const { data: existing, error: lookupError } = await supabase
     .from('customers')
     .select('*')

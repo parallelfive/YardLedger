@@ -418,16 +418,16 @@ export function useNewTransaction(
               quantity: li.quantity,
             })),
           });
-        } catch (printErr) {
-          console.error('[print] Error:', (printErr as Error).message);
+        } catch (error) {
+          console.error('[print] Error:', (error as Error).message);
         }
       }
       onSuccess(receipt);
-    } catch (err) {
+    } catch (error) {
       // Log only the message — a raw Postgres/PostgREST error can echo back
       // submitted column values (seller DL #, address) into device logs.
-      console.error('[saveReceipt] Error:', (err as Error).message);
-      Alert.alert(t.error, (err as Error).message);
+      console.error('[saveReceipt] Error:', (error as Error).message);
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       savingRef.current = false;
       setSaving(false);

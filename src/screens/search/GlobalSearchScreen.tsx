@@ -58,7 +58,7 @@ export default function GlobalSearchScreen() {
   // Debounced search across receipts + customers + metals.
   useEffect(() => {
     const query = q.trim();
-    if (query.length < 1) {
+    if (query.length === 0) {
       setReceipts([]);
       setCustomers([]);
       setMetals([]);
@@ -174,7 +174,7 @@ export default function GlobalSearchScreen() {
                   <View
                     style={[
                       styles.rowIcon,
-                      { backgroundColor: colors.teal + '24' },
+                      { backgroundColor: `${colors.teal}24` },
                     ]}
                   >
                     <Ionicons
@@ -207,7 +207,7 @@ export default function GlobalSearchScreen() {
                   <View
                     style={[
                       styles.rowIcon,
-                      { backgroundColor: colors.gold + '24' },
+                      { backgroundColor: `${colors.gold}24` },
                     ]}
                   >
                     <Ionicons

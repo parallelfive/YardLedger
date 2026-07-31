@@ -220,10 +220,10 @@ function TicketDetail({ t, onClose }: { t: ReceiptRow; onClose: () => void }) {
             {tier !== 'buy' &&
               (
                 [
-                  ['Ownership affirmed', !!f['seller_affirmed']],
+                  ['Ownership affirmed', !!f.seller_affirmed],
                   [
                     'No metal-theft conviction affirmed',
-                    !!f['seller_no_theft_affirmed'],
+                    !!f.seller_no_theft_affirmed,
                   ],
                 ] as [string, boolean][]
               ).map(([k, ok]) => (
@@ -427,7 +427,7 @@ export default function DesktopShell() {
       .filter((m) => m.name.toLowerCase().includes(ql))
       .slice(0, 5)
       .map((m) => ({
-        key: 'm' + m.id,
+        key: `m${m.id}`,
         icon: 'stack' as const,
         title: m.name,
         sub: `${money(Number(m.price_per_lb || 0))}/lb`,
@@ -441,7 +441,7 @@ export default function DesktopShell() {
       )
       .slice(0, 6)
       .map((r) => ({
-        key: 'r' + r.id,
+        key: `r${r.id}`,
         icon: 'receipt' as const,
         title: r.customer_name || 'Walk-in',
         sub: `${r.receipt_number} · ${money(Number(r.subtotal || 0))}`,

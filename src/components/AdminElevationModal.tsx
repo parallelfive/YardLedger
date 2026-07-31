@@ -55,8 +55,8 @@ export default function AdminElevationModal({
     try {
       const expiresAt = await elevateAdmin(pin, requireOwner);
       onSuccess(expiresAt, requireOwner);
-    } catch (e) {
-      setError((e as Error).message || t.verificationFailed);
+    } catch (error_) {
+      setError((error_ as Error).message || t.verificationFailed);
     } finally {
       setVerifying(false);
     }

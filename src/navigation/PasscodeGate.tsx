@@ -42,8 +42,8 @@ export default function PasscodeGate() {
           () => dispatch(setActiveIdentity(identity)),
           620
         );
-      } catch (e) {
-        setError((e as Error).message || 'Wrong passcode');
+      } catch (error_) {
+        setError((error_ as Error).message || 'Wrong passcode');
         setFailNonce((n) => n + 1);
       } finally {
         setBusy(false);

@@ -151,8 +151,8 @@ export default function ScaleTicketScreen({ navigation }: Props) {
         transportVin: vin.trim() || undefined,
       });
       setClaim(draft.claim_number);
-    } catch (e) {
-      setSnack((e as Error).message || 'Could not send the ticket.');
+    } catch (error) {
+      setSnack((error as Error).message || 'Could not send the ticket.');
     } finally {
       setSending(false);
     }

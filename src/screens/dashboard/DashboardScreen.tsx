@@ -156,10 +156,11 @@ export default function DashboardScreen() {
 
   // Delta vs the trailing 14-day average (matches the design's "% vs avg").
   const trailing = spark.slice(0, -1);
-  const avg = trailing.length
-    ? trailing.reduce((a, n) => a + n, 0) / trailing.length
-    : 0;
-  const last = spark.length ? spark[spark.length - 1] : 0;
+  const avg =
+    trailing.length > 0
+      ? trailing.reduce((a, n) => a + n, 0) / trailing.length
+      : 0;
+  const last = spark.length > 0 ? spark[spark.length - 1] : 0;
   const deltaPct = avg > 0 ? Math.round(((last - avg) / avg) * 100) : 0;
 
   return (

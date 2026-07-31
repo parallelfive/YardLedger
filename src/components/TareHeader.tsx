@@ -237,7 +237,7 @@ export default function TareHeader({
               icon={isLight ? 'moon-outline' : 'sunny-outline'}
               label={t.theme}
               value={isLight ? t.lightMode : t.darkMode}
-              onPress={() => void toggle()}
+              onPress={() => toggle()}
             />
             <SheetRow
               icon="language-outline"

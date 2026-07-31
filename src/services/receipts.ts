@@ -85,7 +85,7 @@ export async function createReceipt(params: CreateReceiptParams) {
   }
   const upload = (uri: string | null | undefined, label: string) =>
     uri && !uri.startsWith('http')
-      ? uploadIdPhoto(uri, companyId as string, label)
+      ? uploadIdPhoto(uri, companyId!, label)
       : Promise.resolve(uri ?? null);
   const uploadResults = await Promise.all(
     photoInputs.map((p) => upload(p.uri, p.label))
@@ -104,7 +104,7 @@ export async function createReceipt(params: CreateReceiptParams) {
   // Remove them on any failure before rethrowing.
   const newlyUploadedPaths = photoInputs
     .map((p, i) =>
-      p.uri && !p.uri.startsWith('http') ? (uploadResults[i] as string) : null
+      p.uri && !p.uri.startsWith('http') ? uploadResults[i]! : null
     )
     .filter((x): x is string => !!x);
   const cleanupUploads = async () => {
@@ -138,9 +138,9 @@ export async function createReceipt(params: CreateReceiptParams) {
         params.sellerDlNumber
       );
     }
-  } catch (e) {
+  } catch (error_) {
     await cleanupUploads();
-    throw e;
+    throw error_;
   }
 
   // Insert the receipt and its line items in a single transaction. If anything
@@ -276,10 +276,10 @@ export async function fetchReceipts(
     const data = await run();
     await saveJson(key, data);
     return data;
-  } catch (err) {
+  } catch (error) {
     const cached = await loadJson<Awaited<ReturnType<typeof run>>>(key);
     if (cached) return cached;
-    throw err;
+    throw error;
   }
 }
 
@@ -297,7 +297,7 @@ export async function searchReceipts(
 ): Promise<ReceiptSearchRow[]> {
   // Strip characters that would broaden the ilike (% _ \) or break the PostgREST
   // .or() filter string (comma, parens) — keep it to a literal contains match.
-  const safe = query.replace(/[\\%_,()]/g, ' ').trim();
+  const safe = query.replace(/[%(),\\_]/g, ' ').trim();
   if (!safe) return [];
   const { data, error } = await supabase
     .from('receipts')

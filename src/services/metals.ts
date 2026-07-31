@@ -15,11 +15,11 @@ export async function fetchMetals() {
     const data = await run();
     await saveJson('metals', data);
     return data;
-  } catch (err) {
+  } catch (error) {
     // Offline: serve the last-known catalog so the buy screen still works.
     const cached = await loadJson<Awaited<ReturnType<typeof run>>>('metals');
     if (cached) return cached;
-    throw err;
+    throw error;
   }
 }
 
@@ -101,11 +101,11 @@ export async function fetchMetalCategories() {
     const data = await run();
     await saveJson('metal_categories', data);
     return data;
-  } catch (err) {
+  } catch (error) {
     const cached =
       await loadJson<Awaited<ReturnType<typeof run>>>('metal_categories');
     if (cached) return cached;
-    throw err;
+    throw error;
   }
 }
 

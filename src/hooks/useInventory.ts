@@ -17,8 +17,8 @@ export function useInventory() {
     try {
       const data = await fetchInventory();
       if (myReq === reqId.current) setInventory(data);
-    } catch (err) {
-      if (myReq === reqId.current) setError((err as Error).message);
+    } catch (error_) {
+      if (myReq === reqId.current) setError((error_ as Error).message);
     } finally {
       if (myReq === reqId.current) setLoading(false);
     }

@@ -109,8 +109,8 @@ export default function PricingScreen() {
         results.push({ title: cat.name, categoryId: cat.id, data: metals });
       }
       setSections(results);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -224,8 +224,8 @@ export default function PricingScreen() {
       }
       Alert.alert(t.success, t.metalUpdated);
       loadData();
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setSaving(false);
     }
@@ -253,8 +253,8 @@ export default function PricingScreen() {
       await createMetal(trimmedName, price, categoryId);
       Alert.alert(t.success, t.metalAdded);
       loadData();
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setSaving(false);
     }
@@ -275,8 +275,8 @@ export default function PricingScreen() {
             await deactivateMetal(metalId);
             Alert.alert(t.success, t.metalRemoved);
             loadData();
-          } catch (err) {
-            Alert.alert(t.error, (err as Error).message);
+          } catch (error) {
+            Alert.alert(t.error, (error as Error).message);
           } finally {
             setSaving(false);
           }
@@ -356,7 +356,7 @@ export default function PricingScreen() {
                 <Text style={styles.metalName}>{item.name}</Text>
                 <View style={styles.metalMetaRow}>
                   <View
-                    style={[styles.tierPill, { backgroundColor: c + '20' }]}
+                    style={[styles.tierPill, { backgroundColor: `${c}20` }]}
                   >
                     <View style={[styles.tierDot, { backgroundColor: c }]} />
                     <Text style={[styles.tierPillText, { color: c }]}>
@@ -490,7 +490,7 @@ export default function PricingScreen() {
                           styles.tierOption,
                           {
                             borderColor: sel ? c : colors.border,
-                            backgroundColor: sel ? c + '18' : colors.surface,
+                            backgroundColor: sel ? `${c}18` : colors.surface,
                           },
                         ]}
                         onPress={() => setTier(tr)}
@@ -910,9 +910,9 @@ const makeStyles = (colors: Palette) =>
       paddingVertical: 13,
       paddingHorizontal: spacing.lg,
       borderRadius: 13,
-      backgroundColor: colors.rust + '14',
+      backgroundColor: `${colors.rust}14`,
       borderWidth: 1,
-      borderColor: colors.rust + '40',
+      borderColor: `${colors.rust}40`,
     },
     lockBannerText: {
       flex: 1,

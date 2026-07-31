@@ -170,8 +170,8 @@ function TeamAccess({
   const load = useCallback(async () => {
     try {
       setCodes(await listInviteCodes());
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     }
   }, []);
   useEffect(() => {
@@ -192,8 +192,8 @@ function TeamAccess({
       const code = await createInviteCode(role);
       setCreated(code);
       await load();
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -205,8 +205,8 @@ function TeamAccess({
     try {
       await deleteInviteCode(id);
       setCodes((prev) => prev.filter((c) => c.id !== id));
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     }
   };
 

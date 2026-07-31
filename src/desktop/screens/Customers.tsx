@@ -120,7 +120,7 @@ export default function Customers({
         setStmtReceipts(list);
         const years = statementYears(list);
         // Default the picker to the seller's most recent active year.
-        if (years.length) setYear(years[0]);
+        if (years.length > 0) setYear(years[0]);
       })
       .catch(() => {
         if (active) setStmtReceipts([]);
@@ -165,10 +165,9 @@ export default function Customers({
           .join(',')
       )
       .join('\n');
-    const csv =
-      'date,receipt,materials,paid\n' +
-      rowsCsv +
-      `\n"","",${esc(`TOTAL ${statement.periodLabel}`)},${esc(statement.totalPaid)}`;
+    const csv = `date,receipt,materials,paid\n${
+      rowsCsv
+    }\n"","",${esc(`TOTAL ${statement.periodLabel}`)},${esc(statement.totalPaid)}`;
     const slug = statement.periodLabel.replace(/\W+/g, '_');
     shareTextFile(
       `statement_${sel.name.replace(/\W+/g, '_')}_${slug}.csv`,
@@ -558,7 +557,7 @@ export default function Customers({
                 />
                 <StatTile
                   label="Volume"
-                  value={`${lbs(selStat?.weight ?? 0)}`}
+                  value={lbs(selStat?.weight ?? 0)}
                   sub="lb"
                   tone="steel"
                   icon="stack"
@@ -602,7 +601,7 @@ export default function Customers({
                       outline: 'none',
                     }}
                   >
-                    {(stmtYears.length ? stmtYears : [year]).map((y) => (
+                    {(stmtYears.length > 0 ? stmtYears : [year]).map((y) => (
                       <option key={y} value={y}>
                         {y}
                       </option>

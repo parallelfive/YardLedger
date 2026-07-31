@@ -216,7 +216,7 @@ export default function InventoryScreen() {
                     <Tag
                       label={t.restrictedLabel}
                       color={colors.rust}
-                      soft={colors.rust + '22'}
+                      soft={`${colors.rust}22`}
                     />
                   )}
                 </View>

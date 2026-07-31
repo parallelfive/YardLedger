@@ -204,8 +204,8 @@ export default function NewSaleScreen({ navigation }: Props) {
       Alert.alert(t.success, t.saleSaved, [
         { text: t.ok, onPress: () => navigation.navigate('SalesList') },
       ]);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setSaving(false);
       savingRef.current = false;
@@ -509,7 +509,7 @@ const makeStyles = (colors: Palette) =>
       borderColor: colors.border,
     },
     materialActive: {
-      backgroundColor: colors.teal + '1A',
+      backgroundColor: `${colors.teal}1A`,
       borderColor: colors.teal,
     },
     materialName: {
@@ -536,9 +536,9 @@ const makeStyles = (colors: Palette) =>
       paddingVertical: 11,
       paddingHorizontal: 13,
       borderRadius: 12,
-      backgroundColor: colors.rust + '17',
+      backgroundColor: `${colors.rust}17`,
       borderWidth: 1,
-      borderColor: colors.rust + '42',
+      borderColor: `${colors.rust}42`,
       marginBottom: spacing.md,
     },
     guardText: {

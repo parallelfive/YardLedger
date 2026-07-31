@@ -124,8 +124,8 @@ export default function ComplianceReportScreen() {
       });
 
       setRows(mapped);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -218,8 +218,8 @@ export default function ComplianceReportScreen() {
     try {
       const html = await buildHtml(restrictedOnly);
       await printHtml(html);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -242,8 +242,8 @@ export default function ComplianceReportScreen() {
         'text/csv',
         'public.comma-separated-values-text'
       );
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -260,8 +260,8 @@ export default function ComplianceReportScreen() {
         'text/csv',
         'public.comma-separated-values-text'
       );
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -301,15 +301,15 @@ export default function ComplianceReportScreen() {
                   profile?.id ?? ''
                 );
                 Alert.alert(t.success, t.markedReported);
-              } catch (err) {
-                Alert.alert(t.error, (err as Error).message);
+              } catch (error) {
+                Alert.alert(t.error, (error as Error).message);
               }
             },
           },
         ]
       );
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -462,7 +462,7 @@ export default function ComplianceReportScreen() {
                         <Tag
                           label={t.restrictedMaterial}
                           color={colors.rust}
-                          soft={colors.rust + '22'}
+                          soft={`${colors.rust}22`}
                           icon="warning"
                         />
                       )}
@@ -495,7 +495,7 @@ function ExportBtn({
   const styles = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity style={styles.exportBtn} onPress={onPress}>
-      <View style={[styles.exportIcon, { backgroundColor: tone + '24' }]}>
+      <View style={[styles.exportIcon, { backgroundColor: `${tone}24` }]}>
         <Ionicons name={icon} size={18} color={tone} />
       </View>
       <View style={styles.exportTextWrap}>

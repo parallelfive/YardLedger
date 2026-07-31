@@ -708,7 +708,7 @@ export async function fetchReportingStatus(): Promise<ReportingStatus> {
   return {
     pending: rows.length,
     overdue,
-    oldestUnreportedAt: rows.length ? (rows[0].created_at as string) : null,
+    oldestUnreportedAt: rows.length > 0 ? (rows[0].created_at as string) : null,
     lastUpload: (log?.[0] as ReportingStatus['lastUpload']) ?? null,
   };
 }

@@ -251,7 +251,7 @@ export default function AddMaterialKeypad({ onAdd }: AddMaterialKeypadProps) {
           <Tag
             label={tier}
             color={toneTextColor(tone, colors)}
-            soft={toneTextColor(tone, colors) + '22'}
+            soft={`${toneTextColor(tone, colors)}22`}
           />
         ) : null}
       </TouchableOpacity>
