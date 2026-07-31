@@ -181,11 +181,11 @@ function MetalDetail({
           <PanelHead title="Pricing" sub="Live spread vs average cost" />
           {(
             [
-              ['Buying now', money(m.price) + '/' + uShort, 'var(--ink)'],
-              ['Avg cost', money(m.avg) + '/' + uShort, 'var(--ink-2)'],
+              ['Buying now', `${money(m.price)}/${uShort}`, 'var(--ink)'],
+              ['Avg cost', `${money(m.avg)}/${uShort}`, 'var(--ink-2)'],
               [
                 'Spread',
-                (up ? '+' : '−') + money(Math.abs(spread)) + ` (${marginPct}%)`,
+                `${(up ? '+' : '−') + money(Math.abs(spread))} (${marginPct}%)`,
                 up ? 'var(--moss)' : 'var(--rust)',
               ],
             ] as const
@@ -529,7 +529,7 @@ export default function Inventory({ nav }: { nav: { openBuy: () => void } }) {
           </div>
           <div style={{ position: 'relative', marginTop: 14 }}>
             <Sparkline
-              data={spark.length ? spark : [0, 0]}
+              data={spark.length > 0 ? spark : [0, 0]}
               h={46}
               color="var(--accent)"
             />

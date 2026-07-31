@@ -10,7 +10,7 @@
 // throwing.
 
 function safeZone(tz: string | null | undefined): string {
-  if (tz && tz.trim()) return tz;
+  if (tz?.trim()) return tz;
   try {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
   } catch {

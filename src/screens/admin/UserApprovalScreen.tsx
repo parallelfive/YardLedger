@@ -94,8 +94,8 @@ export default function UserApprovalScreen({ navigation }: Props) {
     try {
       const code = await createAccessCode();
       setGeneratedCode(code);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setGenerating(false);
     }
@@ -106,8 +106,8 @@ export default function UserApprovalScreen({ navigation }: Props) {
     try {
       const code = await generateInviteCode(inviteRole);
       if (code) setGeneratedInvite(code);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setGeneratingInvite(false);
     }
@@ -122,8 +122,8 @@ export default function UserApprovalScreen({ navigation }: Props) {
         onPress: async () => {
           try {
             await removeInviteCode(id);
-          } catch (err) {
-            Alert.alert(t.error, (err as Error).message);
+          } catch (error) {
+            Alert.alert(t.error, (error as Error).message);
           }
         },
       },
@@ -133,8 +133,8 @@ export default function UserApprovalScreen({ navigation }: Props) {
   const onApprove = async (userId: string) => {
     try {
       await handleApprove(userId);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -147,8 +147,8 @@ export default function UserApprovalScreen({ navigation }: Props) {
         onPress: async () => {
           try {
             await handleDeactivate(userId);
-          } catch (err) {
-            Alert.alert(t.error, (err as Error).message);
+          } catch (error) {
+            Alert.alert(t.error, (error as Error).message);
           }
         },
       },
@@ -170,8 +170,8 @@ export default function UserApprovalScreen({ navigation }: Props) {
           onPress: async () => {
             try {
               await handleChangeRole(userId, newRole);
-            } catch (err) {
-              Alert.alert(t.error, (err as Error).message);
+            } catch (error) {
+              Alert.alert(t.error, (error as Error).message);
             }
           },
         },
@@ -214,7 +214,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
     return (
       <View style={styles.userCard}>
         <View style={styles.userTopRow}>
-          <View style={[styles.avatar, { backgroundColor: rc + '22' }]}>
+          <View style={[styles.avatar, { backgroundColor: `${rc}22` }]}>
             <Text style={[styles.avatarText, { color: rc }]}>
               {initials(item)}
             </Text>
@@ -233,13 +233,13 @@ export default function UserApprovalScreen({ navigation }: Props) {
             <Tag
               label={roleLabel(item.role as UserRole)}
               color={rc}
-              soft={rc + '1f'}
+              soft={`${rc}1f`}
             />
             {isPending && (
               <Tag
                 label={t.pendingApproval}
                 color={colors.gold}
-                soft={colors.gold + '24'}
+                soft={`${colors.gold}24`}
               />
             )}
           </View>
@@ -384,7 +384,7 @@ export default function UserApprovalScreen({ navigation }: Props) {
                     <Tag
                       label={roleLabel(c.role as UserRole)}
                       color={roleColor(c.role as UserRole)}
-                      soft={roleColor(c.role as UserRole) + '1f'}
+                      soft={`${roleColor(c.role as UserRole)}1f`}
                     />
                   </View>
                   <TouchableOpacity
@@ -522,7 +522,7 @@ function LinkRow({
       onPress={onPress}
       activeOpacity={0.7}
     >
-      <View style={[styles.linkIcon, { backgroundColor: tint + '1f' }]}>
+      <View style={[styles.linkIcon, { backgroundColor: `${tint}1f` }]}>
         <Ionicons name={icon} size={18} color={tint} />
       </View>
       <Text style={styles.linkLabel}>{label}</Text>
@@ -793,9 +793,9 @@ const makeStyles = (colors: Palette) =>
       fontSize: fontSize.sm,
     },
     deactivateButton: {
-      backgroundColor: colors.danger + '14',
+      backgroundColor: `${colors.danger}14`,
       borderWidth: 1,
-      borderColor: colors.danger + '40',
+      borderColor: `${colors.danger}40`,
       borderRadius: borderRadius.md,
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,

@@ -24,13 +24,13 @@ function extractDlNumber(text: string): string | null {
   // \b on both sides so the label only matches a whole token — without it, "ID"
   // matches inside "IDENTIFICATION" and yields a bogus "ENTIFICATION".
   const labeled =
-    /\b(?:DL|DRIVER\s*(?:LICENSE|LIC)|LIC(?:ENSE)?|ID)\b\s*(?:NO\.?|NUMBER|#|:)?\s*[:-]?\s*([A-Z0-9]{4,15})/i;
-  const match = text.match(labeled);
+    /\b(?:dl|driver\s*(?:license|lic)|lic(?:ense)?|id)\b\s*(?:no\.?|number|#|:)?\s*[:-]?\s*([\da-z]{4,15})/i;
+  const match = labeled.exec(text);
   if (match) return match[1].toUpperCase();
 
   // Common state formats: letter + 7-12 digits (CA, NY, TX, FL, etc.)
   const stateFormat = /\b([A-Z]\d{7,12})\b/;
-  const stateMatch = text.match(stateFormat);
+  const stateMatch = stateFormat.exec(text);
   if (stateMatch) return stateMatch[1];
 
   return null;
@@ -39,18 +39,18 @@ function extractDlNumber(text: string): string | null {
 function extractDob(text: string): string | null {
   // Look for labeled DOB
   const labeled =
-    /(?:DOB|DATE\s*OF\s*BIRTH|BD|BORN)\s*[:-]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})/i;
-  const match = text.match(labeled);
+    /(?:dob|date\s*of\s*birth|bd|born)\s*[:-]?\s*((?:\d{1,2}[/-]){2}\d{2,4})/i;
+  const match = labeled.exec(text);
   if (match) return normalizeDateToISO(match[1]);
 
   // Look for any date that looks like a birth date (not expiration)
   // Avoid dates labeled EXP, ISS, etc.
   const expPattern =
-    /(?:EXP|ISS|ISSUED|EXPIRES?)\s*[:-]?\s*\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/gi;
+    /(?:exp|is{2}|is{2}ued|expires?)\s*[:-]?\s*(?:\d{1,2}[/-]){2}\d{2,4}/gi;
   const cleaned = text.replace(expPattern, '');
 
-  const datePattern = /\b(\d{1,2}[/-]\d{1,2}[/-]\d{4})\b/;
-  const dateMatch = cleaned.match(datePattern);
+  const datePattern = /\b((?:\d{1,2}[/-]){2}\d{4})\b/;
+  const dateMatch = datePattern.exec(cleaned);
   if (dateMatch) return normalizeDateToISO(dateMatch[1]);
 
   return null;
@@ -59,11 +59,11 @@ function extractDob(text: string): string | null {
 function extractName(lines: string[]): string | null {
   // Look for labeled name fields (AAMVA standard: FN, LN, DAC, DCS)
   for (const line of lines) {
-    const fnMatch = line.match(
-      /(?:FN|FIRST\s*NAME|DAC)\s*[:-]?\s*([A-Z][A-Za-z\s'-]+)/i
+    const fnMatch = /(?:fn|first\s*name|dac)\s*[:-]?\s*([a-z][\s'a-z-]+)/i.exec(
+      line
     );
-    const lnMatch = line.match(
-      /(?:LN|LAST\s*NAME|DCS)\s*[:-]?\s*([A-Z][A-Za-z\s'-]+)/i
+    const lnMatch = /(?:ln|last\s*name|dcs)\s*[:-]?\s*([a-z][\s'a-z-]+)/i.exec(
+      line
     );
     if (fnMatch || lnMatch) {
       const parts = [lnMatch?.[1]?.trim(), fnMatch?.[1]?.trim()].filter(
@@ -75,7 +75,7 @@ function extractName(lines: string[]): string | null {
 
   // Look for a line that's all caps and looks like a name (2-4 words, no digits)
   for (const line of lines) {
-    if (/^[A-Z][A-Z\s,'-]{3,40}$/.test(line) && !/\d/.test(line)) {
+    if (/^[A-Z][\s',A-Z-]{3,40}$/.test(line) && !/\d/.test(line)) {
       const words = line.split(/[\s,]+/).filter(Boolean);
       if (words.length >= 2 && words.length <= 4) {
         return line;

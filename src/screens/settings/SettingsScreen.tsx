@@ -65,7 +65,7 @@ function Row({
         <View
           style={[
             styles.rowIcon,
-            { backgroundColor: (iconColor ?? colors.accent) + '24' },
+            { backgroundColor: `${iconColor ?? colors.accent}24` },
           ]}
         >
           <Ionicons name={icon} size={18} color={iconColor ?? colors.accent} />
@@ -174,7 +174,7 @@ export default function SettingsScreen() {
     if (switching) return;
     if ((mode === 'light') === isLight) return;
     setSwitching(true);
-    void toggle();
+    toggle();
   };
 
   const close = () => {
@@ -507,7 +507,7 @@ const makeStyles = (colors: Palette) =>
       borderRadius: 14,
       backgroundColor: colors.surface,
       borderWidth: 1,
-      borderColor: colors.danger + '3d',
+      borderColor: `${colors.danger}3d`,
       marginTop: spacing.xs,
     },
     signOutText: {

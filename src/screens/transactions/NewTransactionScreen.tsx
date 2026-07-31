@@ -449,20 +449,20 @@ export default function NewTransactionScreen({ navigation }: Props) {
           style={[
             styles.banner,
             {
-              borderColor: meta.tone + '47',
-              backgroundColor: meta.tone + '17',
+              borderColor: `${meta.tone}47`,
+              backgroundColor: `${meta.tone}17`,
             },
           ]}
         >
           <View
-            style={[styles.bannerIcon, { backgroundColor: meta.tone + '28' }]}
+            style={[styles.bannerIcon, { backgroundColor: `${meta.tone}28` }]}
           >
             <Ionicons name={meta.icon} size={18} color={meta.tone} />
           </View>
           <View style={styles.flex}>
             <View style={styles.bannerTitleRow}>
               <Text style={styles.bannerTitle}>{meta.label}</Text>
-              <Tag label="NM" color={meta.tone} soft={meta.tone + '22'} />
+              <Tag label="NM" color={meta.tone} soft={`${meta.tone}22`} />
             </View>
             <Text style={styles.bannerNote}>{meta.note}</Text>
           </View>
@@ -1326,7 +1326,7 @@ const makeStyles = (colors: Palette) =>
       borderWidth: 1,
       borderColor: colors.borderSubtle,
     },
-    lineItemRestricted: { borderColor: colors.rust + '4d' },
+    lineItemRestricted: { borderColor: `${colors.rust}4d` },
     lineItemInfo: { flex: 1 },
     lineItemHeader: {
       flexDirection: 'row',
@@ -1342,7 +1342,7 @@ const makeStyles = (colors: Palette) =>
       color: colors.danger,
       fontSize: 10,
       fontFamily: fonts.sansBold,
-      backgroundColor: colors.rust + '26',
+      backgroundColor: `${colors.rust}26`,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: borderRadius.sm,
@@ -1524,9 +1524,9 @@ const makeStyles = (colors: Palette) =>
       gap: spacing.sm,
       padding: spacing.md,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.rust + '17',
+      backgroundColor: `${colors.rust}17`,
       borderWidth: 1,
-      borderColor: colors.rust + '42',
+      borderColor: `${colors.rust}42`,
       marginBottom: spacing.lg,
     },
     lockBannerText: {
@@ -1699,9 +1699,9 @@ const makeStyles = (colors: Palette) =>
       gap: spacing.md,
       padding: spacing.md,
       borderRadius: borderRadius.md,
-      backgroundColor: colors.gold + '17',
+      backgroundColor: `${colors.gold}17`,
       borderWidth: 1,
-      borderColor: colors.gold + '42',
+      borderColor: `${colors.gold}42`,
       marginBottom: spacing.lg,
     },
     noticeText: {

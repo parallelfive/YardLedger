@@ -313,7 +313,7 @@ function QuickActions({
     onPress: () => void;
   }) => (
     <TouchableOpacity style={navStyles.quickRow} onPress={onPress}>
-      <View style={[navStyles.quickIcon, { backgroundColor: tone + '22' }]}>
+      <View style={[navStyles.quickIcon, { backgroundColor: `${tone}22` }]}>
         <Ionicons name={icon} size={22} color={tone} />
       </View>
       <Text style={navStyles.quickLabel}>{label}</Text>

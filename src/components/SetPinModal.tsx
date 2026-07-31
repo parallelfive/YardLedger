@@ -51,8 +51,8 @@ export default function SetPinModal({
       await savePin(confirmed);
       onSaved?.();
       close();
-    } catch (e) {
-      setError((e as Error).message || t.error);
+    } catch (error_) {
+      setError((error_ as Error).message || t.error);
       setStep('enter');
       setFirst('');
       setPinDigits('');

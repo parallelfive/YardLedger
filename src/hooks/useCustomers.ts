@@ -15,8 +15,8 @@ export function useCustomers() {
     try {
       const data = await fetchAllCustomers();
       if (myReq === reqId.current) setCustomers(data);
-    } catch (err) {
-      if (myReq === reqId.current) setError((err as Error).message);
+    } catch (error_) {
+      if (myReq === reqId.current) setError((error_ as Error).message);
     } finally {
       if (myReq === reqId.current) setLoading(false);
     }

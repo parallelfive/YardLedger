@@ -103,15 +103,15 @@ export default function ReportingStatusScreen() {
                 );
                 Alert.alert(t.success, t.markedReported);
                 load();
-              } catch (err) {
-                Alert.alert(t.error, (err as Error).message);
+              } catch (error_) {
+                Alert.alert(t.error, (error_ as Error).message);
               }
             },
           },
         ]
       );
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error_) {
+      Alert.alert(t.error, (error_ as Error).message);
     } finally {
       setSending(false);
     }

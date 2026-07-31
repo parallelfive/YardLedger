@@ -385,9 +385,9 @@ export default function Compliance({
       await sendReportNow();
       setSendOpen(false);
       setReloadTick((t) => t + 1); // reloads records + status
-      setSendMsg('Uploaded to ' + jur.copy.registry + '.');
-    } catch (e) {
-      setSendMsg((e as Error).message || 'Upload failed.');
+      setSendMsg(`Uploaded to ${jur.copy.registry}.`);
+    } catch (error) {
+      setSendMsg((error as Error).message || 'Upload failed.');
     } finally {
       setSending(false);
     }
@@ -433,8 +433,8 @@ export default function Compliance({
       });
       setCfgOpen(false);
       setReloadTick((t) => t + 1);
-    } catch (e) {
-      setCfgMsg((e as Error).message || 'Could not save.');
+    } catch (error) {
+      setCfgMsg((error as Error).message || 'Could not save.');
     } finally {
       setCfgBusy(false);
     }
@@ -459,8 +459,8 @@ export default function Compliance({
       const res = await testReportingConnection();
       setCfgMsg((res.ok ? '✓ ' : '✕ ') + res.detail);
       setReloadTick((t) => t + 1);
-    } catch (e) {
-      setCfgMsg('✕ ' + ((e as Error).message || 'Test failed.'));
+    } catch (error) {
+      setCfgMsg(`✕ ${(error as Error).message || 'Test failed.'}`);
     } finally {
       setTesting(false);
     }
@@ -684,16 +684,16 @@ export default function Compliance({
             ? 'Connection set up · disabled'
             : 'Automatic upload not set up';
         const last = lastUpload
-          ? (lastUpload.status === 'success'
-              ? `Last sent ${lastUpload.receipt_count} receipt${lastUpload.receipt_count === 1 ? '' : 's'}`
-              : 'Last attempt failed') +
-            ' · ' +
-            new Date(lastUpload.created_at).toLocaleString('en-US', {
+          ? `${
+              lastUpload.status === 'success'
+                ? `Last sent ${lastUpload.receipt_count} receipt${lastUpload.receipt_count === 1 ? '' : 's'}`
+                : 'Last attempt failed'
+            } · ${new Date(lastUpload.created_at).toLocaleString('en-US', {
               month: 'short',
               day: 'numeric',
               hour: 'numeric',
               minute: '2-digit',
-            })
+            })}`
           : 'No uploads yet';
         return (
           <Card
@@ -1046,7 +1046,7 @@ export default function Compliance({
                       ['Vehicle', sel.vehicle],
                       ['Payment', sel.pay],
                       ...((sel.weight > 0 || sel.pieces === 0
-                        ? [['Weight', lbs(sel.weight) + ' lb']]
+                        ? [['Weight', `${lbs(sel.weight)} lb`]]
                         : []) as [string, string][]),
                       ...((sel.pieces > 0
                         ? [['Pieces', `${sel.pieces} pcs`]]

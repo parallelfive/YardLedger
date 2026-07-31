@@ -122,7 +122,7 @@ export function parseAamva(raw: string): ParsedIdFields {
   if (!raw) return empty;
 
   const fields: Record<string, string> = {};
-  for (const line of raw.split(/[\r\n]+/)) {
+  for (const line of raw.split(/[\n\r]+/)) {
     const m = ELEMENT_RE.exec(line.trim());
     if (!m) continue;
     const [, id, value] = m;

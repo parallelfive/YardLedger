@@ -18,12 +18,12 @@ export async function fetchInventory() {
     const data = await run();
     await saveJson('inventory', data);
     return data;
-  } catch (err) {
+  } catch (error) {
     // Offline / unreachable: serve the last-known inventory so the sell screen
     // still renders. Only fall back when there's actually a cache.
     const cached = await loadJson<Awaited<ReturnType<typeof run>>>('inventory');
     if (cached) return cached;
-    throw err;
+    throw error;
   }
 }
 

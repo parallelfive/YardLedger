@@ -13,11 +13,10 @@ export interface StatementCustomer {
 }
 
 const money = (n: number) =>
-  '$' +
-  Number(n).toLocaleString('en-US', {
+  `$${Number(n).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  });
+  })}`;
 const lbs = (n: number) =>
   Number(n).toLocaleString('en-US', { maximumFractionDigits: n % 1 ? 1 : 0 });
 const fmtDate = (iso: string) =>

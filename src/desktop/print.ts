@@ -8,11 +8,10 @@ import { escapeHtml } from '../utils/validation';
 // (an audit purchase-record and a shipping bill of lading), not a buy ticket.
 
 const money = (n: number) =>
-  '$' +
-  Number(n).toLocaleString('en-US', {
+  `$${Number(n).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  });
+  })}`;
 
 const shell = (title: string, body: string) => `
   <!DOCTYPE html><html><head><meta charset="utf-8" />
@@ -168,7 +167,7 @@ export interface DayCloseDoc {
 }
 
 export async function printDayClose(d: DayCloseDoc): Promise<void> {
-  const lbs = (n: number) => Number(n).toLocaleString() + ' lb';
+  const lbs = (n: number) => `${Number(n).toLocaleString()} lb`;
   const kv: [string, string][] = [
     ['Buys', `${d.buysCount}`],
     ['Weight bought', lbs(d.weightBought)],
@@ -180,8 +179,9 @@ export async function printDayClose(d: DayCloseDoc): Promise<void> {
     ['Est. gross profit', money(d.profit)],
     ['Unreported (restricted/catalytic)', `${d.unreported}`],
   ];
-  const materials = d.materials.length
-    ? `<table>
+  const materials =
+    d.materials.length > 0
+      ? `<table>
         <thead><tr><th>Material</th><th style="text-align:right">Weight</th><th style="text-align:right">Value</th></tr></thead>
         <tbody>${d.materials
           .map(
@@ -190,13 +190,13 @@ export async function printDayClose(d: DayCloseDoc): Promise<void> {
           )
           .join('')}</tbody>
       </table>`
-    : '';
+      : '';
   const body = `
     <div class="sub">End-of-day close · ${escapeHtml(d.date)}</div>
     <div class="grid">
       ${kv.map(([k, v]) => `<div><div class="k">${escapeHtml(k)}</div><div class="v">${escapeHtml(v)}</div></div>`).join('')}
     </div>
-    ${materials ? '<div class="k">Materials bought today</div>' + materials : ''}
+    ${materials ? `<div class="k">Materials bought today</div>${materials}` : ''}
     <div class="total"><span>Cash paid out today</span><span>${money(d.cashOut)}</span></div>
     <div class="foot">Generated ${new Date().toLocaleString()} · Tare</div>`;
   await printHtml(shell('Day Close', body));

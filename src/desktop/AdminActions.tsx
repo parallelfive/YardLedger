@@ -298,8 +298,8 @@ function ElevateModal({
     try {
       const expiry = await elevateAdmin(pin, requireOwner);
       onSuccess(expiry);
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
       setPin('');
     } finally {
       setBusy(false);
@@ -400,8 +400,8 @@ function AddMaterialModal({
     setErr(null);
     try {
       await onSave(name.trim(), p, unit, tier);
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       // Always clear busy — onSave returns without throwing when the operator
       // cancels the PIN prompt, which otherwise left the button stuck on "Saving…".
@@ -523,8 +523,8 @@ function EditPriceModal({
     setErr(null);
     try {
       await onSave(p, unit, tier);
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       // Clear busy even when the PIN prompt is cancelled (onSave returns
       // without throwing) — otherwise the button sticks on "Saving…".
@@ -674,8 +674,8 @@ function EditCompanyModal({
       const url = await uploadCompanyLogo(dataUrl, userId, current.settings_id);
       setLogoUrl(url);
       onLogoSaved();
-    } catch (ex) {
-      setErr((ex as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       setLogoBusy(false);
     }
@@ -719,8 +719,8 @@ function EditCompanyModal({
         cat_converter_retention_years: num(retCat, 3),
         timezone: timezone.trim(),
       });
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       // Clear busy even when the PIN prompt is cancelled (onSave returns
       // without throwing) — otherwise the button sticks on "Saving…".

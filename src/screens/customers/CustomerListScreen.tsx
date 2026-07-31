@@ -141,7 +141,7 @@ export default function CustomerListScreen({ navigation }: Props) {
               }
             >
               <View
-                style={[styles.rowIcon, { backgroundColor: accent + '24' }]}
+                style={[styles.rowIcon, { backgroundColor: `${accent}24` }]}
               >
                 <Ionicons
                   name={item.is_flagged ? 'flag' : 'person-outline'}
@@ -158,7 +158,7 @@ export default function CustomerListScreen({ navigation }: Props) {
                     <Tag
                       label={t.flagged}
                       color={colors.rust}
-                      soft={colors.rust + '22'}
+                      soft={`${colors.rust}22`}
                       icon="flag"
                     />
                   ) : null}
@@ -179,14 +179,14 @@ export default function CustomerListScreen({ navigation }: Props) {
                   <Tag
                     label={t.idOnFile}
                     color={colors.moss}
-                    soft={colors.moss + '22'}
+                    soft={`${colors.moss}22`}
                     icon="checkmark"
                   />
                 ) : (
                   <Tag
                     label={t.noIdOnFile}
                     color={colors.gold}
-                    soft={colors.gold + '22'}
+                    soft={`${colors.gold}22`}
                   />
                 )}
                 <Ionicons

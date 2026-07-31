@@ -227,7 +227,7 @@ export default function TopBar({
             badge={alerts.length > 0}
             onClick={() => setAlertsOpen((v) => !v)}
             label={
-              alerts.length
+              alerts.length > 0
                 ? `Alerts (${alerts.length})`
                 : 'Alerts — all caught up'
             }

@@ -149,8 +149,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
       if (!target) return;
       try {
         await printReceipt(target);
-      } catch (err) {
-        Alert.alert(t.error, (err as Error).message);
+      } catch (error) {
+        Alert.alert(t.error, (error as Error).message);
       }
     },
     [receipt, t.error]
@@ -160,8 +160,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
     if (!receipt) return;
     try {
       await shareReceipt(receipt);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   }, [receipt, t.error]);
 
@@ -175,12 +175,12 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
           // Print directly without going through handlePrint to avoid dep cycle
           try {
             await printReceipt(data);
-          } catch (err) {
-            Alert.alert(t.error, (err as Error).message);
+          } catch (error) {
+            Alert.alert(t.error, (error as Error).message);
           }
         }
-      } catch (err) {
-        Alert.alert(t.error, (err as Error).message);
+      } catch (error) {
+        Alert.alert(t.error, (error as Error).message);
       } finally {
         setLoading(false);
       }
@@ -260,7 +260,7 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
               <Tag
                 label={reported ? t.sent : t.queued}
                 color={reported ? colors.moss : colors.gold}
-                soft={reported ? 'rgba(93, 122, 78, 0.16)' : colors.gold + '26'}
+                soft={reported ? 'rgba(93, 122, 78, 0.16)' : `${colors.gold}26`}
               />
             </View>
           ) : null}
@@ -277,7 +277,7 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
               <Tag
                 label={t.held}
                 color={colors.gold}
-                soft={colors.gold + '26'}
+                soft={`${colors.gold}26`}
                 icon="lock-closed"
               />
             </View>
@@ -534,8 +534,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
                 onPress={async () => {
                   try {
                     await printNmPurchaseRecord(receipt);
-                  } catch (err) {
-                    Alert.alert(t.error, (err as Error).message);
+                  } catch (error) {
+                    Alert.alert(t.error, (error as Error).message);
                   }
                 }}
               >
@@ -547,8 +547,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
                   onPress={async () => {
                     try {
                       await printNmCatConverterForm(receipt);
-                    } catch (err) {
-                      Alert.alert(t.error, (err as Error).message);
+                    } catch (error) {
+                      Alert.alert(t.error, (error as Error).message);
                     }
                   }}
                 >
@@ -590,8 +590,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
                   Alert.alert(t.success, t.materialDisposed);
                   const updated = await fetchReceiptById(receiptId);
                   setReceipt(updated as ReceiptDetail);
-                } catch (err) {
-                  Alert.alert(t.error, (err as Error).message);
+                } catch (error) {
+                  Alert.alert(t.error, (error as Error).message);
                 }
               }}
             >
@@ -614,8 +614,8 @@ export default function ReceiptDetailScreen({ route, navigation }: Props) {
                       await deleteReceipt(receiptId);
                       Alert.alert(t.success, t.receiptDeleted);
                       navigation.goBack();
-                    } catch (err) {
-                      Alert.alert(t.error, (err as Error).message);
+                    } catch (error) {
+                      Alert.alert(t.error, (error as Error).message);
                     }
                   },
                 },
@@ -900,7 +900,7 @@ const makeStyles = (colors: Palette) =>
       alignItems: 'center',
       borderWidth: 1,
       borderColor: colors.warning,
-      backgroundColor: colors.gold + '1a',
+      backgroundColor: `${colors.gold}1a`,
     },
     secondaryButtonText: {
       color: colors.warning,

@@ -20,8 +20,8 @@ export function useTarePresets() {
     try {
       const data = await fetchTarePresets();
       if (myReq === reqId.current) setPresets(data);
-    } catch (err) {
-      if (myReq === reqId.current) setError((err as Error).message);
+    } catch (error_) {
+      if (myReq === reqId.current) setError((error_ as Error).message);
     } finally {
       if (myReq === reqId.current) setLoading(false);
     }

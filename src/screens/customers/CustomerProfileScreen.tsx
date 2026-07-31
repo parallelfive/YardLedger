@@ -83,8 +83,8 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
         setAddress(c.address);
         setDob(c.dob ?? '');
       }
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setLoading(false);
     }
@@ -117,8 +117,8 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
     try {
       const url = await uploadCustomerIdPhoto(customer.id, imageUri);
       setCustomer({ ...customer, dl_photo_uri: url });
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setUploading(false);
     }
@@ -137,8 +137,8 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
       await updateCustomer(customer.id, updates);
       setCustomer({ ...customer, ...updates });
       setEditingInfo(false);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setSavingInfo(false);
     }
@@ -157,7 +157,7 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
   );
   const [year, setYear] = useState<number>(new Date().getFullYear());
   useEffect(() => {
-    if (stmtYears.length) setYear(stmtYears[0]);
+    if (stmtYears.length > 0) setYear(stmtYears[0]);
   }, [stmtYears]);
   // Selected quarters (1–4); empty = the whole year (multi-select).
   const [quarters, setQuarters] = useState<number[]>([]);
@@ -229,8 +229,8 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
         </body></html>`;
 
       await printHtml(html);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -243,8 +243,8 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
           flag_reason: '',
         });
         setCustomer({ ...customer, is_flagged: false, flag_reason: '' });
-      } catch (err) {
-        Alert.alert(t.error, (err as Error).message);
+      } catch (error) {
+        Alert.alert(t.error, (error as Error).message);
       }
     } else {
       Alert.prompt(
@@ -266,8 +266,8 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
                   is_flagged: true,
                   flag_reason: reason ?? '',
                 });
-              } catch (err) {
-                Alert.alert(t.error, (err as Error).message);
+              } catch (error) {
+                Alert.alert(t.error, (error as Error).message);
               }
             },
           },
@@ -336,14 +336,14 @@ export default function CustomerProfileScreen({ route, navigation }: Props) {
               <Tag
                 label={t.idOnFile}
                 color={colors.moss}
-                soft={colors.moss + '22'}
+                soft={`${colors.moss}22`}
                 icon="checkmark"
               />
             ) : (
               <Tag
                 label={t.noIdOnFile}
                 color={colors.gold}
-                soft={colors.gold + '22'}
+                soft={`${colors.gold}22`}
               />
             )}
           </View>
@@ -708,7 +708,7 @@ const makeStyles = (colors: Palette) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.md,
-      backgroundColor: colors.rust + '1A',
+      backgroundColor: `${colors.rust}1A`,
       padding: spacing.md,
       borderRadius: borderRadius.lg,
       borderWidth: 1,
@@ -968,7 +968,7 @@ const makeStyles = (colors: Palette) =>
     },
     flagButtonActive: {
       borderColor: colors.rust,
-      backgroundColor: colors.rust + '1A',
+      backgroundColor: `${colors.rust}1A`,
     },
     flagButtonText: {
       color: colors.textSecondary,

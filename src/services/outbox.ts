@@ -67,7 +67,7 @@ export interface ReplayResult {
 }
 
 function isNetworkError(msg: string): boolean {
-  return /network request failed|fetch failed|timed? ?out|Failed to fetch|aborted/i.test(
+  return /network request failed|fetch failed|timed? ?out|failed to fetch|aborted/i.test(
     msg
   );
 }
@@ -90,8 +90,8 @@ export async function replayOutbox(): Promise<ReplayResult> {
       if (item.kind === 'receipt') await createReceipt(item.params);
       else await createSale(item.params);
       succeeded++;
-    } catch (err) {
-      const msg = (err as Error).message ?? 'Unknown error';
+    } catch (error) {
+      const msg = (error as Error).message ?? 'Unknown error';
       if (isNetworkError(msg)) {
         // Still offline — leave this item and everything after it in order.
         return { succeeded, failed, remaining: items.length };

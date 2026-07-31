@@ -221,7 +221,7 @@ const makeStyles = (colors: Palette) =>
       width: 38,
       height: 38,
       borderRadius: 10,
-      backgroundColor: colors.teal + '24',
+      backgroundColor: `${colors.teal}24`,
       alignItems: 'center',
       justifyContent: 'center',
     },
