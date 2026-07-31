@@ -62,11 +62,10 @@ function metalTier(m: Metal): string {
 const priceLabel = (m: Metal): string =>
   m.pricing_unit === 'each'
     ? money(m.price_per_lb)
-    : '$' +
-      Number(m.price_per_lb).toLocaleString('en-US', {
+    : `$${Number(m.price_per_lb).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 4,
-      });
+      })}`;
 
 function InfoRow({
   k,
@@ -503,6 +502,8 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                       license_number: settings?.license_number ?? '',
                       ein: settings?.ein ?? '',
                       registry_id: settings?.registry_id ?? '',
+                      leadsonline_store_id:
+                        settings?.leadsonline_store_id ?? '',
                       general_hold_hours: settings?.general_hold_hours ?? 24,
                       cat_converter_hold_days:
                         settings?.cat_converter_hold_days ?? 1,
