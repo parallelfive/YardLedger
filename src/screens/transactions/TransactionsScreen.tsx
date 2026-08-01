@@ -11,6 +11,7 @@ import type { TransactionsStackParamList } from '../../navigation/MainNavigator'
 import { useFocusEffect } from '@react-navigation/native';
 import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { useRole } from '../../hooks';
 import { useResponsive } from '../../hooks';
 import { useReceipts } from '../../hooks/useReceipts';
@@ -53,7 +54,8 @@ export default function TransactionsScreen({ navigation }: Props) {
   const { isAdmin } = useRole();
   const { isWide } = useResponsive();
   const [preset, setPreset] = useState<DatePreset>('today');
-  const { start, end } = getDateRange(preset);
+  const tz = useCompanyTimezone();
+  const { start, end } = getDateRange(preset, tz);
   const { receipts, loading, refresh } = useReceipts(
     isAdmin ? undefined : (activeIdentity?.user_id ?? profile?.id),
     start,

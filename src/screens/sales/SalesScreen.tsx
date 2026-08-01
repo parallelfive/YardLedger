@@ -5,6 +5,7 @@ import type { SalesStackParamList } from '../../navigation/MainNavigator';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { useResponsive } from '../../hooks';
 import { useSales } from '../../hooks/useSales';
 import { useRefreshOnReconnect } from '../../hooks/useRefreshOnReconnect';
@@ -38,7 +39,8 @@ export default function SalesScreen({ navigation }: Props) {
   const styles = useThemedStyles(makeStyles);
   const { isWide } = useResponsive();
   const [preset, setPreset] = useState<DatePreset>('month');
-  const { start, end } = getDateRange(preset);
+  const tz = useCompanyTimezone();
+  const { start, end } = getDateRange(preset, tz);
   const { sales, loading, error, refresh } = useSales(start, end);
 
   useFocusEffect(

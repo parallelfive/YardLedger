@@ -19,6 +19,7 @@ import {
   type ProfitabilityRow,
 } from '../../services/reports';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { useResponsive } from '../../hooks';
 import { ReportError } from '../../components';
 import {
@@ -55,6 +56,7 @@ export default function ProfitabilityScreen() {
   const styles = useThemedStyles(makeStyles);
   const isFocused = useIsFocused();
   const { isWide } = useResponsive();
+  const tz = useCompanyTimezone();
   const [preset, setPreset] = useState<DatePreset>('month');
   const [data, setData] = useState<ProfitabilityReport | null>(null);
   const [loading, setLoading] = useState(true);
@@ -64,14 +66,14 @@ export default function ProfitabilityScreen() {
     setLoading(true);
     setError(false);
     try {
-      const { start, end } = getDateRange(preset);
+      const { start, end } = getDateRange(preset, tz);
       setData(await fetchProfitabilityReport(start, end));
     } catch {
       setError(true); // surface the failure instead of a misleading empty state
     } finally {
       setLoading(false);
     }
-  }, [preset]);
+  }, [preset, tz]);
 
   useEffect(() => {
     if (isFocused) loadData();

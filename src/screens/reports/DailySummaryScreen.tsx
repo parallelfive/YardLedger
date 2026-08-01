@@ -20,6 +20,7 @@ import {
 import { Sparkline, SectionLabel, fmtMoney0 } from '../../components/foundry';
 import { ResponsiveContainer, ReportError } from '../../components';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { type Palette, spacing, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
 
@@ -28,6 +29,7 @@ export default function DailySummaryScreen() {
   const { colors } = useTheme();
   const styles = useThemedStyles(makeStyles);
   const isFocused = useIsFocused();
+  const tz = useCompanyTimezone();
   const [preset, setPreset] = useState<DatePreset>('today');
   const [data, setData] = useState<DailySummary | null>(null);
   const [trend, setTrend] = useState<number[]>([]);
@@ -38,7 +40,7 @@ export default function DailySummaryScreen() {
     setLoading(true);
     setError(false);
     try {
-      const { start, end } = getDateRange(preset);
+      const { start, end } = getDateRange(preset, tz);
       const [summary, recent] = await Promise.all([
         fetchDailySummary(start, end),
         fetchRecentBuyTotals(14),
@@ -50,7 +52,7 @@ export default function DailySummaryScreen() {
     } finally {
       setLoading(false);
     }
-  }, [preset]);
+  }, [preset, tz]);
 
   useEffect(() => {
     if (isFocused) loadData();

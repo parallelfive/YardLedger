@@ -33,6 +33,7 @@ import {
   type Tone,
 } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { useRole } from '../../hooks';
 import { type Palette, spacing, borderRadius, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
@@ -70,11 +71,12 @@ export default function DashboardScreen() {
   const [unreported, setUnreported] = useState(0);
   const [recent, setRecent] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const tz = useCompanyTimezone();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { start, end } = getDateRange('today');
+      const { start, end } = getDateRange('today', tz);
       const [s, val, sp, unrep, receipts] = await Promise.all([
         fetchDailySummary(start, end),
         fetchInventoryValuation(),
@@ -126,7 +128,7 @@ export default function DashboardScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tz]);
 
   useFocusEffect(
     useCallback(() => {
