@@ -568,6 +568,8 @@ export default {
   buyerProcessor: 'Buyer / processor',
   buyerProcessorHint: 'e.g. Western Copper Mills',
   materialLabel: 'Material',
+  searchMaterialsHint: 'Search materials',
+  noMaterialMatches: 'No materials match your search',
   lbAvail: 'lb avail',
   weightLb: 'Weight (lb)',
   onHandShort: 'on hand',

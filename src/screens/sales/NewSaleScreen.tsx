@@ -31,6 +31,7 @@ import {
 import { ResponsiveContainer } from '../../components';
 import { type Palette, spacing, fontSize, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
+import { matchesQuery } from '../../utils/textSearch';
 
 // Visual tone from the (DB-managed) category name — heuristic only, restricted
 // always wins. Mirrors InventoryScreen so colours stay consistent.
@@ -79,6 +80,7 @@ export default function NewSaleScreen({ navigation }: Props) {
   const [buyerName, setBuyerName] = useState('');
   const [inventory, setInventory] = useState<InvRow[]>([]);
   const [loadingInventory, setLoadingInventory] = useState(true);
+  const [materialSearch, setMaterialSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saleWeight, setSaleWeight] = useState('');
   const [salePrice, setSalePrice] = useState('');
@@ -149,6 +151,13 @@ export default function NewSaleScreen({ navigation }: Props) {
   const selected = useMemo(
     () => inventory.find((r) => r.id === selectedId) ?? null,
     [inventory, selectedId]
+  );
+
+  // Filter the on-hand catalog by the operator's search so a real yard's list
+  // stays usable (#115). Matching is name-based, case/space-insensitive.
+  const visibleInventory = useMemo(
+    () => inventory.filter((r) => matchesQuery(r.metalName, materialSearch)),
+    [inventory, materialSearch]
   );
 
   // `weight` here is the entered AMOUNT — pounds or pieces, per the selected
@@ -260,33 +269,71 @@ export default function NewSaleScreen({ navigation }: Props) {
                 <Text style={styles.emptyText}>{t.noInventory}</Text>
               </View>
             ) : (
-              <View style={styles.materialList}>
-                {inventory.map((row) => {
-                  const active = row.id === selectedId;
-                  return (
+              <>
+                <View style={styles.searchWrap}>
+                  <Ionicons
+                    name="search"
+                    size={16}
+                    color={colors.textTertiary}
+                  />
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder={t.searchMaterialsHint}
+                    placeholderTextColor={colors.textTertiary}
+                    value={materialSearch}
+                    onChangeText={setMaterialSearch}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    accessibilityLabel={t.searchMaterialsHint}
+                  />
+                  {materialSearch.length > 0 && (
                     <TouchableOpacity
-                      key={row.id}
-                      style={[
-                        styles.materialRow,
-                        active && styles.materialActive,
-                      ]}
-                      onPress={() => selectMetal(row)}
-                      activeOpacity={0.7}
+                      onPress={() => setMaterialSearch('')}
+                      accessibilityLabel={t.clear}
+                      hitSlop={8}
                     >
-                      <MetalDot tone={row.tone} size={10} />
-                      <Text style={styles.materialName} numberOfLines={1}>
-                        {row.metalName}
-                      </Text>
-                      <Text style={styles.materialAvail}>
-                        {fmtLbs(row.weight)}{' '}
-                        {row.unit === 'each'
-                          ? t.pieces.toLowerCase()
-                          : t.lbAvail}
-                      </Text>
+                      <Ionicons
+                        name="close-circle"
+                        size={16}
+                        color={colors.textTertiary}
+                      />
                     </TouchableOpacity>
-                  );
-                })}
-              </View>
+                  )}
+                </View>
+                {visibleInventory.length === 0 ? (
+                  <View style={styles.emptyPicker}>
+                    <Text style={styles.emptyText}>{t.noMaterialMatches}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.materialList}>
+                    {visibleInventory.map((row) => {
+                      const active = row.id === selectedId;
+                      return (
+                        <TouchableOpacity
+                          key={row.id}
+                          style={[
+                            styles.materialRow,
+                            active && styles.materialActive,
+                          ]}
+                          onPress={() => selectMetal(row)}
+                          activeOpacity={0.7}
+                        >
+                          <MetalDot tone={row.tone} size={10} />
+                          <Text style={styles.materialName} numberOfLines={1}>
+                            {row.metalName}
+                          </Text>
+                          <Text style={styles.materialAvail}>
+                            {fmtLbs(row.weight)}{' '}
+                            {row.unit === 'each'
+                              ? t.pieces.toLowerCase()
+                              : t.lbAvail}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              </>
             )}
 
             {/* Weight + Price */}
@@ -492,6 +539,24 @@ const makeStyles = (colors: Palette) =>
       fontSize: fontSize.md,
       fontFamily: fonts.sans,
       textAlign: 'center',
+    },
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: colors.inputBackground,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: 12,
+      marginBottom: spacing.sm,
+    },
+    searchInput: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: 15,
+      fontFamily: fonts.sans,
+      paddingVertical: 11,
     },
     materialList: {
       gap: 7,
