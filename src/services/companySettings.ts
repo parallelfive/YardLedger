@@ -22,6 +22,9 @@ export interface CompanySettings {
   license_number: string;
   ein: string;
   registry_id: string;
+  /* LeadsOnline's per-yard numeric store ID (or the yard's own numeric id) — the
+     dealer identifier carried on every report submission (migration 20260731…). */
+  leadsonline_store_id: string;
 }
 
 export async function fetchCompanySettings(): Promise<CompanySettings | null> {
@@ -49,6 +52,7 @@ export async function updateCompanySettings(
     license_number?: string;
     ein?: string;
     registry_id?: string;
+    leadsonline_store_id?: string;
   },
   userId: string,
   settingsId?: string | null

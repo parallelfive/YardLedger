@@ -502,6 +502,8 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                       license_number: settings?.license_number ?? '',
                       ein: settings?.ein ?? '',
                       registry_id: settings?.registry_id ?? '',
+                      leadsonline_store_id:
+                        settings?.leadsonline_store_id ?? '',
                       general_hold_hours: settings?.general_hold_hours ?? 24,
                       cat_converter_hold_days:
                         settings?.cat_converter_hold_days ?? 1,

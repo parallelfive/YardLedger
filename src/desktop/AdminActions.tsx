@@ -147,6 +147,7 @@ export interface CompanyEdit {
   license_number: string;
   ein: string;
   registry_id: string;
+  leadsonline_store_id: string;
   // Per-company compliance overrides (defaults seeded from the jurisdiction).
   general_hold_hours: number;
   cat_converter_hold_days: number;
@@ -628,6 +629,8 @@ function EditCompanyModal({
   const [license, setLicense] = useState(current.license_number);
   const [ein, setEin] = useState(current.ein);
   const [registry, setRegistry] = useState(current.registry_id);
+  // LeadsOnline store id — strictly numeric per the registry; strip non-digits.
+  const [storeId, setStoreId] = useState(current.leadsonline_store_id);
   // Compliance overrides — kept as strings for the inputs, parsed on save.
   const [holdHours, setHoldHours] = useState(
     String(current.general_hold_hours)
@@ -709,6 +712,7 @@ function EditCompanyModal({
         license_number: license.trim(),
         ein: ein.trim(),
         registry_id: registry.trim(),
+        leadsonline_store_id: storeId.trim(),
         general_hold_hours: num(holdHours, jur.holdDefaults.generalHours),
         cat_converter_hold_days: num(
           catDays,
@@ -905,6 +909,14 @@ function EditCompanyModal({
             </Field>
           </div>
         </div>
+        <Field label={`${jur.copy.registry} store ID`}>
+          <TextInput
+            value={storeId}
+            onChange={(v) => setStoreId(v.replace(/\D/g, ''))}
+            placeholder="Numeric store id carried on report submissions"
+            mono
+          />
+        </Field>
 
         {/* compliance rule overrides — presets come from the jurisdiction */}
         <div
