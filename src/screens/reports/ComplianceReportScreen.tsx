@@ -28,6 +28,7 @@ import {
 import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useAppSelector, type RootState } from '../../store';
 import { Tag, SectionLabel, fmtMoney } from '../../components/foundry';
@@ -61,6 +62,7 @@ export default function ComplianceReportScreen() {
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const isFocused = useIsFocused();
+  const tz = useCompanyTimezone();
   const [preset, setPreset] = useState<DatePreset>('today');
   const [rows, setRows] = useState<PurchaseRecordRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +70,7 @@ export default function ComplianceReportScreen() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const { start, end } = getDateRange(preset);
+      const { start, end } = getDateRange(preset, tz);
       const data = await fetchComplianceReport(start, end);
 
       const mapped: PurchaseRecordRow[] = data.map((r) => {
@@ -129,7 +131,7 @@ export default function ComplianceReportScreen() {
     } finally {
       setLoading(false);
     }
-  }, [preset, t.error]);
+  }, [preset, tz, t.error]);
 
   useEffect(() => {
     if (isFocused) loadData();
@@ -252,7 +254,7 @@ export default function ComplianceReportScreen() {
   // flag. Distinct from the human-readable purchase-record CSV above.
   const handleNmrldExport = async () => {
     try {
-      const { start, end } = getDateRange(preset);
+      const { start, end } = getDateRange(preset, tz);
       const csv = await exportNmrldCsv(start, end);
       await shareTextFile(
         'nmrld_upload.csv',

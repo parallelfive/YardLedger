@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { startOfLocalDayUtc, endOfLocalDayUtc } from './dateRange';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import {
+  startOfLocalDayUtc,
+  endOfLocalDayUtc,
+  getDateRange,
+} from './dateRange';
 
 // These convert a local calendar date to the UTC instant of that local day's
 // start/end. The exact UTC string depends on the runner's timezone, so we
@@ -32,6 +36,49 @@ describe('endOfLocalDayUtc', () => {
     expect(d.getMinutes()).toBe(59);
     expect(d.getSeconds()).toBe(59);
     expect(d.getMilliseconds()).toBe(999);
+  });
+});
+
+describe('getDateRange (timezone-aware, #111)', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("resolves 'today' in the yard's zone, not the device clock", () => {
+    // 04:30 UTC on Jul 31 is still Jul 30 in America/Denver (UTC-6). The yard's
+    // legal day must win, so a late-night buy reports on the correct date.
+    vi.useFakeTimers().setSystemTime(new Date('2026-07-31T04:30:00Z'));
+    expect(getDateRange('today', 'America/Denver')).toEqual({
+      start: '2026-07-30',
+      end: '2026-07-30',
+    });
+    expect(getDateRange('today', 'UTC')).toEqual({
+      start: '2026-07-31',
+      end: '2026-07-31',
+    });
+  });
+
+  it('subtracts a calendar week ending on the yard-local today', () => {
+    vi.useFakeTimers().setSystemTime(new Date('2026-07-31T12:00:00Z'));
+    expect(getDateRange('week', 'UTC')).toEqual({
+      start: '2026-07-24',
+      end: '2026-07-31',
+    });
+  });
+
+  it('subtracts a calendar month across a month boundary', () => {
+    vi.useFakeTimers().setSystemTime(new Date('2026-03-15T12:00:00Z'));
+    expect(getDateRange('month', 'UTC')).toEqual({
+      start: '2026-02-15',
+      end: '2026-03-15',
+    });
+  });
+
+  it('empty tz falls back to a valid device-local range', () => {
+    vi.useFakeTimers().setSystemTime(new Date('2026-07-31T12:00:00Z'));
+    const { start, end } = getDateRange('today', '');
+    expect(start).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(start).toBe(end);
   });
 });
 

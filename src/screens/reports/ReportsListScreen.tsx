@@ -14,6 +14,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { shareTextFile } from '../../utils/shareFile';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useRole } from '../../hooks';
 import { useAppSelector, type RootState } from '../../store';
@@ -77,6 +78,7 @@ export default function ReportsListScreen({ navigation }: Props) {
   const { isAdmin } = useRole();
 
   const [preset, setPreset] = useState<DatePreset>('month');
+  const tz = useCompanyTimezone();
   const [rows, setRows] = useState<ComplianceReceiptRow[]>([]);
   const [stateCode, setStateCode] = useState('');
   const [loading, setLoading] = useState(true);
@@ -86,7 +88,7 @@ export default function ReportsListScreen({ navigation }: Props) {
     setLoading(true);
     setError(false);
     try {
-      const { start, end } = getDateRange(preset);
+      const { start, end } = getDateRange(preset, tz);
       const [data, settings] = await Promise.all([
         fetchComplianceReport(start, end),
         fetchCompanySettings().catch(() => null),
@@ -99,7 +101,7 @@ export default function ReportsListScreen({ navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [preset]);
+  }, [preset, tz]);
 
   useFocusEffect(
     useCallback(() => {
