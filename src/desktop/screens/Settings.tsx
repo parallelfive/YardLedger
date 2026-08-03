@@ -62,11 +62,10 @@ function metalTier(m: Metal): string {
 const priceLabel = (m: Metal): string =>
   m.pricing_unit === 'each'
     ? money(m.price_per_lb)
-    : '$' +
-      Number(m.price_per_lb).toLocaleString('en-US', {
+    : `$${Number(m.price_per_lb).toLocaleString('en-US', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 4,
-      });
+      })}`;
 
 function InfoRow({
   k,
