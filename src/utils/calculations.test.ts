@@ -28,6 +28,23 @@ describe('calculateNetWeight', () => {
   it('treats a missing tare as zero', () => {
     expect(calculateNetWeight('tare', { gross: 1200 })).toBe(1200);
   });
+
+  it('clamps a directly-typed negative net at 0 (#97)', () => {
+    // Desktop number inputs accept a minus sign; a negative net must never
+    // surface as a negative payable weight or payout.
+    expect(calculateNetWeight('net', { net: -5 })).toBe(0);
+    expect(calculateNetWeight('net', { net: -0.5 })).toBe(0);
+  });
+
+  it('clamps a negative gross/tare result at 0 (#97)', () => {
+    expect(calculateNetWeight('tare', { gross: -100, tare: 0 })).toBe(0);
+    expect(calculateNetWeight('tare', { gross: 100, tare: 300 })).toBe(0);
+  });
+
+  it('preserves valid decimal weights', () => {
+    expect(calculateNetWeight('net', { net: 12.5 })).toBe(12.5);
+    expect(calculateNetWeight('tare', { gross: 10.75, tare: 0.25 })).toBe(10.5);
+  });
 });
 
 describe('calculateLineItemTotal', () => {

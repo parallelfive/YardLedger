@@ -92,11 +92,11 @@ interface BuyItem {
   price?: number;
 }
 // Effective net weight for a line — gross minus tare when weighing a vehicle,
-// clamped at 0. Delegates to the shared, unit-tested calculateNetWeight, then
-// floors at 0 so a directly-typed negative net can't show a negative payout
-// (the desktop inputs accept a minus sign; the mobile keypad can't) (#97).
-const netOf = (it: BuyItem): number =>
-  Math.max(0, calculateNetWeight(it.mode, it));
+// else the keyed net. Delegates to the shared, unit-tested calculateNetWeight,
+// which floors both modes at 0 so a directly-typed negative can't show a
+// negative payout (the desktop inputs accept a minus sign; the keypad can't).
+// The inputs themselves also clamp on entry, so a negative never reaches state (#97).
+const netOf = (it: BuyItem): number => calculateNetWeight(it.mode, it);
 
 // A material priced by the piece rather than by weight.
 const isPiece = (m?: { pricing_unit?: string }): boolean =>
@@ -1410,9 +1410,12 @@ export function BuyFlow({
                             >
                               <input
                                 type="number"
+                                min={0}
                                 value={it.net || ''}
                                 onChange={(e) =>
-                                  patch(i, { net: Number(e.target.value) })
+                                  patch(i, {
+                                    net: Math.max(0, Number(e.target.value)),
+                                  })
                                 }
                                 placeholder="0"
                                 className="mono num"
@@ -1444,9 +1447,15 @@ export function BuyFlow({
                                 <span style={miniLabel}>Gross</span>
                                 <input
                                   type="number"
+                                  min={0}
                                   value={it.gross || ''}
                                   onChange={(e) =>
-                                    patch(i, { gross: Number(e.target.value) })
+                                    patch(i, {
+                                      gross: Math.max(
+                                        0,
+                                        Number(e.target.value)
+                                      ),
+                                    })
                                   }
                                   placeholder="0"
                                   className="mono num"
@@ -1463,9 +1472,12 @@ export function BuyFlow({
                                 <span style={miniLabel}>Tare</span>
                                 <input
                                   type="number"
+                                  min={0}
                                   value={it.tare || ''}
                                   onChange={(e) =>
-                                    patch(i, { tare: Number(e.target.value) })
+                                    patch(i, {
+                                      tare: Math.max(0, Number(e.target.value)),
+                                    })
                                   }
                                   placeholder="0"
                                   className="mono num"
