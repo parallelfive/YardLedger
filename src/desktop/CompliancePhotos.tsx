@@ -1,39 +1,19 @@
 import { useEffect, useState } from 'react';
 import { signPrivatePath } from '../services/storage';
+import {
+  type CompliancePhoto,
+  buildCompliancePhotos,
+} from '../utils/receiptPhotos';
 
 // Shared evidence-photo panel for the desktop record detail views (the
 // Compliance record slide-over AND the day-book / seller-history ticket detail),
 // so both render the SAME stored photos instead of one showing them and the
 // other showing nothing (#107). Photos live in a private bucket as object PATHS;
-// we mint a short-lived signed URL per photo at render time.
-
-export interface CompliancePhoto {
-  label: string;
-  path: string;
-}
-
-// The receipt photo columns we surface, in display order (label → column).
-const PHOTO_FIELDS: [string, string][] = [
-  ['ID scan', 'seller_id_photo_uri'],
-  ['Driver license', 'dl_photo_uri'],
-  ['Seller', 'seller_photo_uri'],
-  ['Material', 'material_photo_uri'],
-  ['Converter', 'cat_converter_photo_uri'],
-  ['Title', 'cat_title_photo_uri'],
-  ['Signature', 'signature_uri'],
-];
-
-// Build the {label, path} list from any receipt-shaped record — the typed
-// ComplianceReceiptRow or a loosely-typed fetched receipt. Absent/non-string
-// columns are skipped, so only captured photos get a tile.
-export function buildCompliancePhotos(
-  r: Record<string, unknown>
-): CompliancePhoto[] {
-  return PHOTO_FIELDS.map(([label, key]) => ({
-    label,
-    path: typeof r[key] === 'string' ? (r[key] as string) : '',
-  })).filter((p) => p.path);
-}
+// we mint a short-lived signed URL per photo at render time. The {label, path}
+// derivation lives in utils/receiptPhotos (pure + unit-tested); re-exported here
+// so existing `from '../CompliancePhotos'` imports are unchanged.
+export { buildCompliancePhotos };
+export type { CompliancePhoto };
 
 export function CompliancePhotos({ photos }: { photos: CompliancePhoto[] }) {
   const [urls, setUrls] = useState<Record<string, string | null>>({});

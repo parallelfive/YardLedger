@@ -35,6 +35,7 @@ import {
   fonts,
 } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
+import { resolveStafferScopeUserId } from '../../utils/transactionScope';
 
 type Props = NativeStackScreenProps<
   TransactionsStackParamList,
@@ -57,7 +58,7 @@ export default function TransactionsScreen({ navigation }: Props) {
   const tz = useCompanyTimezone();
   const { start, end } = getDateRange(preset, tz);
   const { receipts, loading, refresh } = useReceipts(
-    isAdmin ? undefined : (activeIdentity?.user_id ?? profile?.id),
+    resolveStafferScopeUserId(isAdmin, activeIdentity?.user_id, profile?.id),
     start,
     end
   );
