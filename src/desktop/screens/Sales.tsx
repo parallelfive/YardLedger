@@ -144,7 +144,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
         >
           <PanelHead
             title="Outbound loads"
-            sub="Stock shipped to mills"
+            sub="Inventory shipped to mills"
             icon="truck"
             tone="var(--teal)"
           />

@@ -455,7 +455,7 @@ export default {
   continueLabel: 'Continue',
   pay: 'Pay',
   cameraPermission: 'Camera permission required',
-  stock: 'Stock',
+  stock: 'Inventory',
   metalMix: 'Metal Mix',
   onHandByWeight: 'on-hand · by weight',
   awaitingReport: 'awaiting state report',
@@ -534,7 +534,7 @@ export default {
   // Dashboard
   tabDashboard: 'Dashboard',
   tabHome: 'Home',
-  tabStock: 'Stock',
+  tabStock: 'Inventory',
   newBuyAction: 'New buy',
   newSaleAction: 'New sale',
   dashboard: 'Dashboard',
