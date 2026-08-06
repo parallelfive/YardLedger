@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useDraftTickets } from '../hooks/useDraftTickets';
-import { type DraftTicket } from '../services/draftTickets';
+import { type DraftTicket, voidDraftTicket } from '../services/draftTickets';
 import {
   SlideOver,
   SlideHead,
@@ -23,6 +24,32 @@ export default function CashierQueue({
   onPick: (d: DraftTicket) => void;
 }) {
   const { drafts, loading, error, refresh } = useDraftTickets();
+  const [voidingId, setVoidingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // Void a mistaken/abandoned ticket so it leaves the queue — the counterpart to
+  // the "void it in the cashier queue" instruction the double-payout warning
+  // gives. voidDraftTicket only flips status to 'voided' (no money/inventory
+  // moves); pending is the only voidable state.
+  const handleVoid = async (d: DraftTicket) => {
+    if (
+      !window.confirm(
+        `Void ticket ${d.claim_number}? It will leave the queue and can't be finalized.`
+      )
+    ) {
+      return;
+    }
+    setVoidingId(d.id);
+    setActionError(null);
+    try {
+      await voidDraftTicket(d.id);
+      await refresh();
+    } catch (error_) {
+      setActionError((error_ as Error).message);
+    } finally {
+      setVoidingId(null);
+    }
+  };
 
   return (
     <SlideOver open onClose={onClose} width={480}>
@@ -43,6 +70,21 @@ export default function CashierQueue({
           gap: 12,
         }}
       >
+        {actionError && (
+          <div
+            className="mono"
+            style={{
+              fontSize: 12,
+              color: 'var(--rust)',
+              background: 'var(--surface-2)',
+              border: '1px solid var(--line)',
+              borderRadius: 8,
+              padding: '8px 12px',
+            }}
+          >
+            {actionError}
+          </div>
+        )}
         {error ? (
           <EmptyState
             tone="error"
@@ -156,6 +198,30 @@ export default function CashierQueue({
                     >
                       Pay out →
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        // Don't let the void click bubble to the card's
+                        // finalize handler.
+                        e.stopPropagation();
+                        void handleVoid(d);
+                      }}
+                      disabled={voidingId === d.id}
+                      style={{
+                        marginTop: 8,
+                        fontSize: 11,
+                        fontFamily: 'inherit',
+                        color: 'var(--rust)',
+                        background: 'transparent',
+                        border: '1px solid var(--line)',
+                        borderRadius: 8,
+                        padding: '3px 10px',
+                        cursor: voidingId === d.id ? 'default' : 'pointer',
+                        opacity: voidingId === d.id ? 0.6 : 1,
+                      }}
+                    >
+                      {voidingId === d.id ? 'Voiding…' : 'Void'}
+                    </button>
                   </div>
                 </div>
               </Card>
