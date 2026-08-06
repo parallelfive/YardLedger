@@ -179,6 +179,7 @@ export default {
   grossTare: 'Gross / Tare',
   grossWeightLabel: 'Gross (lbs)',
   tareWeightLabel: 'Tare (lbs)',
+  savedTares: 'Saved tares',
   netWeightResult: 'Net:',
 
   // Access Codes
