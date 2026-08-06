@@ -17,8 +17,23 @@ browser driver (Playwright) is the next increment — see Roadmap.
   owner **through the real signup path** (`handle_new_user` consumes an invite
   code), plus the full auto-seeded metal catalog.
 - Logging in as that owner against the live GoTrue server returns a JWT.
+- **A real browser E2E passes** (`e2e/tests/login.spec.ts`): Playwright drives the
+  web login UI → live GoTrue session → then asserts the backend via the DB
+  (`e2e/lib/db.ts`) — the owner's role/name in `public.users`. This is the
+  frontend→backend→DB pattern the golden flows will extend.
 
 **Credentials:** `owner@e2e.test` / `Passw0rd!` · shift PIN `1379` · company `EE-2026`.
+
+## Run the tests
+
+```bash
+bash e2e/setup.sh                 # stack + fixture
+npm run web                       # boot the web app against the local stack
+npm run test:e2e                  # playwright (chromium, wide viewport = desktop shell)
+```
+
+`E2E_BASE_URL` (default `http://localhost:8090`) and `E2E_DB_URL` (default
+`…54322`) are env-overridable for machines running the stack on remapped ports.
 
 ## Bring it up
 
@@ -50,12 +65,20 @@ npm run web
   The fixture already does this.
 - **Inserting a company auto-seeds a full catalog** (~55 metals) via a
   company-bootstrap trigger, so the fixture doesn't seed metals.
+- **Pointing the app at your stack**: the web app resolves its Supabase URL from
+  `EXPO_PUBLIC_SUPABASE_URL` (inlined at bundle time from `.env*`). A plain shell
+  `export` does **not** override a value already set in `.env`, and
+  `EXPO_NO_DOTENV=1` disables the whole `EXPO_PUBLIC_*` inlining (falls back to
+  the `supabase.ts` default). If a second stack owns the default ports and you've
+  remapped yours, set the URL in `.env.development.local` (highest precedence) —
+  not via a shell export.
 
 ## Roadmap
 
-1. **This slice** — local stack + fixture, login verified. ✅
-2. **Playwright web E2E** — drive the golden flows at both viewports (desktop
-   shell + mobile-web), asserting UI **and** DB after each action:
+1. **This slice** — local stack + fixture + Playwright wired; **browser login
+   asserting UI _and_ DB passes**. ✅
+2. **Golden flows** — extend to the rest at both viewports (desktop shell +
+   mobile-web), asserting UI **and** DB after each action:
    auth+lockout · buy (net & gross−tare, override, per-piece) · **two-station
    worker→cashier handoff** · sale (oversell) · compliance/report · tenant isolation.
 3. **Native E2E** — Detox/Maestro on a sim/emulator (data layer is shared, so web
