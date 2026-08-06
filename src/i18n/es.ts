@@ -180,6 +180,7 @@ export default {
   grossTare: 'Bruto / Tara',
   grossWeightLabel: 'Bruto (lbs)',
   tareWeightLabel: 'Tara (lbs)',
+  savedTares: 'Taras guardadas',
   netWeightResult: 'Neto:',
 
   // Access Codes
