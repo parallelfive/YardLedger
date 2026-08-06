@@ -123,6 +123,10 @@ begin
 end;
 $$;
 
+-- CONTRACT: assert_admin_pin now RETURNS NULL (not raises) on a wrong PIN, so its
+-- attempt insert can commit. It is NOT an authorization gate on its own — server
+-- authz keys on has_admin_elevation()/admin_elevations. Any future caller must
+-- treat a null return as failure; never proceed on it.
 revoke all on function public.assert_admin_pin(text, boolean) from public;
 grant execute on function public.assert_admin_pin(text, boolean) to authenticated;
 
