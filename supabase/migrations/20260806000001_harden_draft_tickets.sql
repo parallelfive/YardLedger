@@ -29,6 +29,14 @@ create trigger draft_tickets_stamp_session
 -- xact lock and take max(trailing digits)+1 — the exact pattern receipt
 -- numbering uses (20260422000006). max() over the digit run (not count) also
 -- means a deleted pending draft never causes reuse.
+
+-- The daily uniqueness index below needs an IMMUTABLE key, but timestamptz::date
+-- is only STABLE (session-timezone dependent) and Postgres rejects it in an index
+-- expression. Store the session-tz calendar day the trigger stamps next to the
+-- claim number so the two always agree, and index that plain column instead.
+alter table public.draft_tickets
+  add column if not exists created_day date;
+
 create or replace function public.set_draft_claim_number()
 returns trigger
 language plpgsql
@@ -39,6 +47,9 @@ declare
   n int;
   lock_key bigint;
 begin
+  -- Stamp the calendar day this ticket belongs to (session tz), matching the day
+  -- the claim number resets on, so the daily unique index can key on it.
+  new.created_day := current_date;
   if new.claim_number is null or new.claim_number = '' then
     lock_key := hashtext(new.company_id::text || '-' || to_char(now(), 'YYYYMMDD'));
     perform pg_advisory_xact_lock(lock_key);
@@ -53,22 +64,29 @@ begin
 end;
 $$;
 
--- Belt-and-suspenders: a per-company/day unique claim number. Guarded so the
--- migration never fails on legacy duplicates the old racy trigger may have left
--- (the advisory lock above already prevents new collisions).
+-- Backfill created_day for rows that predate the column so the index covers them
+-- (best-effort: the session-tz date of their created_at).
+update public.draft_tickets
+  set created_day = created_at::date
+  where created_day is null;
+
+-- Belt-and-suspenders: a per-company/day unique claim number, keyed on the stored
+-- created_day (a plain column — IMMUTABLE, unlike created_at::date). Guarded so
+-- the migration never fails on legacy duplicates the old racy trigger may have
+-- left (the advisory lock above already prevents new collisions).
 do $$
 begin
   if exists (
     select 1
     from public.draft_tickets
     where claim_number <> ''
-    group by company_id, (created_at::date), claim_number
+    group by company_id, created_day, claim_number
     having count(*) > 1
   ) then
     raise notice 'draft_tickets: legacy duplicate claim numbers present; skipping unique index (advisory lock still prevents new races)';
   else
     create unique index if not exists draft_tickets_company_day_claim_uidx
-      on public.draft_tickets (company_id, (created_at::date), claim_number)
+      on public.draft_tickets (company_id, created_day, claim_number)
       where claim_number <> '';
   end if;
 end $$;

@@ -13,6 +13,7 @@
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:db": "bash supabase/tests/draft_tickets/run.sh",
     "test:watch": "vitest",
     "prepare": "husky",
     "dev": "bash scripts/dev.sh start",
