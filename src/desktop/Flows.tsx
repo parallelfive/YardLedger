@@ -92,21 +92,23 @@ interface BuyItem {
   price?: number;
 }
 // Effective net weight for a line — gross minus tare when weighing a vehicle,
-// clamped at 0. Delegates to the shared, unit-tested calculateNetWeight, then
-// floors at 0 so a directly-typed negative net can't show a negative payout
-// (the desktop inputs accept a minus sign; the mobile keypad can't) (#97).
-const netOf = (it: BuyItem): number =>
-  Math.max(0, calculateNetWeight(it.mode, it));
+// else the keyed net. Delegates to the shared, unit-tested calculateNetWeight,
+// which floors both modes at 0 so a directly-typed negative can't show a
+// negative payout (the desktop inputs accept a minus sign; the keypad can't).
+// The inputs themselves also clamp on entry, so a negative never reaches state (#97).
+const netOf = (it: BuyItem): number => calculateNetWeight(it.mode, it);
 
 // A material priced by the piece rather than by weight.
 const isPiece = (m?: { pricing_unit?: string }): boolean =>
   m?.pricing_unit === 'each';
-// The effective unit price for a line: for per-piece, the operator's keyed price
-// (a converter's value) or the catalog default; for weight, the catalog $/lb.
+// The effective unit price for a line: the operator's keyed price when they
+// overrode it (a converter's value, or a $/lb haircut for dirty material), else
+// the catalog default. Applies to per-piece AND weight lines — an override on
+// any material is gated by admin elevation at save.
 const unitPriceOf = (
   it: BuyItem,
   m: { price_per_lb: number; pricing_unit?: string }
-): number => (isPiece(m) ? (it.price ?? m.price_per_lb) : m.price_per_lb);
+): number => it.price ?? m.price_per_lb;
 // The line's payout: pieces × $/piece for per-piece metals, net weight × $/lb
 // otherwise. Rounded per line to match the DB's stored subtotal.
 const lineTotalOf = (
@@ -115,7 +117,7 @@ const lineTotalOf = (
 ): number =>
   isPiece(m)
     ? calculateLineItemTotal(it.qty || 0, unitPriceOf(it, m))
-    : calculateLineItemTotal(netOf(it), m.price_per_lb);
+    : calculateLineItemTotal(netOf(it), unitPriceOf(it, m));
 
 const miniLabel = {
   fontSize: 10.5,
@@ -438,8 +440,8 @@ export function BuyFlow({
         tareWeight: tare,
         createdBy: workerId || null,
       });
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     }
   };
 
@@ -548,8 +550,8 @@ export function BuyFlow({
       }
       onSaved?.();
       onDone();
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
       setBusy(false);
     }
   };
@@ -681,8 +683,8 @@ export function BuyFlow({
         regulated: needsCompliance,
         warning: draftWarning || undefined,
       });
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -1408,9 +1410,12 @@ export function BuyFlow({
                             >
                               <input
                                 type="number"
+                                min={0}
                                 value={it.net || ''}
                                 onChange={(e) =>
-                                  patch(i, { net: Number(e.target.value) })
+                                  patch(i, {
+                                    net: Math.max(0, Number(e.target.value)),
+                                  })
                                 }
                                 placeholder="0"
                                 className="mono num"
@@ -1442,9 +1447,15 @@ export function BuyFlow({
                                 <span style={miniLabel}>Gross</span>
                                 <input
                                   type="number"
+                                  min={0}
                                   value={it.gross || ''}
                                   onChange={(e) =>
-                                    patch(i, { gross: Number(e.target.value) })
+                                    patch(i, {
+                                      gross: Math.max(
+                                        0,
+                                        Number(e.target.value)
+                                      ),
+                                    })
                                   }
                                   placeholder="0"
                                   className="mono num"
@@ -1461,9 +1472,12 @@ export function BuyFlow({
                                 <span style={miniLabel}>Tare</span>
                                 <input
                                   type="number"
+                                  min={0}
                                   value={it.tare || ''}
                                   onChange={(e) =>
-                                    patch(i, { tare: Number(e.target.value) })
+                                    patch(i, {
+                                      tare: Math.max(0, Number(e.target.value)),
+                                    })
                                   }
                                   placeholder="0"
                                   className="mono num"
@@ -1516,15 +1530,16 @@ export function BuyFlow({
                                     background: 'var(--surface-2)',
                                     border: '1px solid var(--line)',
                                     borderRadius: 8,
-                                    color: presets.length
-                                      ? 'var(--ink-2)'
-                                      : 'var(--ink-3)',
+                                    color:
+                                      presets.length > 0
+                                        ? 'var(--ink-2)'
+                                        : 'var(--ink-3)',
                                     fontSize: 12,
                                     outline: 'none',
                                   }}
                                 >
                                   <option value="">
-                                    {presets.length
+                                    {presets.length > 0
                                       ? 'Tare preset…'
                                       : 'No saved tares yet'}
                                   </option>
@@ -1568,6 +1583,56 @@ export function BuyFlow({
                               </div>
                             </div>
                           )}
+                          {/* $/lb — editable; a value other than catalog is a
+                              price override (admin-gated at save, like per-piece) */}
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                            }}
+                          >
+                            <span
+                              className="mono"
+                              style={{ fontSize: 12, color: 'var(--ink-3)' }}
+                            >
+                              $
+                            </span>
+                            <input
+                              type="number"
+                              value={it.price ?? m.price_per_lb}
+                              onChange={(e) =>
+                                patch(i, {
+                                  price: Math.max(0, Number(e.target.value)),
+                                })
+                              }
+                              aria-label="Price per pound"
+                              className="mono num"
+                              style={{ ...wInput, width: 92 }}
+                            />
+                            <span
+                              className="mono"
+                              style={{ fontSize: 11, color: 'var(--ink-3)' }}
+                            >
+                              /lb
+                            </span>
+                            {it.price != null &&
+                              it.price !== m.price_per_lb && (
+                                <span
+                                  className="mono"
+                                  style={{
+                                    marginLeft: 'auto',
+                                    fontSize: 9.5,
+                                    fontWeight: 700,
+                                    letterSpacing: 0.4,
+                                    textTransform: 'uppercase',
+                                    color: 'var(--gold)',
+                                  }}
+                                >
+                                  Override · was {money(m.price_per_lb)}
+                                </span>
+                              )}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -2141,7 +2206,7 @@ export function SaleFlow({
   const [err, setErr] = useState<string | null>(null);
 
   const buyerSuggest =
-    buyerFocus && buyer.trim().length >= 1
+    buyerFocus && buyer.trim().length > 0
       ? processors
           .filter((p) => {
             const bl = buyer.trim().toLowerCase();
@@ -2205,15 +2270,15 @@ export function SaleFlow({
       onSaved?.();
       const id = (sale as { id?: string })?.id ?? '';
       setSaved({
-        loadNo: id ? 'SO-' + id.slice(0, 8) : '—',
+        loadNo: id ? `SO-${id.slice(0, 8)}` : '—',
         total,
         weight,
         buyer: buyer.trim(),
         metal: inv.metal_name,
         unit: piece ? 'each' : 'lb',
       });
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -2475,7 +2540,9 @@ export function SaleFlow({
                 }}
               >
                 <option value="">
-                  {onHandRows.length ? 'Select a metal…' : 'Nothing on hand'}
+                  {onHandRows.length > 0
+                    ? 'Select a metal…'
+                    : 'Nothing on hand'}
                 </option>
                 {onHandRows.map((r) => {
                   const rPiece =

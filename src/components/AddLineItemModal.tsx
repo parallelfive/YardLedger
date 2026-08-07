@@ -12,10 +12,13 @@ import {
 import type { Metal, MetalCategory } from '../types';
 import {
   fetchMetalCategories,
+  fetchMetals,
   fetchMetalsByCategory,
 } from '../services/metals';
 import { useT } from '../hooks/useT';
+import { useTarePresets } from '../hooks/useTarePresets';
 import { validateWeight } from '../utils/validation';
+import { matchesQuery } from '../utils/textSearch';
 import {
   type Palette,
   spacing,
@@ -62,8 +65,14 @@ export default function AddLineItemModal({
   const [step, setStep] = useState<Step>('category');
   const [categories, setCategories] = useState<MetalCategory[]>([]);
   const [metals, setMetals] = useState<Metal[]>([]);
+  // Full active catalog for the search typeahead — lets an operator jump
+  // straight to a metal by name instead of drilling category → metal (#95).
+  const [allMetals, setAllMetals] = useState<Metal[]>([]);
+  const [metalSearch, setMetalSearch] = useState('');
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [loadingMetals, setLoadingMetals] = useState(false);
+  // Saved tares (empty vehicle/container weights) reusable across buys (#96).
+  const { presets: tarePresets } = useTarePresets();
   const [selectedCategory, setSelectedCategory] =
     useState<MetalCategory | null>(null);
   const [selectedMetal, setSelectedMetal] = useState<Metal | null>(null);
@@ -75,8 +84,14 @@ export default function AddLineItemModal({
   const loadCategories = useCallback(async () => {
     setLoadingCategories(true);
     try {
-      const data = await fetchMetalCategories();
-      setCategories(data);
+      const [cats, all] = await Promise.all([
+        fetchMetalCategories(),
+        // Fetch the whole catalog once for the search typeahead; best-effort so
+        // a failure just falls back to category drill-down.
+        fetchMetals().catch(() => [] as Metal[]),
+      ]);
+      setCategories(cats);
+      setAllMetals(all as Metal[]);
     } catch {
       // Categories will be empty, user can retry
     } finally {
@@ -89,6 +104,12 @@ export default function AddLineItemModal({
       loadCategories();
     }
   }, [visible, loadCategories, categories.length]);
+
+  // Metals matching the search box, across the whole catalog (#95).
+  const searchResults =
+    metalSearch.trim().length > 0
+      ? allMetals.filter((m) => matchesQuery(m.name, metalSearch))
+      : [];
 
   const handleSelectCategory = async (category: MetalCategory) => {
     setSelectedCategory(category);
@@ -149,6 +170,7 @@ export default function AddLineItemModal({
     setSelectedCategory(null);
     setSelectedMetal(null);
     setMetals([]);
+    setMetalSearch('');
     setWeight('');
     setWeightMode('net');
     setGrossWeight('');
@@ -244,45 +266,99 @@ export default function AddLineItemModal({
                 style={styles.loader}
               />
             ) : (
-              <FlatList
-                data={categories}
-                keyExtractor={(item) => item.id}
-                contentContainerStyle={styles.listContent}
-                ListHeaderComponent={
-                  recentMetalsCache.length > 0 ? (
-                    <View style={styles.recentSection}>
-                      <Text style={styles.recentTitle}>{t.recent}</Text>
-                      {recentMetalsCache.map((metal) => (
-                        <TouchableOpacity
-                          key={metal.id}
-                          style={styles.recentCard}
-                          onPress={() => {
-                            setSelectedMetal(metal);
-                            setStep('weight');
-                          }}
-                        >
-                          <View>
-                            <Text style={styles.optionName}>{metal.name}</Text>
-                            <Text style={styles.optionPrice}>
-                              ${Number(metal.price_per_lb).toFixed(4)}/lb
-                            </Text>
-                          </View>
-                          <Text style={styles.chevron}>{'>'}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  ) : null
-                }
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.optionCard}
-                    onPress={() => handleSelectCategory(item)}
-                  >
-                    <Text style={styles.optionName}>{item.name}</Text>
-                    <Text style={styles.chevron}>{'>'}</Text>
-                  </TouchableOpacity>
+              <>
+                {/* Typeahead across the whole catalog (#95) */}
+                <View style={styles.searchWrap}>
+                  <TextInput
+                    style={styles.searchInput}
+                    placeholder={t.searchMaterialsHint}
+                    placeholderTextColor={colors.textTertiary}
+                    value={metalSearch}
+                    onChangeText={setMetalSearch}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    accessibilityLabel={t.searchMaterialsHint}
+                  />
+                  {metalSearch.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setMetalSearch('')}
+                      accessibilityLabel={t.clear}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.searchClear}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {metalSearch.trim().length > 0 ? (
+                  <FlatList
+                    data={searchResults}
+                    keyExtractor={(item) => item.id}
+                    keyboardShouldPersistTaps="handled"
+                    contentContainerStyle={styles.listContent}
+                    ListEmptyComponent={
+                      <Text style={styles.noMatches}>
+                        {t.noMaterialMatches}
+                      </Text>
+                    }
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.optionCard}
+                        onPress={() => handleSelectMetal(item)}
+                      >
+                        <View>
+                          <Text style={styles.optionName}>{item.name}</Text>
+                          <Text style={styles.optionPrice}>
+                            ${Number(item.price_per_lb).toFixed(4)}/lb
+                          </Text>
+                        </View>
+                        <Text style={styles.chevron}>{'>'}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
+                ) : (
+                  <FlatList
+                    data={categories}
+                    keyExtractor={(item) => item.id}
+                    contentContainerStyle={styles.listContent}
+                    ListHeaderComponent={
+                      recentMetalsCache.length > 0 ? (
+                        <View style={styles.recentSection}>
+                          <Text style={styles.recentTitle}>{t.recent}</Text>
+                          {recentMetalsCache.map((metal) => (
+                            <TouchableOpacity
+                              key={metal.id}
+                              style={styles.recentCard}
+                              onPress={() => {
+                                setSelectedMetal(metal);
+                                setStep('weight');
+                              }}
+                            >
+                              <View>
+                                <Text style={styles.optionName}>
+                                  {metal.name}
+                                </Text>
+                                <Text style={styles.optionPrice}>
+                                  ${Number(metal.price_per_lb).toFixed(4)}/lb
+                                </Text>
+                              </View>
+                              <Text style={styles.chevron}>{'>'}</Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      ) : null
+                    }
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.optionCard}
+                        onPress={() => handleSelectCategory(item)}
+                      >
+                        <Text style={styles.optionName}>{item.name}</Text>
+                        <Text style={styles.chevron}>{'>'}</Text>
+                      </TouchableOpacity>
+                    )}
+                  />
                 )}
-              />
+              </>
             )}
           </>
         )}
@@ -402,6 +478,25 @@ export default function AddLineItemModal({
                     />
                   </View>
                 </View>
+                {/* Reuse a saved tare (a regular's rig/container) — #96 */}
+                {tarePresets.length > 0 && (
+                  <View style={styles.tareChips}>
+                    <Text style={styles.tareChipsLabel}>{t.savedTares}</Text>
+                    <View style={styles.tareChipRow}>
+                      {tarePresets.map((p) => (
+                        <TouchableOpacity
+                          key={p.id}
+                          style={styles.tareChip}
+                          onPress={() => setTareWeight(String(p.tare_weight))}
+                        >
+                          <Text style={styles.tareChipText}>
+                            {p.name} · {p.tare_weight} lb
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
                 {netWeight > 0 && (
                   <View style={styles.netResult}>
                     <Text style={styles.netResultLabel}>
@@ -516,6 +611,64 @@ const makeStyles = (colors: Palette) =>
       borderWidth: 1,
       borderColor: colors.accent,
       borderLeftWidth: 3,
+    },
+    searchWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      marginHorizontal: spacing.lg,
+      marginTop: spacing.sm,
+      paddingHorizontal: spacing.md,
+      backgroundColor: colors.inputBackground,
+      borderRadius: borderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    searchInput: {
+      flex: 1,
+      color: colors.textPrimary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+      paddingVertical: spacing.md,
+    },
+    searchClear: {
+      color: colors.textTertiary,
+      fontSize: fontSize.lg,
+      fontFamily: fonts.sans,
+      paddingHorizontal: spacing.xs,
+    },
+    noMatches: {
+      color: colors.textSecondary,
+      fontSize: fontSize.md,
+      fontFamily: fonts.sans,
+      textAlign: 'center',
+      paddingVertical: spacing.xl,
+    },
+    tareChips: {
+      gap: spacing.sm,
+    },
+    tareChipsLabel: {
+      color: colors.textSecondary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.sans,
+    },
+    tareChipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    tareChip: {
+      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.accent,
+    },
+    tareChipText: {
+      color: colors.textPrimary,
+      fontSize: fontSize.sm,
+      fontFamily: fonts.monoMedium,
     },
     listContent: {
       padding: spacing.lg,

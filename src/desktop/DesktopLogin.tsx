@@ -46,8 +46,8 @@ export default function DesktopLogin() {
       setErr(null);
       try {
         await dispatch(signIn({ email: trimmedEmail, password })).unwrap();
-      } catch (e2) {
-        setErr((e2 as Error).message);
+      } catch (error) {
+        setErr((error as Error).message);
       } finally {
         setLoading(false);
       }
@@ -73,8 +73,8 @@ export default function DesktopLogin() {
       // Mirror mobile: land back on sign-in with a confirmation, don't auto-auth.
       switchMode('signin');
       setNotice('Account created — sign in below to continue.');
-    } catch (e2) {
-      setErr((e2 as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       setLoading(false);
     }

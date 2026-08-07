@@ -33,8 +33,8 @@ export function useIdScanner() {
       const fields = parseDriversLicense(rawText);
 
       return { imageUri, fields };
-    } catch (err) {
-      Alert.alert(t.scanError, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.scanError, (error as Error).message);
       return null;
     } finally {
       setScanning(false);

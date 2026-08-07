@@ -22,8 +22,8 @@ export function useReceipts(
     try {
       const data = await fetchReceipts(workerId, startDate, endDate);
       if (myReq === reqId.current) setReceipts(data);
-    } catch (err) {
-      if (myReq === reqId.current) setError((err as Error).message);
+    } catch (error_) {
+      if (myReq === reqId.current) setError((error_ as Error).message);
     } finally {
       if (myReq === reqId.current) setLoading(false);
     }

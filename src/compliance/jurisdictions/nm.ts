@@ -44,7 +44,7 @@ function receiptIsReportable(r: ReportableReceipt): boolean {
 
 function csvCell(value: unknown): string {
   const s = value === null || value === undefined ? '' : String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[\n",]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 // NMRLD upload columns. One row per metal line; per-piece lines report a piece

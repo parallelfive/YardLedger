@@ -179,6 +179,7 @@ export default {
   grossTare: 'Gross / Tare',
   grossWeightLabel: 'Gross (lbs)',
   tareWeightLabel: 'Tare (lbs)',
+  savedTares: 'Saved tares',
   netWeightResult: 'Net:',
 
   // Access Codes
@@ -454,7 +455,7 @@ export default {
   continueLabel: 'Continue',
   pay: 'Pay',
   cameraPermission: 'Camera permission required',
-  stock: 'Stock',
+  stock: 'Inventory',
   metalMix: 'Metal Mix',
   onHandByWeight: 'on-hand · by weight',
   awaitingReport: 'awaiting state report',
@@ -533,7 +534,7 @@ export default {
   // Dashboard
   tabDashboard: 'Dashboard',
   tabHome: 'Home',
-  tabStock: 'Stock',
+  tabStock: 'Inventory',
   newBuyAction: 'New buy',
   newSaleAction: 'New sale',
   dashboard: 'Dashboard',
@@ -568,6 +569,8 @@ export default {
   buyerProcessor: 'Buyer / processor',
   buyerProcessorHint: 'e.g. Western Copper Mills',
   materialLabel: 'Material',
+  searchMaterialsHint: 'Search materials',
+  noMaterialMatches: 'No materials match your search',
   lbAvail: 'lb avail',
   weightLb: 'Weight (lb)',
   onHandShort: 'on hand',

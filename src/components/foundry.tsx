@@ -14,13 +14,12 @@ import { useTheme, useThemedStyles } from '../theme';
 
 // ── formatters ──────────────────────────────────────────────
 export const fmtMoney = (n: number, dp = 2) =>
-  '$' +
-  Number(n).toLocaleString('en-US', {
+  `$${Number(n).toLocaleString('en-US', {
     minimumFractionDigits: dp,
     maximumFractionDigits: dp,
-  });
+  })}`;
 export const fmtMoney0 = (n: number) =>
-  '$' + Math.round(Number(n)).toLocaleString('en-US');
+  `$${Math.round(Number(n)).toLocaleString('en-US')}`;
 export const fmtLbs = (n: number) =>
   Number(n).toLocaleString('en-US', { maximumFractionDigits: n % 1 ? 1 : 0 });
 
@@ -143,7 +142,7 @@ export function MiniStat({
   const c = toneColor(tone);
   return (
     <View style={s.miniCard}>
-      <View style={[s.miniIcon, { backgroundColor: c + '24' }]}>
+      <View style={[s.miniIcon, { backgroundColor: `${c}24` }]}>
         <Ionicons name={icon} size={15} color={c} />
       </View>
       <Text style={s.miniLabel}>{label}</Text>
@@ -217,7 +216,7 @@ export function TicketRow({
       onLongPress={onLongPress}
       activeOpacity={0.7}
     >
-      <View style={[s.ticketIcon, { backgroundColor: ic + '24' }]}>
+      <View style={[s.ticketIcon, { backgroundColor: `${ic}24` }]}>
         <Ionicons name={icon} size={19} color={ic} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -255,7 +254,7 @@ export function Sparkline({
 }) {
   const { colors } = useTheme();
   const c = color ?? colors.accent;
-  if (!data.length) return <View style={{ height }} />;
+  if (data.length === 0) return <View style={{ height }} />;
   const max = Math.max(...data, 1);
   return (
     <View style={[sparkRow, { height }]}>
@@ -265,7 +264,7 @@ export function Sparkline({
           style={{
             flex: 1,
             height: Math.max(3, (v / max) * height),
-            backgroundColor: i === data.length - 1 ? c : c + '66',
+            backgroundColor: i === data.length - 1 ? c : `${c}66`,
             borderRadius: 2,
           }}
         />

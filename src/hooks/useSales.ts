@@ -17,8 +17,8 @@ export function useSales(startDate?: string, endDate?: string) {
     try {
       const data = await fetchSales(startDate, endDate);
       if (myReq === reqId.current) setSales(data);
-    } catch (err) {
-      if (myReq === reqId.current) setError((err as Error).message);
+    } catch (error_) {
+      if (myReq === reqId.current) setError((error_ as Error).message);
     } finally {
       if (myReq === reqId.current) setLoading(false);
     }

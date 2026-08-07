@@ -72,10 +72,10 @@ export async function fetchSales(startDate?: string, endDate?: string) {
     const data = await run();
     await saveJson(key, data);
     return data;
-  } catch (err) {
+  } catch (error) {
     const cached = await loadJson<Awaited<ReturnType<typeof run>>>(key);
     if (cached) return cached;
-    throw err;
+    throw error;
   }
 }
 

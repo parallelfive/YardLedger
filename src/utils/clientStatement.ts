@@ -51,7 +51,7 @@ export const quarterOf = (iso: string): number =>
 
 // Human label for the chosen period. No quarters → the full year.
 export function periodLabel(year: number, quarters: number[]): string {
-  if (!quarters.length) return String(year);
+  if (quarters.length === 0) return String(year);
   const qs = Array.from(new Set(quarters)).sort((a, b) => a - b);
   return `${year} · ${qs.map((q) => `Q${q}`).join(', ')}`;
 }
@@ -70,7 +70,7 @@ export function statementYears(receipts: StatementReceipt[]): number[] {
 const amountLabel = (li: StatementLineItem): string =>
   li.unit === 'each'
     ? `${li.metal_name ?? '—'} (${Number(li.quantity ?? 0)} pcs)`
-    : `${li.metal_name ?? '—'}`;
+    : (li.metal_name ?? '—');
 
 export function buildClientStatement(
   receipts: StatementReceipt[],

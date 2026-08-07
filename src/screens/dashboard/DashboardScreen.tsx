@@ -33,6 +33,7 @@ import {
   type Tone,
 } from '../../components/foundry';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { useRole } from '../../hooks';
 import { type Palette, spacing, borderRadius, fonts } from '../../constants';
 import { useTheme, useThemedStyles } from '../../theme';
@@ -70,11 +71,12 @@ export default function DashboardScreen() {
   const [unreported, setUnreported] = useState(0);
   const [recent, setRecent] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
+  const tz = useCompanyTimezone();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const { start, end } = getDateRange('today');
+      const { start, end } = getDateRange('today', tz);
       const [s, val, sp, unrep, receipts] = await Promise.all([
         fetchDailySummary(start, end),
         fetchInventoryValuation(),
@@ -126,7 +128,7 @@ export default function DashboardScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [tz]);
 
   useFocusEffect(
     useCallback(() => {
@@ -156,10 +158,11 @@ export default function DashboardScreen() {
 
   // Delta vs the trailing 14-day average (matches the design's "% vs avg").
   const trailing = spark.slice(0, -1);
-  const avg = trailing.length
-    ? trailing.reduce((a, n) => a + n, 0) / trailing.length
-    : 0;
-  const last = spark.length ? spark[spark.length - 1] : 0;
+  const avg =
+    trailing.length > 0
+      ? trailing.reduce((a, n) => a + n, 0) / trailing.length
+      : 0;
+  const last = spark.length > 0 ? spark[spark.length - 1] : 0;
   const deltaPct = avg > 0 ? Math.round(((last - avg) / avg) * 100) : 0;
 
   return (

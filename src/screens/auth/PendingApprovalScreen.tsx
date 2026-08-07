@@ -96,7 +96,7 @@ const makeStyles = (colors: Palette) =>
       width: 72,
       height: 72,
       borderRadius: 36,
-      backgroundColor: colors.gold + '26',
+      backgroundColor: `${colors.gold}26`,
       justifyContent: 'center',
       alignItems: 'center',
       marginBottom: spacing.xl,

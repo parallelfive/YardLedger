@@ -13,8 +13,8 @@ export function useMetalCategories() {
     try {
       const data = await fetchMetalCategories();
       setCategories(data);
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (error_) {
+      setError((error_ as Error).message);
     } finally {
       setLoading(false);
     }

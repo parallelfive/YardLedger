@@ -42,7 +42,7 @@ const saleUnit = (s: SaleRow) => (s.unit === 'each' ? 'pc' : 'lb');
 const saleAmountPieces = (s: SaleRow) =>
   s.unit === 'each' ? Number(s.quantity ?? 0) : 0;
 
-const loadNo = (id: string) => 'SO-' + id.slice(0, 8);
+const loadNo = (id: string) => `SO-${id.slice(0, 8)}`;
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
@@ -144,7 +144,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
         >
           <PanelHead
             title="Outbound loads"
-            sub="Stock shipped to mills"
+            sub="Inventory shipped to mills"
             icon="truck"
             tone="var(--teal)"
           />
@@ -307,7 +307,7 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                       sel.unit === 'each' ? 'Pieces' : 'Weight',
                       sel.unit === 'each'
                         ? `${lbs(saleAmount(sel))} pcs`
-                        : lbs(sel.weight) + ' lb',
+                        : `${lbs(sel.weight)} lb`,
                     ],
                     [
                       sel.unit === 'each' ? 'Price / pc' : 'Price / lb',
@@ -376,19 +376,17 @@ export default function Sales({ nav }: { nav: { openSale: () => void } }) {
                   icon="download"
                   full
                   onClick={() => {
-                    const csv =
-                      'load,buyer,material,weight_lb,quantity_pcs,price,total\n' +
-                      [
-                        loadNo(sel.id),
-                        sel.buyer_name,
-                        sel.metal_name,
-                        sel.unit === 'each' ? '' : sel.weight,
-                        sel.unit === 'each' ? Number(sel.quantity ?? 0) : '',
-                        sel.sale_price_per_lb,
-                        sel.total_revenue,
-                      ]
-                        .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
-                        .join(',');
+                    const csv = `load,buyer,material,weight_lb,quantity_pcs,price,total\n${[
+                      loadNo(sel.id),
+                      sel.buyer_name,
+                      sel.metal_name,
+                      sel.unit === 'each' ? '' : sel.weight,
+                      sel.unit === 'each' ? Number(sel.quantity ?? 0) : '',
+                      sel.sale_price_per_lb,
+                      sel.total_revenue,
+                    ]
+                      .map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`)
+                      .join(',')}`;
                     shareTextFile(
                       `${loadNo(sel.id)}.csv`,
                       csv,

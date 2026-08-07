@@ -8,42 +8,18 @@ import {
   fonts,
 } from '../constants';
 import { useThemedStyles } from '../theme';
+import type { DatePreset } from '../utils/dateRange';
 
-export type DatePreset = 'today' | 'week' | 'month';
+// getDateRange + DatePreset live in utils/dateRange (a pure, node-testable
+// module) so the tz-aware range logic (#111) has unit coverage without pulling
+// the RN module graph into vitest. Re-exported here so existing
+// `from '../components/DateRangeSelector'` imports keep working.
+export { getDateRange } from '../utils/dateRange';
+export type { DatePreset } from '../utils/dateRange';
 
 interface DateRangeSelectorProps {
   selected: DatePreset;
   onSelect: (preset: DatePreset) => void;
-}
-
-function localDateString(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-export function getDateRange(preset: DatePreset): {
-  start: string;
-  end: string;
-} {
-  const now = new Date();
-  const end = localDateString(now);
-
-  switch (preset) {
-    case 'today':
-      return { start: end, end };
-    case 'week': {
-      const weekAgo = new Date(now);
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      return { start: localDateString(weekAgo), end };
-    }
-    case 'month': {
-      const monthAgo = new Date(now);
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      return { start: localDateString(monthAgo), end };
-    }
-  }
 }
 
 export default function DateRangeSelector({

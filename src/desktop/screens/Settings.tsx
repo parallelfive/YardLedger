@@ -56,6 +56,17 @@ function metalTier(m: Metal): string {
   return 'open';
 }
 
+// Per-lb prices carry up to 4 decimals in the buy math + Market Prices; the
+// pricing list must not round to 2 or it disagrees with them (#23). Per-piece
+// prices stay at 2 (cents).
+const priceLabel = (m: Metal): string =>
+  m.pricing_unit === 'each'
+    ? money(m.price_per_lb)
+    : `$${Number(m.price_per_lb).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 4,
+      })}`;
+
 function InfoRow({
   k,
   v,
@@ -170,8 +181,8 @@ function TeamAccess({
   const load = useCallback(async () => {
     try {
       setCodes(await listInviteCodes());
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     }
   }, []);
   useEffect(() => {
@@ -192,8 +203,8 @@ function TeamAccess({
       const code = await createInviteCode(role);
       setCreated(code);
       await load();
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -205,8 +216,8 @@ function TeamAccess({
     try {
       await deleteInviteCode(id);
       setCodes((prev) => prev.filter((c) => c.id !== id));
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     }
   };
 
@@ -491,6 +502,8 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                       license_number: settings?.license_number ?? '',
                       ein: settings?.ein ?? '',
                       registry_id: settings?.registry_id ?? '',
+                      leadsonline_store_id:
+                        settings?.leadsonline_store_id ?? '',
                       general_hold_hours: settings?.general_hold_hours ?? 24,
                       cat_converter_hold_days:
                         settings?.cat_converter_hold_days ?? 1,
@@ -740,8 +753,7 @@ export default function Settings({ canManage }: { canManage: boolean }) {
                         color: 'var(--ink)',
                       }}
                     >
-                      {money(m.price_per_lb)}/
-                      {m.pricing_unit === 'each' ? 'pc' : 'lb'}
+                      {priceLabel(m)}/{m.pricing_unit === 'each' ? 'pc' : 'lb'}
                     </span>,
                   ]}
                 />

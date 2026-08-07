@@ -28,6 +28,7 @@ import {
 import { fetchCompanySettings } from '../../services/companySettings';
 import { Ionicons } from '@expo/vector-icons';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useAppSelector, type RootState } from '../../store';
 import { Tag, SectionLabel, fmtMoney } from '../../components/foundry';
@@ -61,6 +62,7 @@ export default function ComplianceReportScreen() {
   const styles = useThemedStyles(makeStyles);
   const profile = useAppSelector((s: RootState) => s.auth.profile);
   const isFocused = useIsFocused();
+  const tz = useCompanyTimezone();
   const [preset, setPreset] = useState<DatePreset>('today');
   const [rows, setRows] = useState<PurchaseRecordRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,7 +70,7 @@ export default function ComplianceReportScreen() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const { start, end } = getDateRange(preset);
+      const { start, end } = getDateRange(preset, tz);
       const data = await fetchComplianceReport(start, end);
 
       const mapped: PurchaseRecordRow[] = data.map((r) => {
@@ -124,12 +126,12 @@ export default function ComplianceReportScreen() {
       });
 
       setRows(mapped);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setLoading(false);
     }
-  }, [preset, t.error]);
+  }, [preset, tz, t.error]);
 
   useEffect(() => {
     if (isFocused) loadData();
@@ -218,8 +220,8 @@ export default function ComplianceReportScreen() {
     try {
       const html = await buildHtml(restrictedOnly);
       await printHtml(html);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -242,8 +244,8 @@ export default function ComplianceReportScreen() {
         'text/csv',
         'public.comma-separated-values-text'
       );
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -252,7 +254,7 @@ export default function ComplianceReportScreen() {
   // flag. Distinct from the human-readable purchase-record CSV above.
   const handleNmrldExport = async () => {
     try {
-      const { start, end } = getDateRange(preset);
+      const { start, end } = getDateRange(preset, tz);
       const csv = await exportNmrldCsv(start, end);
       await shareTextFile(
         'nmrld_upload.csv',
@@ -260,8 +262,8 @@ export default function ComplianceReportScreen() {
         'text/csv',
         'public.comma-separated-values-text'
       );
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -301,15 +303,15 @@ export default function ComplianceReportScreen() {
                   profile?.id ?? ''
                 );
                 Alert.alert(t.success, t.markedReported);
-              } catch (err) {
-                Alert.alert(t.error, (err as Error).message);
+              } catch (error) {
+                Alert.alert(t.error, (error as Error).message);
               }
             },
           },
         ]
       );
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     }
   };
 
@@ -462,7 +464,7 @@ export default function ComplianceReportScreen() {
                         <Tag
                           label={t.restrictedMaterial}
                           color={colors.rust}
-                          soft={colors.rust + '22'}
+                          soft={`${colors.rust}22`}
                           icon="warning"
                         />
                       )}
@@ -495,7 +497,7 @@ function ExportBtn({
   const styles = useThemedStyles(makeStyles);
   return (
     <TouchableOpacity style={styles.exportBtn} onPress={onPress}>
-      <View style={[styles.exportIcon, { backgroundColor: tone + '24' }]}>
+      <View style={[styles.exportIcon, { backgroundColor: `${tone}24` }]}>
         <Ionicons name={icon} size={18} color={tone} />
       </View>
       <View style={styles.exportTextWrap}>

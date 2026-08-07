@@ -46,7 +46,7 @@ import {
   lbs,
   type Col,
 } from '../ui';
-import { signPrivatePath } from '../../services/storage';
+import { CompliancePhotos, buildCompliancePhotos } from '../CompliancePhotos';
 
 // 'Outstanding' is date-unbounded — every unreported buy, so an old one that
 // fell outside Today/Week/Month (e.g. missed over a month rollover) is still
@@ -142,118 +142,9 @@ const toVM = (r: ComplianceReceiptRow): RecordVM => {
     reported: !!r.reported_at,
     affirmed: !!r.seller_affirmed,
     pay: r.payment_method || '—',
-    photos: (
-      [
-        ['ID scan', r.seller_id_photo_uri],
-        ['Driver license', r.dl_photo_uri],
-        ['Seller', r.seller_photo_uri],
-        ['Material', r.material_photo_uri],
-        ['Converter', r.cat_converter_photo_uri],
-        ['Title', r.cat_title_photo_uri],
-        ['Signature', r.signature_uri],
-      ] as [string, string | null][]
-    )
-      .filter((p): p is [string, string] => !!p[1])
-      .map(([label, path]) => ({ label, path })),
+    photos: buildCompliancePhotos(r as unknown as Record<string, unknown>),
   };
 };
-
-// Compliance evidence photos live in a private bucket as object PATHS; mint a
-// short-lived signed URL per photo at render time (#107 — the panel used to show
-// hardcoded placeholders instead of the stored evidence).
-function CompliancePhotos({
-  photos,
-}: {
-  photos: { label: string; path: string }[];
-}) {
-  const [urls, setUrls] = useState<Record<string, string | null>>({});
-  useEffect(() => {
-    let active = true;
-    Promise.all(
-      photos.map(async (p) => [p.label, await signPrivatePath(p.path)] as const)
-    ).then((pairs) => {
-      if (active) setUrls(Object.fromEntries(pairs));
-    });
-    return () => {
-      active = false;
-    };
-  }, [photos]);
-
-  if (photos.length === 0) {
-    return (
-      <div className="mono" style={{ fontSize: 12, color: 'var(--ink-3)' }}>
-        No photos captured for this record.
-      </div>
-    );
-  }
-  return (
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-      {photos.map((p) => {
-        const url = urls[p.label];
-        return (
-          <div key={p.label} style={{ width: 104 }}>
-            <div
-              style={{
-                height: 88,
-                borderRadius: 10,
-                overflow: 'hidden',
-                background: 'var(--surface-2)',
-                border: '1px solid var(--line)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {url === undefined ? (
-                <span
-                  className="mono"
-                  style={{ fontSize: 10, color: 'var(--ink-3)' }}
-                >
-                  …
-                </span>
-              ) : url ? (
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{ display: 'block', width: '100%', height: '100%' }}
-                >
-                  <img
-                    src={url}
-                    alt={p.label}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
-                    }}
-                  />
-                </a>
-              ) : (
-                <span
-                  className="mono"
-                  style={{ fontSize: 10, color: 'var(--ink-3)' }}
-                >
-                  unavailable
-                </span>
-              )}
-            </div>
-            <div
-              className="mono"
-              style={{
-                fontSize: 9.5,
-                color: 'var(--ink-3)',
-                marginTop: 5,
-                textAlign: 'center',
-              }}
-            >
-              {p.label}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 function ExportTile({
   icon,
@@ -494,9 +385,9 @@ export default function Compliance({
       await sendReportNow();
       setSendOpen(false);
       setReloadTick((t) => t + 1); // reloads records + status
-      setSendMsg('Uploaded to ' + jur.copy.registry + '.');
-    } catch (e) {
-      setSendMsg((e as Error).message || 'Upload failed.');
+      setSendMsg(`Uploaded to ${jur.copy.registry}.`);
+    } catch (error) {
+      setSendMsg((error as Error).message || 'Upload failed.');
     } finally {
       setSending(false);
     }
@@ -542,8 +433,8 @@ export default function Compliance({
       });
       setCfgOpen(false);
       setReloadTick((t) => t + 1);
-    } catch (e) {
-      setCfgMsg((e as Error).message || 'Could not save.');
+    } catch (error) {
+      setCfgMsg((error as Error).message || 'Could not save.');
     } finally {
       setCfgBusy(false);
     }
@@ -568,8 +459,8 @@ export default function Compliance({
       const res = await testReportingConnection();
       setCfgMsg((res.ok ? '✓ ' : '✕ ') + res.detail);
       setReloadTick((t) => t + 1);
-    } catch (e) {
-      setCfgMsg('✕ ' + ((e as Error).message || 'Test failed.'));
+    } catch (error) {
+      setCfgMsg(`✕ ${(error as Error).message || 'Test failed.'}`);
     } finally {
       setTesting(false);
     }
@@ -793,16 +684,16 @@ export default function Compliance({
             ? 'Connection set up · disabled'
             : 'Automatic upload not set up';
         const last = lastUpload
-          ? (lastUpload.status === 'success'
-              ? `Last sent ${lastUpload.receipt_count} receipt${lastUpload.receipt_count === 1 ? '' : 's'}`
-              : 'Last attempt failed') +
-            ' · ' +
-            new Date(lastUpload.created_at).toLocaleString('en-US', {
+          ? `${
+              lastUpload.status === 'success'
+                ? `Last sent ${lastUpload.receipt_count} receipt${lastUpload.receipt_count === 1 ? '' : 's'}`
+                : 'Last attempt failed'
+            } · ${new Date(lastUpload.created_at).toLocaleString('en-US', {
               month: 'short',
               day: 'numeric',
               hour: 'numeric',
               minute: '2-digit',
-            })
+            })}`
           : 'No uploads yet';
         return (
           <Card
@@ -1155,7 +1046,7 @@ export default function Compliance({
                       ['Vehicle', sel.vehicle],
                       ['Payment', sel.pay],
                       ...((sel.weight > 0 || sel.pieces === 0
-                        ? [['Weight', lbs(sel.weight) + ' lb']]
+                        ? [['Weight', `${lbs(sel.weight)} lb`]]
                         : []) as [string, string][]),
                       ...((sel.pieces > 0
                         ? [['Pieces', `${sel.pieces} pcs`]]

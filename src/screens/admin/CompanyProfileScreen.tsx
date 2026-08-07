@@ -216,8 +216,8 @@ export default function CompanyProfileScreen() {
       setRepPassword('');
       if (repPassword) setRepHasCreds(true);
       Alert.alert(t.success, t.reportingSaved);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setSavingReporting(false);
     }
@@ -228,8 +228,8 @@ export default function CompanyProfileScreen() {
     try {
       await sendReportNow();
       Alert.alert(t.success, t.reportSent);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setSendingReport(false);
     }
@@ -256,8 +256,8 @@ export default function CompanyProfileScreen() {
       );
       if (!settingsId) setSettingsId(result.id);
       Alert.alert(t.success, t.companySettingsSaved);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setSaving(false);
     }
@@ -286,8 +286,8 @@ export default function CompanyProfileScreen() {
       );
       setLogoUrl(url);
       Alert.alert(t.success, t.logoUploaded);
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setUploading(false);
     }

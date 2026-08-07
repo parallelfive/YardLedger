@@ -16,8 +16,8 @@ export function useDraftTickets(pollMs = 6000) {
     try {
       const data = await fetchPendingDrafts();
       if (myReq === reqId.current) setDrafts(data);
-    } catch (err) {
-      if (myReq === reqId.current) setError((err as Error).message);
+    } catch (error_) {
+      if (myReq === reqId.current) setError((error_ as Error).message);
     } finally {
       if (myReq === reqId.current) setLoading(false);
     }

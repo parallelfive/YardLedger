@@ -114,12 +114,6 @@ export default function InventoryScreen() {
     });
   }, [inventory]);
 
-  const totalValue = rows.reduce((s, r) => s + r.weight * r.avg, 0);
-  // Weight total excludes per-piece rows (their onHand is a piece count).
-  const totalWeight = rows
-    .filter((r) => r.unit === 'lb')
-    .reduce((s, r) => s + r.weight, 0);
-
   const categories = useMemo(() => {
     const set = new Set<string>();
     rows.forEach((r) => r.category && set.add(r.category));
@@ -128,15 +122,31 @@ export default function InventoryScreen() {
     return list;
   }, [rows]);
 
-  const filtered = rows.filter((r) =>
-    cat === ALL ? true : cat === RESTRICTED ? r.restricted : r.category === cat
+  const filtered = useMemo(
+    () =>
+      rows.filter((r) =>
+        cat === ALL
+          ? true
+          : cat === RESTRICTED
+            ? r.restricted
+            : r.category === cat
+      ),
+    [rows, cat]
   );
+
+  // Summary reflects the ACTIVE filter, not the whole yard, so the hero value
+  // and count always match the list below it (#102). Weight total excludes
+  // per-piece rows (their onHand is a piece count, not pounds).
+  const totalValue = filtered.reduce((s, r) => s + r.weight * r.avg, 0);
+  const totalWeight = filtered
+    .filter((r) => r.unit === 'lb')
+    .reduce((s, r) => s + r.weight, 0);
 
   return (
     <View style={styles.container}>
       <TareHeader
         title={t.tabInventory}
-        rightLabel={`${rows.length} ${t.metalsWord}`}
+        rightLabel={`${filtered.length} ${t.metalsWord}`}
       />
       <FlatList
         data={filtered}
@@ -161,7 +171,7 @@ export default function InventoryScreen() {
               </View>
               <Text style={styles.heroValue}>{fmtMoney(totalValue)}</Text>
               <Text style={styles.heroSub}>
-                {fmtLbs(totalWeight)} lb · {rows.length} {t.metalsWord}
+                {fmtLbs(totalWeight)} lb · {filtered.length} {t.metalsWord}
               </Text>
             </View>
 
@@ -216,7 +226,7 @@ export default function InventoryScreen() {
                     <Tag
                       label={t.restrictedLabel}
                       color={colors.rust}
-                      soft={colors.rust + '22'}
+                      soft={`${colors.rust}22`}
                     />
                   )}
                 </View>

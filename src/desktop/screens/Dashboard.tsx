@@ -61,10 +61,10 @@ function AreaChart({
       ] as const
   );
   const line = pts
-    .map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1))
+    .map((p, i) => `${(i ? 'L' : 'M') + p[0].toFixed(1)} ${p[1].toFixed(1)}`)
     .join(' ');
-  const area = line + ` L${w} ${h} L0 ${h} Z`;
-  const gid = 'ac' + Math.round(min + max + data.length);
+  const area = `${line} L${w} ${h} L0 ${h} Z`;
+  const gid = `ac${Math.round(min + max + data.length)}`;
   return (
     <svg
       viewBox={`0 0 ${w} ${h}`}
@@ -285,7 +285,7 @@ export default function Dashboard({
     { key: 'pay', label: 'Pay', w: '0.7fr', align: 'right' },
   ];
 
-  if (dashError && initialLoading === false && receipts.length === 0) {
+  if (dashError && !initialLoading && receipts.length === 0) {
     return (
       <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
         <Card style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
@@ -736,7 +736,7 @@ export default function Dashboard({
                       key={x.name}
                       className="ml-bar"
                       style={{
-                        width: x.pct * 100 + '%',
+                        width: `${x.pct * 100}%`,
                         background: toneColor(x.tone),
                       }}
                     />

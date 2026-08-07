@@ -3,7 +3,8 @@ import { supabase } from '../config/supabase';
 // Open a short admin-elevation window by proving an admin/owner PIN. Privileged
 // DB writes are gated on an active window server-side (has_admin_elevation);
 // see migrations 20260618000002-4. Returns the window's expiry as epoch ms.
-// Throws on a bad/insufficient PIN (the function raises 'Wrong admin passcode').
+// A wrong/insufficient PIN returns null (so the failed-attempt ledger commits
+// toward the lockout — see 20260806000002); a lockout still raises.
 export async function elevateAdmin(
   pin: string,
   requireOwner = false
@@ -13,6 +14,7 @@ export async function elevateAdmin(
     p_owner: requireOwner,
   });
   if (error) throw error;
+  if (!data) throw new Error('Wrong admin passcode');
   return new Date(data as string).getTime();
 }
 

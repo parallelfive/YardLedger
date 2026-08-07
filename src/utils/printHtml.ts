@@ -75,9 +75,9 @@ function printHtmlWeb(html: string): Promise<void> {
           win.focus();
           win.print();
           settle();
-        } catch (e) {
+        } catch (error) {
           removeFrame();
-          settle(e as Error);
+          settle(error as Error);
         }
       }, 150);
     };

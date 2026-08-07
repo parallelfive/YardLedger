@@ -180,6 +180,7 @@ export default {
   grossTare: 'Bruto / Tara',
   grossWeightLabel: 'Bruto (lbs)',
   tareWeightLabel: 'Tara (lbs)',
+  savedTares: 'Taras guardadas',
   netWeightResult: 'Neto:',
 
   // Access Codes
@@ -573,6 +574,8 @@ export default {
   buyerProcessor: 'Comprador / procesador',
   buyerProcessorHint: 'p. ej. Western Copper Mills',
   materialLabel: 'Material',
+  searchMaterialsHint: 'Buscar materiales',
+  noMaterialMatches: 'Ningún material coincide con tu búsqueda',
   lbAvail: 'lb disp.',
   weightLb: 'Peso (lb)',
   onHandShort: 'en stock',

@@ -147,6 +147,7 @@ export interface CompanyEdit {
   license_number: string;
   ein: string;
   registry_id: string;
+  leadsonline_store_id: string;
   // Per-company compliance overrides (defaults seeded from the jurisdiction).
   general_hold_hours: number;
   cat_converter_hold_days: number;
@@ -298,8 +299,8 @@ function ElevateModal({
     try {
       const expiry = await elevateAdmin(pin, requireOwner);
       onSuccess(expiry);
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
       setPin('');
     } finally {
       setBusy(false);
@@ -400,8 +401,8 @@ function AddMaterialModal({
     setErr(null);
     try {
       await onSave(name.trim(), p, unit, tier);
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       // Always clear busy — onSave returns without throwing when the operator
       // cancels the PIN prompt, which otherwise left the button stuck on "Saving…".
@@ -523,8 +524,8 @@ function EditPriceModal({
     setErr(null);
     try {
       await onSave(p, unit, tier);
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       // Clear busy even when the PIN prompt is cancelled (onSave returns
       // without throwing) — otherwise the button sticks on "Saving…".
@@ -628,6 +629,8 @@ function EditCompanyModal({
   const [license, setLicense] = useState(current.license_number);
   const [ein, setEin] = useState(current.ein);
   const [registry, setRegistry] = useState(current.registry_id);
+  // LeadsOnline store id — strictly numeric per the registry; strip non-digits.
+  const [storeId, setStoreId] = useState(current.leadsonline_store_id);
   // Compliance overrides — kept as strings for the inputs, parsed on save.
   const [holdHours, setHoldHours] = useState(
     String(current.general_hold_hours)
@@ -674,8 +677,8 @@ function EditCompanyModal({
       const url = await uploadCompanyLogo(dataUrl, userId, current.settings_id);
       setLogoUrl(url);
       onLogoSaved();
-    } catch (ex) {
-      setErr((ex as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       setLogoBusy(false);
     }
@@ -709,6 +712,7 @@ function EditCompanyModal({
         license_number: license.trim(),
         ein: ein.trim(),
         registry_id: registry.trim(),
+        leadsonline_store_id: storeId.trim(),
         general_hold_hours: num(holdHours, jur.holdDefaults.generalHours),
         cat_converter_hold_days: num(
           catDays,
@@ -719,8 +723,8 @@ function EditCompanyModal({
         cat_converter_retention_years: num(retCat, 3),
         timezone: timezone.trim(),
       });
-    } catch (e) {
-      setErr((e as Error).message);
+    } catch (error) {
+      setErr((error as Error).message);
     } finally {
       // Clear busy even when the PIN prompt is cancelled (onSave returns
       // without throwing) — otherwise the button sticks on "Saving…".
@@ -905,6 +909,14 @@ function EditCompanyModal({
             </Field>
           </div>
         </div>
+        <Field label={`${jur.copy.registry} store ID`}>
+          <TextInput
+            value={storeId}
+            onChange={(v) => setStoreId(v.replace(/\D/g, ''))}
+            placeholder="Numeric store id carried on report submissions"
+            mono
+          />
+        </Field>
 
         {/* compliance rule overrides — presets come from the jurisdiction */}
         <div

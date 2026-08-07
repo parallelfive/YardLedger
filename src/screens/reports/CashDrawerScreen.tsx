@@ -56,8 +56,8 @@ export default function CashDrawerScreen() {
       await openCashDrawer(amount, workerId);
       setFloatInput('');
       refresh();
-    } catch (e) {
-      Alert.alert(t.error, (e as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setBusy(false);
     }
@@ -77,8 +77,8 @@ export default function CashDrawerScreen() {
       setCountInput('');
       refresh();
       Alert.alert(t.drawerClosed, verdict);
-    } catch (e) {
-      Alert.alert(t.error, (e as Error).message);
+    } catch (error) {
+      Alert.alert(t.error, (error as Error).message);
     } finally {
       setBusy(false);
     }

@@ -14,13 +14,12 @@ type S = CSSProperties;
 const vars = (o: Record<string, string | number>): S => o as S;
 
 export const money = (n: number, dp = 2) =>
-  '$' +
-  Number(n).toLocaleString('en-US', {
+  `$${Number(n).toLocaleString('en-US', {
     minimumFractionDigits: dp,
     maximumFractionDigits: dp,
-  });
+  })}`;
 export const money0 = (n: number) =>
-  '$' + Math.round(Number(n)).toLocaleString('en-US');
+  `$${Math.round(Number(n)).toLocaleString('en-US')}`;
 export const lbs = (n: number) =>
   Number(n).toLocaleString('en-US', { maximumFractionDigits: n % 1 ? 1 : 0 });
 export const initialsOf = (name: string) =>
@@ -772,7 +771,7 @@ export function SearchBox({
       <Icon name="search" size={16} color="var(--ink-3)" stroke={2} />
       <input
         value={value}
-        onChange={(e) => onChange && onChange(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
         style={{
           flex: 1,
@@ -1019,10 +1018,10 @@ export function Sparkline({
       ] as const
   );
   const line = pts
-    .map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1))
+    .map((p, i) => `${(i ? 'L' : 'M') + p[0].toFixed(1)} ${p[1].toFixed(1)}`)
     .join(' ');
-  const area = line + ` L${w} ${h} L0 ${h} Z`;
-  const gid = 'sg' + Math.round(min + max + data.length);
+  const area = `${line} L${w} ${h} L0 ${h} Z`;
+  const gid = `sg${Math.round(min + max + data.length)}`;
   return (
     <svg
       width={w}
@@ -1377,7 +1376,7 @@ export function TextInput({
       )}
       <input
         value={value}
-        onChange={(e) => onChange && onChange(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}
         readOnly={readOnly}
         type={type}

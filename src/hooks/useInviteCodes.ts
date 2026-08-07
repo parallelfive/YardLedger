@@ -20,8 +20,8 @@ export function useInviteCodes() {
     try {
       const data = await listInviteCodes();
       setCodes(data);
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (error_) {
+      setError((error_ as Error).message);
     } finally {
       setLoading(false);
     }

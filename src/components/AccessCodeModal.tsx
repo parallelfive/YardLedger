@@ -55,10 +55,10 @@ export default function AccessCodeModal({
       } else {
         setError(t.invalidCode);
       }
-    } catch (e) {
+    } catch (error_) {
       // Surface a real failure (e.g. the lockout message) rather than masking
       // it as a generic invalid-code error.
-      setError((e as Error).message || t.verificationFailed);
+      setError((error_ as Error).message || t.verificationFailed);
     } finally {
       setVerifying(false);
     }

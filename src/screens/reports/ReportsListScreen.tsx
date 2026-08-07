@@ -14,6 +14,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { shareTextFile } from '../../utils/shareFile';
 import { useT } from '../../hooks/useT';
+import { useCompanyTimezone } from '../../hooks/useCompanyTimezone';
 import { useAdminElevation } from '../../providers/AdminElevationProvider';
 import { useRole } from '../../hooks';
 import { useAppSelector, type RootState } from '../../store';
@@ -77,6 +78,7 @@ export default function ReportsListScreen({ navigation }: Props) {
   const { isAdmin } = useRole();
 
   const [preset, setPreset] = useState<DatePreset>('month');
+  const tz = useCompanyTimezone();
   const [rows, setRows] = useState<ComplianceReceiptRow[]>([]);
   const [stateCode, setStateCode] = useState('');
   const [loading, setLoading] = useState(true);
@@ -86,7 +88,7 @@ export default function ReportsListScreen({ navigation }: Props) {
     setLoading(true);
     setError(false);
     try {
-      const { start, end } = getDateRange(preset);
+      const { start, end } = getDateRange(preset, tz);
       const [data, settings] = await Promise.all([
         fetchComplianceReport(start, end),
         fetchCompanySettings().catch(() => null),
@@ -99,7 +101,7 @@ export default function ReportsListScreen({ navigation }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [preset]);
+  }, [preset, tz]);
 
   useFocusEffect(
     useCallback(() => {
@@ -137,15 +139,15 @@ export default function ReportsListScreen({ navigation }: Props) {
                 );
                 Alert.alert(t.success, t.markedReported);
                 load();
-              } catch (err) {
-                Alert.alert(t.error, (err as Error).message);
+              } catch (error_) {
+                Alert.alert(t.error, (error_ as Error).message);
               }
             },
           },
         ]
       );
-    } catch (err) {
-      Alert.alert(t.error, (err as Error).message);
+    } catch (error_) {
+      Alert.alert(t.error, (error_ as Error).message);
     }
   };
 
@@ -245,7 +247,7 @@ export default function ReportsListScreen({ navigation }: Props) {
               sub={`${restrictedCount} ${t.flaggedCount}`}
               onPress={() =>
                 shareCsv(rows.filter(isRestricted), 'restricted.csv').catch(
-                  (e) => Alert.alert(t.error, (e as Error).message)
+                  (error_) => Alert.alert(t.error, (error_ as Error).message)
                 )
               }
             />
@@ -255,8 +257,8 @@ export default function ReportsListScreen({ navigation }: Props) {
               label={t.exportCsvLabel}
               sub={t.spreadsheet}
               onPress={() =>
-                shareCsv(rows, 'compliance.csv').catch((e) =>
-                  Alert.alert(t.error, (e as Error).message)
+                shareCsv(rows, 'compliance.csv').catch((error_) =>
+                  Alert.alert(t.error, (error_ as Error).message)
                 )
               }
             />
@@ -435,7 +437,7 @@ function ExportBtn({
       onPress={onPress}
       disabled={locked}
     >
-      <View style={[styles.exportIcon, { backgroundColor: tone + '24' }]}>
+      <View style={[styles.exportIcon, { backgroundColor: `${tone}24` }]}>
         <Ionicons name={icon} size={18} color={tone} />
       </View>
       <View style={styles.flex}>
@@ -488,9 +490,9 @@ const makeStyles = (colors: Palette) =>
       marginTop: spacing.md,
       padding: spacing.md,
       borderRadius: 13,
-      backgroundColor: colors.rust + '14',
+      backgroundColor: `${colors.rust}14`,
       borderWidth: 1,
-      borderColor: colors.rust + '3d',
+      borderColor: `${colors.rust}3d`,
     },
     deadlineText: {
       flex: 1,

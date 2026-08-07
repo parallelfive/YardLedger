@@ -132,24 +132,21 @@ export default function ShrinkageScreen() {
                 <Tag
                   label={`${item.discrepancyPercent.toFixed(1)}%`}
                   color={severity}
-                  soft={severity + '22'}
+                  soft={`${severity}22`}
                 />
               </View>
             </View>
             <View style={styles.stats}>
-              <Stat label={t.bought} value={`${item.totalBought.toFixed(0)}`} />
+              <Stat label={t.bought} value={item.totalBought.toFixed(0)} />
               <View style={styles.statDivider} />
-              <Stat label={t.sold} value={`${item.totalSold.toFixed(0)}`} />
+              <Stat label={t.sold} value={item.totalSold.toFixed(0)} />
               <View style={styles.statDivider} />
               <Stat
                 label={t.expected}
-                value={`${item.expectedInventory.toFixed(0)}`}
+                value={item.expectedInventory.toFixed(0)}
               />
               <View style={styles.statDivider} />
-              <Stat
-                label={t.actual}
-                value={`${item.actualInventory.toFixed(0)}`}
-              />
+              <Stat label={t.actual} value={item.actualInventory.toFixed(0)} />
             </View>
           </View>
         );

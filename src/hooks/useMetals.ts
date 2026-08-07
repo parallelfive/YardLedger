@@ -16,8 +16,8 @@ export function useMetals() {
     try {
       const data = await fetchMetals();
       if (myReq === reqId.current) setMetals(data);
-    } catch (err) {
-      if (myReq === reqId.current) setError((err as Error).message);
+    } catch (error_) {
+      if (myReq === reqId.current) setError((error_ as Error).message);
     } finally {
       if (myReq === reqId.current) setLoading(false);
     }

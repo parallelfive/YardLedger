@@ -216,7 +216,7 @@ const makeStyles = (colors: Palette) =>
       fontFamily: fonts.monoSemiBold,
     },
     restrictedBadge: {
-      backgroundColor: colors.gold + '26',
+      backgroundColor: `${colors.gold}26`,
       paddingHorizontal: 6,
       paddingVertical: 2,
       borderRadius: borderRadius.sm,

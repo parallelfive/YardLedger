@@ -111,7 +111,7 @@ export default function OnHoldScreen() {
                 })
               }
             >
-              <View style={[styles.icon, { backgroundColor: tone + '24' }]}>
+              <View style={[styles.icon, { backgroundColor: `${tone}24` }]}>
                 <Ionicons
                   name={item.is_catalytic ? 'shield-outline' : 'time-outline'}
                   size={19}
@@ -125,7 +125,7 @@ export default function OnHoldScreen() {
                     <Tag
                       label={t.catalyticConverter}
                       color={colors.rust}
-                      soft={colors.rust + '22'}
+                      soft={`${colors.rust}22`}
                       icon="warning"
                     />
                   )}
