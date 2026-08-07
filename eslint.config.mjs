@@ -270,5 +270,13 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
+  },
+
+  // E2E harness + tooling config live outside the app's tsconfig project and
+  // talk to untyped external data (the pg client, the browser), so type-aware
+  // rules can't resolve there — disable them (tsc doesn't cover these anyway).
+  {
+    files: ['e2e/**/*.ts', 'playwright.config.ts'],
+    ...tseslint.configs.disableTypeChecked,
   }
 );
